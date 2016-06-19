@@ -14,5 +14,30 @@ namespace DAL
         {
             throw new NotImplementedException();
         }
+
+        internal static T NotNull<T>(this T self)
+        {
+            if (self == null)
+            {
+                throw new ArgumentNullException();
+            }
+            return self;
+        }
+        internal static T NotNull<T>(this T self, string message)
+        {
+            if (self == null)
+            {
+                throw new ArgumentNullException(message);
+            }
+            return self;
+        }
+        internal static T NotNull<T>(this T self, string message, string paramName)
+        {
+            if (self == null)
+            {
+                throw new ArgumentNullException(paramName, message);
+            }
+            return self;
+        }
     }
 }

@@ -5,13 +5,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Model
 {
-    public abstract class IdAsKeyEntity
+    public abstract class BaseEntity<TId>
     {
         [Key]
-        public int Id { get; set; }
+        public TId Id { get; set; }
     }
 
-    public abstract class DateTimeNowAsDefaultIdAsKeyEntity : IdAsKeyEntity
+    public abstract class DateTimeNowAsDefaultEntity : BaseEntity<int>
     {
         private DateTime? _dateTime;
         protected DateTime Date
@@ -41,7 +41,7 @@ namespace DAL.Model
          */
     }
 
-    public class Group : DateTimeNowAsDefaultIdAsKeyEntity
+    public class Group : DateTimeNowAsDefaultEntity
     {
         [Required, MaxLength(64)]
         public string Name { get; set; }
@@ -68,7 +68,7 @@ namespace DAL.Model
         Finished,
     }
 
-    public class Person : IdAsKeyEntity
+    public class Person : BaseEntity<int>
     {
         [Required, MaxLength(64)]
         public string FirstName { get; set; }
@@ -78,7 +78,7 @@ namespace DAL.Model
         public string Patronymic { get; set; }
     }
 
-    public class Parent : IdAsKeyEntity
+    public class Parent : BaseEntity<int>
     {
         public virtual Person Person { get; set; }
 
@@ -89,17 +89,18 @@ namespace DAL.Model
         [MaxLength(128)]
         public string WorkAddress { get; set; }
 
-        [MaxLength(10)]
+        [Required, MaxLength(10)]
         public string PassportSeries { get; set; }
-        [MaxLength(256)]
+        [Required, MaxLength(256)]
         public string PassportIssuedBy { get; set; }
         public DateTime PassportIssueDate { get; set; }
+        [MaxLength(20)]
         public string PhoneNumber { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
     }
 
-    public class Child : DateTimeNowAsDefaultIdAsKeyEntity
+    public class Child : DateTimeNowAsDefaultEntity
     {
         public virtual Person Person { get; set; }
 
@@ -165,7 +166,8 @@ namespace DAL.Model
         public Parents ParentType { get; set; }
     }
 
-    public class Payment : DateTimeNowAsDefaultIdAsKeyEntity
+    [Table("PaymentHistory")]
+    public class Payment : DateTimeNowAsDefaultEntity
     {
         public Payment() { }
 
