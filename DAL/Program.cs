@@ -11,11 +11,8 @@ namespace DAL
 //            EFlogger.EntityFramework6.EFloggerFor6.Initialize();
 
             var k = new KindergartenContext();
-
-            var group = RemoveFirstParentChildPairWithPeople(k);
-            k.Groups.Remove(group);
-
-            k.SaveChanges();
+            var list = k.Children.ToList();
+            Console.WriteLine(list.Count);
         }
 
         private static Group RemoveFirstParentChildPairWithPeople(KindergartenContext k)

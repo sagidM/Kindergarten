@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{0B8EB3C3-3F23-4A7F-841C-F8DF4E43F703}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DAL</RootNamespace>
     <AssemblyName>DAL</AssemblyName>
@@ -65,6 +65,10 @@
     <Compile Include="Migrations\201606191450583_ChangeParent.Designer.cs">
       <DependentUpon>201606191450583_ChangeParent.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201607170809314_RemoveArchive.cs" />
+    <Compile Include="Migrations\201607170809314_RemoveArchive.Designer.cs">
+      <DependentUpon>201607170809314_RemoveArchive.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
     <Compile Include="Model\models.cs" />
@@ -88,6 +92,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201606191450583_ChangeParent.resx">
       <DependentUpon>201606191450583_ChangeParent.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201607170809314_RemoveArchive.resx">
+      <DependentUpon>201607170809314_RemoveArchive.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

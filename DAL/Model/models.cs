@@ -122,34 +122,13 @@ namespace DAL.Model
             get { return Date; }
             set { Date = value; }
         }
-
-        #region ChildArchive
-
-        public int? ChildArchiveId { get; set; }
         
-        public virtual ChildArchive ChildArchive { get; set; }
-
-        #endregion
+        public bool IsNobody { get; set; }
 
         public PaymentSystems PaymentSystem { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
-    }
-
-    [Table("ChildArchive")]
-    public class ChildArchive
-    {
-        #region Child
-
-        [Key, ForeignKey(nameof(Child))]
-        public int ChildId { get; set; }
-        public virtual Child Child { get; set; }
-
-        #endregion
-
-        public bool IsNobody { get; set; }
-        public DateTime AddedDate { get; set; }
     }
 
     [Table("ParentChild")]
