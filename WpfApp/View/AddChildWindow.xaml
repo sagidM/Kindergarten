@@ -1,0 +1,120 @@
+﻿<Window x:Class="WpfApp.View.AddChildWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:WpfApp.ViewModel"
+        xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
+        xmlns:local="clr-namespace:WpfApp.View"
+		xmlns:pp="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
+		xmlns:util="clr-namespace:WpfApp.Util"
+		mc:Ignorable="d"
+        Title="Добавление ребёнка" Height="359.333" Width="398">
+	<Window.Resources>
+		<vm:AddChildViewModel x:Key="DataContext"/>
+		<Style TargetType="Label">
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="HorizontalAlignment" Value="Center"/>
+		</Style>
+		<Style TargetType="TextBox">
+			<Style.Triggers>
+				<Trigger Property="Validation.HasError" Value="True">
+					<Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Mode=Self}, Path=(Validation.Errors)[0].ErrorContent}"></Setter>
+				</Trigger>
+			</Style.Triggers>
+		</Style>
+
+		<m:Child x:Key="AdditionalChild" BirthDate="{x:Static local:AddChildWindow.DefaultChildBirthDate}">
+			<m:Child.Person>
+				<m:Person/>
+			</m:Child.Person>
+		</m:Child>
+
+	</Window.Resources>
+	<Window.DataContext>
+		<StaticResource ResourceKey="DataContext"/>
+	</Window.DataContext>
+
+	<Grid>
+		<Grid.DataContext>
+			<StaticResource ResourceKey="AdditionalChild" />
+		</Grid.DataContext>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition/>
+			<ColumnDefinition/>
+		</Grid.ColumnDefinitions>
+		<Grid.RowDefinitions>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+			<RowDefinition/>
+		</Grid.RowDefinitions>
+
+		<Button IsCancel="True">
+			<Button.Template>
+				<ControlTemplate/>
+			</Button.Template>
+		</Button>
+
+		<Label Grid.Row="0" Grid.Column="0" Content="Фамилия"/>
+		<TextBox Name="TextBox" Grid.Row="0" Grid.Column="1"
+		         Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
+		</TextBox>
+
+		<Label Grid.Row="1" Grid.Column="0" Content="Имя"/>
+		<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
+		</TextBox>
+
+		<Label Grid.Row="2" Grid.Column="0" Content="Отчество"/>
+		<TextBox Grid.Row="2" Grid.Column="1"
+		         Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
+			<Validation.ErrorTemplate>
+				<ControlTemplate>
+					<DockPanel>
+						<Border BorderBrush="Red" BorderThickness="1">
+							<AdornedElementPlaceholder DockPanel.Dock="Top"/>
+						</Border>
+					</DockPanel>
+				</ControlTemplate>
+			</Validation.ErrorTemplate>
+		</TextBox>
+
+		<Label Grid.Row="3" Grid.Column="0" Content="Дата рождения"/>
+		<DatePicker x:Name="DatePickerBirthDate" Grid.Row="3" Grid.Column="1" SelectedDate="{Binding BirthDate}"/>
+
+		<Label Grid.Row="4" Grid.Column="0" Content="Место жительства"/>
+		<TextBox Grid.Row="4" Grid.Column="1"
+		         Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
+		</TextBox>
+
+		<Label Grid.Row="5" Grid.Column="0" Content="Оплата"/>
+		<ComboBox Grid.Row="5" Grid.Column="1"
+				  SelectedItem="{Binding Path=PaymentSystem}"
+		          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
+				  ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
+		</ComboBox>
+
+		<Label Grid.Row="6" Grid.Column="0" Content="Группа"/>
+		<ComboBox Grid.Row="6" Grid.Column="1"
+		          DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=DataContext}"
+		          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Group, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+		          ItemsSource="{Binding Path=Groups}" DisplayMemberPath="Name"/>
+
+		<Image Grid.Row="7" Grid.Column="0" DataContext="{StaticResource DataContext}"
+			   Source="{Binding ChildImageSource}" />
+		<Button Grid.Row="7" Grid.Column="1"
+				DataContext="{StaticResource DataContext}"
+				Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
+
+		<Button Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" IsDefault="True"
+		        DataContext="{StaticResource DataContext}"
+		        Command="{Binding AddChildCommand}" Content="Add"
+		        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
+	</Grid>
+</Window>
+

@@ -1,14 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DAL.Model
 {
-    public abstract class BaseEntity<TId>
+    public abstract class BaseEntity<TId> : IDataErrorInfo
     {
         [Key]
         public TId Id { get; set; }
+
+        public string this[string columnName]
+        {
+            get
+            {
+                string error = GetErrorInternal(columnName);
+                Error = error;
+                return error;
+            }
+        }
+
+        protected virtual string GetErrorInternal(string columnName) => null;
+
+        [NotMapped]
+        public string Error { get; protected set; }
     }
 
     public abstract class DateTimeNowAsDefaultEntity : BaseEntity<int>
@@ -58,14 +74,43 @@ namespace DAL.Model
         public string PhotoPath { get; set; }
 
         public virtual ICollection<Child> Children { get; set; }
+
+        protected override string GetErrorInternal(string columnName)
+        {
+            string err = null;
+            switch (columnName)
+            {
+                case nameof(Name):
+                    if (string.IsNullOrWhiteSpace(Name))
+                        err = "Wrong Name";
+                    break;
+                case nameof(PhotoPath):
+                    if (!string.IsNullOrWhiteSpace(PhotoPath) && PhotoPath.Length > 255)
+                        return "PhotoPath is too long";
+                    break;
+            }
+            return err;
+        }
+
+        public bool IsValid()
+        {
+            return
+                GetErrorInternal(nameof(Name)) == null &&
+                GetErrorInternal(nameof(PhotoPath)) == null;
+        }
     }
-    public enum Groups
+
+    [Flags]
+    public enum Groups : byte
     {
-        Nursery,
-        Junior,
-        Middle,
-        Older,
-        Finished,
+        // pair with all
+        Finished = 1,
+
+        // pair with Finished
+        Nursery = 2,
+        Junior = 4,
+        Middle = 6,
+        Older = 8,
     }
 
     public class Person : BaseEntity<int>
@@ -76,6 +121,41 @@ namespace DAL.Model
         public string LastName { get; set; }
         [MaxLength(64)]
         public string Patronymic { get; set; }
+        [MaxLength(255)]
+        public string PhotoPath { get; set; }
+
+        protected override string GetErrorInternal(string columnName)
+        {
+            switch (columnName)
+            {
+                case nameof(FirstName):
+                    if (string.IsNullOrWhiteSpace(FirstName))
+                        return "Firstname is not valid";
+                    break;
+                case nameof(LastName):
+                    if (string.IsNullOrWhiteSpace(LastName))
+                        return "LastName is not valid";
+                    break;
+                case nameof(Patronymic):
+                    if (string.IsNullOrWhiteSpace(Patronymic))
+                        return "Patronymic is not valid";
+                    break;
+                case nameof(PhotoPath):
+                    if (!string.IsNullOrWhiteSpace(PhotoPath) && PhotoPath.Length > 255)
+                        return "PhotoPath is too long";
+                    break;
+            }
+            return null;
+        }
+
+        public bool IsValid()
+        {
+            return
+                GetErrorInternal(nameof(FirstName)) == null &&
+                GetErrorInternal(nameof(LastName)) == null &&
+                GetErrorInternal(nameof(Patronymic)) == null &&
+                GetErrorInternal(nameof(PhotoPath)) == null;
+        }
     }
 
     public class Parent : BaseEntity<int>
@@ -114,7 +194,13 @@ namespace DAL.Model
         [Required, MaxLength(128)]
         public string LocationAddress { get; set; }
 
-        public DateTime BirthDate { get; set; }
+        private DateTime _birthDate;
+        public DateTime BirthDate
+        {
+            get { return _birthDate; }
+            set { _birthDate = value.Date; }
+        }
+
         public Sex Sex { get; set; }
 
         public DateTime EnterDate
@@ -122,13 +208,41 @@ namespace DAL.Model
             get { return Date; }
             set { Date = value; }
         }
-        
+
         public bool IsNobody { get; set; }
 
         public PaymentSystems PaymentSystem { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
+
+        protected override string GetErrorInternal(string columnName)
+        {
+            switch (columnName)
+            {
+                case nameof(LocationAddress):
+                    if (string.IsNullOrWhiteSpace(LocationAddress))
+                        return "Is null or spaces";
+                    break;
+                case nameof(Group):
+                    if (Group == null && GroupId == 0)
+                        return "Group must be chosen";
+                    break;
+                case nameof(Person):
+                    if (Person == null)
+                        return "Person cannot be null";
+                    break;
+            }
+            return null;
+        }
+
+        public bool IsValid()
+        {
+            return
+                GetErrorInternal(nameof(LocationAddress)) == null &&
+                GetErrorInternal(nameof(Group)) == null &&
+                Person.IsValid();
+        }
     }
 
     [Table("ParentChild")]
@@ -174,10 +288,11 @@ namespace DAL.Model
 
     public enum PaymentSystems
     {
-        System1,
+        System1 = 0,
         System2,
     }
-    public enum Sex : byte { Male, Female }
 
-    public enum Parents : byte { Father, Mother, Other }
+    public enum Sex : byte { Male = 0, Female = 1 }
+
+    public enum Parents : byte { Father = 0, Mother = 1, Other = 2 }
 }

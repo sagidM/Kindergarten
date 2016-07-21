@@ -1,0 +1,27 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:m="clr-namespace:DAL.Model;assembly=DAL">
+
+
+	<x:Array x:Key="PaymentSystems" Type="m:PaymentSystems">
+		<m:PaymentSystems>System1</m:PaymentSystems>
+		<m:PaymentSystems>System2</m:PaymentSystems>
+	</x:Array>
+
+	<x:Array x:Key="Groups" Type="m:Groups">
+		<m:Groups>Nursery</m:Groups>
+		<m:Groups>Junior</m:Groups>
+		<m:Groups>Middle</m:Groups>
+		<m:Groups>Older</m:Groups>
+	</x:Array>
+
+
+
+	<DataTemplate x:Key="PaymentSystemsDataTemplate">
+		<ContentPresenter Content="{Binding Converter={StaticResource PaymentSystemConverter}}"/>
+	</DataTemplate>
+	<DataTemplate x:Key="GroupsDataTemplate">
+		<ContentPresenter Content="{Binding Converter={StaticResource GroupsConverter}}"/>
+	</DataTemplate>
+
+</ResourceDictionary>

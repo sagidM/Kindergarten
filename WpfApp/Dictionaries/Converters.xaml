@@ -1,0 +1,14 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converter="clr-namespace:WpfApp.View.Converter">
+
+	<converter:SexConverter x:Key="SexConverter"/>
+	<converter:PaymentSystemConverter x:Key="PaymentSystemConverter" System1="Оплата 1" System2="Оплата 2"/>
+	<converter:GroupsConverter x:Key="GroupsConverter" Finished="Завершённая"
+							   Nursery="Ясли" Junior="Младшая"
+							   Middle="Средняя" Older="Старшая" />
+	
+	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
+	<converter:ImageConverter x:Key="GroupImageConverter" ImageType="Group" DefaultImage="../resources/no_picture.jpg" />
+	
+</ResourceDictionary>

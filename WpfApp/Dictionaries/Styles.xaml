@@ -1,0 +1,46 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:converter="clr-namespace:WpfApp.View.Converter">
+
+	<Style x:Key="PlaceHolderTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+		<Setter Property="Template">
+			<Setter.Value>
+				<ControlTemplate TargetType="TextBox">
+					<Grid>
+						<TextBox Text="{Binding Path=Text,
+                                                RelativeSource={RelativeSource TemplatedParent}, 
+                                                Mode=TwoWay,
+                                                UpdateSourceTrigger=PropertyChanged}"
+                                 x:Name="textSource" 
+                                 Background="Transparent"
+								 Padding="{TemplateBinding Padding}"
+								 VerticalAlignment="{TemplateBinding VerticalAlignment}"
+								 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+								 HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                 Panel.ZIndex="2" />
+						<TextBox Text="{TemplateBinding Tag}" Background="{TemplateBinding Background}"
+								 Padding="{TemplateBinding Padding}"
+								 VerticalAlignment="{TemplateBinding VerticalAlignment}"
+								 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+								 HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
+								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+								 Panel.ZIndex="1">
+							<TextBox.Style>
+								<Style TargetType="TextBox">
+									<Setter Property="Foreground" Value="Transparent"/>
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding Path=Text, Source={x:Reference textSource}}" Value="">
+											<Setter Property="Foreground" Value="LightGray"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</TextBox.Style>
+						</TextBox>
+					</Grid>
+				</ControlTemplate>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
+</ResourceDictionary>

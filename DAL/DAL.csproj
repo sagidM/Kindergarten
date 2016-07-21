@@ -69,6 +69,14 @@
     <Compile Include="Migrations\201607170809314_RemoveArchive.Designer.cs">
       <DependentUpon>201607170809314_RemoveArchive.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201607170915252_ChangeGroupTypeOnByte.cs" />
+    <Compile Include="Migrations\201607170915252_ChangeGroupTypeOnByte.Designer.cs">
+      <DependentUpon>201607170915252_ChangeGroupTypeOnByte.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201607202343375_AddPhotoPathToPeople.cs" />
+    <Compile Include="Migrations\201607202343375_AddPhotoPathToPeople.Designer.cs">
+      <DependentUpon>201607202343375_AddPhotoPathToPeople.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
     <Compile Include="Model\models.cs" />
@@ -95,6 +103,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201607170809314_RemoveArchive.resx">
       <DependentUpon>201607170809314_RemoveArchive.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201607170915252_ChangeGroupTypeOnByte.resx">
+      <DependentUpon>201607170915252_ChangeGroupTypeOnByte.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201607202343375_AddPhotoPathToPeople.resx">
+      <DependentUpon>201607202343375_AddPhotoPathToPeople.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
