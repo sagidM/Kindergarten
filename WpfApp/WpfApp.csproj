@@ -76,6 +76,7 @@
     <Compile Include="Service\WindowServices.cs" />
     <Compile Include="Settings\Database.cs" />
     <Compile Include="Util\CommonHelper.cs" />
+    <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\ImageUtil.cs" />
     <Compile Include="ViewModel\AddChildViewModel.cs" />
     <Compile Include="ViewModel\AddGroupViewModel.cs" />

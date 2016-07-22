@@ -10,7 +10,7 @@
         xmlns:service="clr-namespace:WpfApp.Service"
         xmlns:vm="clr-namespace:WpfApp.ViewModel"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="598.798" Width="625.525">
+        Title="{Binding Title}" Height="680.007" Width="909.755">
 	<Window.Resources>
 		<vm:ViewModel x:Key="ViewModel" Title="App"/>
 	</Window.Resources>
@@ -21,20 +21,38 @@
 	<TabControl>
 		<TabItem Header="Дети">
 			<DockPanel>
+				<ScrollViewer VerticalScrollBarVisibility="Auto">
 				<StackPanel DockPanel.Dock="Left" Width="250">
 					<StackPanel>
 						<StackPanel>
 							<DockPanel>
-								<Button Padding="7" DockPanel.Dock="Right" Content="Найти" Command="{Binding FilterDataCommand}" />
-								<TextBox Padding="7" Text="{Binding PersonFullName, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите имя..." />
+									<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
 							</DockPanel>
-							<Expander BorderBrush="DarkGreen" Header="Подробнее" FontSize="11" Margin="0 0 0 20">
+							<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 20">
 								<StackPanel>
-									<TextBox Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." Text="{Binding Path=PersonLastName, UpdateSourceTrigger=PropertyChanged}"/>
-									<TextBox Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." Text="{Binding Path=PersonFirstName, UpdateSourceTrigger=PropertyChanged}"/>
-									<TextBox Padding="3"  Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." Text="{Binding Path=PersonPatronymic, UpdateSourceTrigger=PropertyChanged}"/>
+									<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
+									<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
+									<TextBox Text="{Binding Path=PersonPatronymicChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." />
+									<CheckBox IsChecked="{Binding Path=WholeNamesChildrenFilter}" Content="Учитывать слова целиком"/>
+									<CheckBox IsChecked="{Binding Path=NamesCaseSensitiveChildrenFilter}" Content="Учитывать регистр"/>
 								</StackPanel>
 							</Expander>
+							
+							<Label Content="Дата зачисления"/>
+							<Grid>
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition/>
+									<ColumnDefinition Width="Auto"/>
+									<ColumnDefinition/>
+								</Grid.ColumnDefinitions>
+								<Label Grid.Column="0" Content="от"/>
+								<DatePicker SelectedDate="{Binding FromEnterDateChildrenFilter}" Grid.Column="1" />
+								<Label Margin="10 0 0 0" Grid.Column="2" Content="до"/>
+								<DatePicker SelectedDate="{Binding TillEnterDateChildrenFilter}" Grid.Column="3" />
+							</Grid>
+							
+							<CheckBox IsChecked="{Binding DataFromArchiveChildrenFilter}" IsThreeState="True" Content="Архив" />
 						</StackPanel>
 						<Grid DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
 							<Grid.RowDefinitions>
@@ -77,12 +95,13 @@
 							<DatePicker Grid.Row="8" Grid.Column="0" SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
 							<Image Grid.Row="9" MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
 						</Grid>
-						<Button Command="{Binding UpdateChildCommand}">Update</Button>
+						<Button Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
 					</StackPanel>
 
 
 					<Button Command="{Binding ShowAddChildWindowCommand}" Margin="0 20 0 0">Добавление</Button>
-				</StackPanel>
+					</StackPanel>
+				</ScrollViewer>
 
 				<DataGrid IsReadOnly="True" DockPanel.Dock="Right" Background="BlueViolet" x:Name="DataGridChildren" AutoGenerateColumns="False" ItemsSource="{Binding Children}">
 					<DataGrid.Columns>
@@ -140,6 +159,7 @@
 						</DataGridTemplateColumn>
 					</DataGrid.Columns>
 				</DataGrid>
+
 			</DockPanel>
 		</TabItem>
 	</TabControl>

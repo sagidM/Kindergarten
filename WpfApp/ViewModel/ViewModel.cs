@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Data;
 using DAL.Model;
 using WpfApp.Command;
 using WpfApp.Service;
+using WpfApp.Util;
+// ReSharper disable ExplicitCallerInfoArgument
 
 namespace WpfApp.ViewModel
 {
@@ -15,51 +20,46 @@ namespace WpfApp.ViewModel
         public ViewModel()
         {
             UpdateChildCommand = new RelayCommand(UpdateChild);
-            FilterDataCommand = new RelayCommand(FilterData);
             ShowAddChildWindowCommand = new RelayCommand(() => AddChildView.Show());
             ShowAddGroupWindowCommand = new RelayCommand(() => AddGroupView.Show());
 
-            PersonFullName = "";
+            NamesCaseSensitiveChildrenFilter = false;
 
             if (IsDesignerMode) return;
 
             Load();
         }
 
-        private async void FilterData()
-        {
-            FilterDataCommand.NotifyCanExecute(false);
-            Children = await Task.Run(() =>
-            {
-                var children = _context.Children.Include(nameof(Child.Person));
-                var firsts = PersonFirstName.Split(FullNameSeparators, StringSplitOptions.RemoveEmptyEntries);
-                var lasts = PersonLastName.Split(FullNameSeparators, StringSplitOptions.RemoveEmptyEntries);
-                var pats = PersonPatronymic.Split(FullNameSeparators, StringSplitOptions.RemoveEmptyEntries);
-
-                IQueryable<Child> res = children;
-                if (lasts.Length > 0)
-                    res = res.Where(c => lasts.Contains(c.Person.LastName));
-                if (firsts.Length > 0)
-                    res = res.Where(c => firsts.Contains(c.Person.FirstName));
-                if (pats.Length > 0)
-                    res = res.Where(c => pats.Contains(c.Person.Patronymic));
-                return new ObservableCollection<Child>(res);
-            });
-            FilterDataCommand.NotifyCanExecute(true);
-        }
+        #region Windows
 
         private IWindowService _addGroupView;
         public IWindowService AddGroupView => _addGroupView ?? (_addGroupView = WindowServices.AdditionGroupWindow);
         private IWindowService _addChildView;
         public IWindowService AddChildView => _addChildView ?? (_addChildView = WindowServices.AdditionChildWindow);
 
+        #endregion
+
         private async void Load()
         {
-            Children = await Task.Run(() => new ObservableCollection<Child>(
-                _context
-                .Children
-                .Include("Person")
-                .Include("Group")));
+            DateTime from, to;
+            from = to = DateTime.Now;
+            var c = await Task.Run(() =>
+            {
+                var result = _context
+                    .Children
+                    .Include("Person")
+                    .Include("Group")
+                    .ToArray();
+                if (result.Length > 0)
+                {
+                    from = result.Min(t => t.EnterDate);
+                    to = result.Max(t => t.EnterDate);
+                }
+                return result;
+            });
+            Children = CollectionViewSource.GetDefaultView(c);
+            FromEnterDateChildrenFilter = from;
+            TillEnterDateChildrenFilter = to;
             Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
         }
 
@@ -70,54 +70,11 @@ namespace WpfApp.ViewModel
             UpdateChildCommand.NotifyCanExecute(true);
         }
 
-        #region Search
-
-        private string _personFirstName;
-        public string PersonFirstName
-        {
-            get { return _personFirstName; }
-            set
-            {
-                if (value == _personFirstName) return;
-                _personFirstName = value;
-                OnPropertyChanged();
-                SetPersonFullName();
-            }
-        }
-
-        private string _personLastName;
-        public string PersonLastName
-        {
-            get { return _personLastName; }
-            set
-            {
-                if (value == _personLastName) return;
-                _personLastName = value;
-                OnPropertyChanged();
-                SetPersonFullName();
-            }
-        }
-
-        private string _personPatronymic;
-        public string PersonPatronymic
-        {
-            get { return _personPatronymic; }
-            set
-            {
-                if (value == _personPatronymic) return;
-                _personPatronymic = value;
-                OnPropertyChanged();
-                SetPersonFullName();
-            }
-        }
-
         private void SetPersonFullName()
         {
-            if (_calledFromPersonFullName) return;
-
-            var lasts = PersonLastName.Split(' ');
-            var firsts = PersonFirstName.Split(' ');
-            var pats = PersonPatronymic.Split(' ');
+            var lasts = PersonLastNameChildrenFilter.Split(' ');
+            var firsts = PersonFirstNameChildrenFilter.Split(' ');
+            var pats = PersonPatronymicChildrenFilter.Split(' ');
 
             int len = Math.Max(Math.Max(lasts.Length, firsts.Length), pats.Length);
             string[] words = new string[3 * len];
@@ -127,36 +84,133 @@ namespace WpfApp.ViewModel
                 words[i * 3 + 1] = i < firsts.Length ? firsts[i] : "";
                 words[i * 3 + 2] = i < pats.Length ? pats[i] : "";
             }
-            _personFullName = string.Join(" ", words);
-            OnPropertyChanged(nameof(PersonFullName));
+            // don't call set
+            _personFullNameChildrenFilter = string.Join(" ", words);
+            OnPropertyChangedRefreshFilter(nameof(PersonFullNameChildrenFilter));
         }
-        
-        private bool _calledFromPersonFullName;
-        private string _personFullName;
-        public string PersonFullName
+
+        private static string[] SplitStringForFilter(string s)
         {
-            get { return _personFullName; }
+            return s.Replace('ё', 'е').Replace('Ё', 'Е').Split(FullNameSeparators, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        private bool ChildFilter(object o)
+        {
+            Console.WriteLine("filter: " + DateTime.Now.ToString("HH:mm:ss.f"));
+            var c = (Child)o;
+            var p = c.Person;
+
+
+            // Archive
+            if (DataFromArchiveChildrenFilter.HasValue)
+            {
+                const Groups f = DAL.Model.Groups.Finished;
+                if (((c.Group.GroupType & f) == f) != DataFromArchiveChildrenFilter.Value)
+                    return false;
+            }
+
+            // EnterDate
+            if (FromEnterDateChildrenFilter > c.EnterDate || TillEnterDateChildrenFilter < c.EnterDate)
+                return false;
+
+            // LastName, FirstName, Patronymic
+            if (!string.IsNullOrEmpty(PersonFullNameChildrenFilter))
+            {
+                Func<string[], string, bool> eq = (array, s) =>
+                {
+                    if (array.Length == 0)
+                        return true;
+
+                    s = s
+                        .Replace('ё', 'е')
+                        .Replace('Ё', 'Е');
+                    return WholeNamesChildrenFilter
+                        ? array.Contains(s, NamesCaseSensitiveChildrenFilter ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase)
+                        : array.Any(i => s.IndexOf(i, NamesCaseSensitiveChildrenFilter ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) >= 0);
+                };
+
+                if (
+                    !(eq(_lastNameChildrenFilterStrings, p.LastName) &&
+                      eq(_firstNameChildrenFilterStrings, p.FirstName) &&
+                      eq(_patronymicChildrenFilterStrings, p.Patronymic)))
+                    return false;
+
+            }
+            return true;
+        }
+
+        private void OnPropertyChangedRefreshFilter([CallerMemberName] string propertyName = null)
+        {
+            OnPropertyChanged(propertyName);
+            Children.TryRefreshFilter();
+        }
+
+        #region Search
+
+        private string _personFirstNameChildrenFilter = string.Empty;
+        public string PersonFirstNameChildrenFilter
+        {
+            get { return _personFirstNameChildrenFilter; }
             set
             {
-                if (_calledFromPersonFullName || value == _personFullName) return;
-                _personFullName = value;
+                if (value == _personFirstNameChildrenFilter) return;
+                _personFirstNameChildrenFilter = value;
+                _firstNameChildrenFilterStrings = SplitStringForFilter(PersonFirstNameChildrenFilter);
                 OnPropertyChanged();
+                SetPersonFullName();
+            }
+        }
+
+        private string _personLastNameChildrenFilter = string.Empty;
+        public string PersonLastNameChildrenFilter
+        {
+            get { return _personLastNameChildrenFilter; }
+            set
+            {
+                if (value == _personLastNameChildrenFilter) return;
+                _personLastNameChildrenFilter = value;
+                _lastNameChildrenFilterStrings = SplitStringForFilter(PersonLastNameChildrenFilter);
+                OnPropertyChanged();
+                SetPersonFullName();
+            }
+        }
+
+        private string _personPatronymicChildrenFilter = string.Empty;
+        public string PersonPatronymicChildrenFilter
+        {
+            get { return _personPatronymicChildrenFilter; }
+            set
+            {
+                if (value == _personPatronymicChildrenFilter) return;
+                _personPatronymicChildrenFilter = value;
+                _patronymicChildrenFilterStrings = SplitStringForFilter(PersonPatronymicChildrenFilter);
+                OnPropertyChanged();
+                SetPersonFullName();
+            }
+        }
+        
+        private string _personFullNameChildrenFilter = string.Empty;
+        public string PersonFullNameChildrenFilter
+        {
+            get { return _personFullNameChildrenFilter; }
+            set
+            {
+                if (value == _personFullNameChildrenFilter) return;
+                _personFullNameChildrenFilter = value;
 
                 var names = value.Split(' ');
 
-                int capacity = names.Length/3+1;
-                var last = new List<string>(capacity);
-                var first = new List<string>(capacity);
-                var pat = new List<string>(capacity);
-                for (int i = 2; i < names.Length; i += 3)
-                {
-                    var l = names[i - 2];
-                    var f = names[i - 1];
-                    var p = names[i];
+                int len0 = names.Length / 3;
+                int len1 = len0+1;
 
-                    last.Add(l);
-                    first.Add(f);
-                    pat.Add(p);
+                var last = new string[names.Length % 3 == 0 ? len0 : len1];
+                var first = new string[names.Length % 3 <= 1 ? len0 : len1];
+                var pat = new string[len0];
+                for (int i = 0, j = 0; i < len0; i++, j += 3)
+                {
+                    last[i] = names[j];
+                    first[i] = names[j + 1];
+                    pat[i] = names[j + 2];
                 }
 
                 switch (names.Length % 3)
@@ -164,19 +218,82 @@ namespace WpfApp.ViewModel
                     case 0:
                         break;
                     case 1:
-                        last.Add(names[names.Length - 1]);
+                        last[last.Length-1] = names[names.Length - 1];
                         break;
                     case 2:
-                        last.Add(names[names.Length - 2]);
-                        first.Add(names[names.Length - 1]);
+                        last[last.Length -1] = names[names.Length - 2];
+                        first[last.Length -1] = names[names.Length - 1];
                         break;
                 }
 
-                _calledFromPersonFullName = true;
-                PersonLastName = string.Join(" ", last);
-                PersonFirstName = string.Join(" ", first);
-                PersonPatronymic = string.Join(" ", pat);
-                _calledFromPersonFullName = false;
+
+                _personLastNameChildrenFilter = string.Join(" ", last);
+                _personFirstNameChildrenFilter = string.Join(" ", first);
+                _personPatronymicChildrenFilter = string.Join(" ", pat);
+
+                _lastNameChildrenFilterStrings = last;
+                _firstNameChildrenFilterStrings = first;
+                _patronymicChildrenFilterStrings = pat;
+
+                OnPropertyChanged(nameof(PersonLastNameChildrenFilter));
+                OnPropertyChanged(nameof(PersonFirstNameChildrenFilter));
+                OnPropertyChanged(nameof(PersonPatronymicChildrenFilter));
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
+        public DateTime? FromEnterDateChildrenFilter
+        {
+            get { return _fromEnterDateChildrenFilter; }
+            set
+            {
+                if (value.Equals(_fromEnterDateChildrenFilter)) return;
+                _fromEnterDateChildrenFilter = value;
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
+        public DateTime? TillEnterDateChildrenFilter
+        {
+            get { return _tillEnterDateChildrenFilter; }
+            set
+            {
+                if (value.Equals(_tillEnterDateChildrenFilter)) return;
+                _tillEnterDateChildrenFilter = value;
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
+        public bool WholeNamesChildrenFilter
+        {
+            get { return _wholeNamesChildrenFilter; }
+            set
+            {
+                if (value == _wholeNamesChildrenFilter) return;
+                _wholeNamesChildrenFilter = value;
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
+        public bool NamesCaseSensitiveChildrenFilter
+        {
+            get { return _namesCaseSensitiveChildrenFilter; }
+            set
+            {
+                if (value == _namesCaseSensitiveChildrenFilter) return;
+                _namesCaseSensitiveChildrenFilter = value;
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
+        public bool? DataFromArchiveChildrenFilter
+        {
+            get { return _dataFromArchiveChildrenFilter; }
+            set
+            {
+                if (value == _dataFromArchiveChildrenFilter) return;
+                _dataFromArchiveChildrenFilter = value;
+                OnPropertyChangedRefreshFilter();
             }
         }
 
@@ -207,23 +324,34 @@ namespace WpfApp.ViewModel
             }
         }
 
-        private ObservableCollection<Child> _children;
-        private static readonly char[] FullNameSeparators = { ' ' };
+        //BindingListCollectionView
+        private ICollectionView _children;
+        private DateTime? _fromEnterDateChildrenFilter;
+        private DateTime? _tillEnterDateChildrenFilter;
 
-        public ObservableCollection<Child> Children
+        public ICollectionView Children
         {
             get { return _children; }
             private set
             {
                 if (Equals(value, _children)) return;
                 _children = value;
+                _children.Filter = ChildFilter;
                 OnPropertyChanged();
             }
         }
 
-        public IRelayCommand FilterDataCommand { get; }
+
         public IRelayCommand UpdateChildCommand { get; }
         public IRelayCommand ShowAddGroupWindowCommand { get; }
         public IRelayCommand ShowAddChildWindowCommand { get; }
+
+        private static readonly char[] FullNameSeparators = { ' ' };
+        private string[] _firstNameChildrenFilterStrings = new string[0];
+        private string[] _lastNameChildrenFilterStrings = new string[0];
+        private string[] _patronymicChildrenFilterStrings = new string[0];
+        private bool _wholeNamesChildrenFilter;
+        private bool _namesCaseSensitiveChildrenFilter;
+        private bool? _dataFromArchiveChildrenFilter;
     }
 }
