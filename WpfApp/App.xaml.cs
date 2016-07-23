@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
+using WpfApp.View;
 
 namespace WpfApp
 {

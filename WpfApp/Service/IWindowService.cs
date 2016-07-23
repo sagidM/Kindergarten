@@ -5,4 +5,9 @@ namespace WpfApp.Service
         bool IsDialog { get; }
         bool? Show();
     }
+    public interface IWindowService<in T>
+    {
+        bool IsDialog { get; }
+        bool? Show(T parameter);
+    }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
@@ -8,20 +7,23 @@ using System.Threading.Tasks;
 using System.Windows.Data;
 using DAL.Model;
 using WpfApp.Command;
+using WpfApp.Framework.Core;
 using WpfApp.Service;
 using WpfApp.Util;
+
 // ReSharper disable ExplicitCallerInfoArgument
 
 namespace WpfApp.ViewModel
 {
-    internal class ViewModel : ViewModelBase
+    internal class MainViewModel : ViewModelBase
     {
         private readonly KindergartenContext _context = new KindergartenContext();
-        public ViewModel()
+        public MainViewModel()
         {
             UpdateChildCommand = new RelayCommand(UpdateChild);
-            ShowAddChildWindowCommand = new RelayCommand(() => AddChildView.Show());
-            ShowAddGroupWindowCommand = new RelayCommand(() => AddGroupView.Show());
+            ShowAddChildWindowCommand = new RelayCommand(() => StartViewModel<AddChildViewModel>(new Pipe(true)));
+            ShowAddGroupWindowCommand = new RelayCommand(() => StartViewModel<AddGroupViewModel>(new Pipe(true)));
+            ShowChildDetailsCommand = new RelayCommand(() => StartViewModel<ChildDetailsViewModel>(new Pipe(false)));
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -33,9 +35,11 @@ namespace WpfApp.ViewModel
         #region Windows
 
         private IWindowService _addGroupView;
-        public IWindowService AddGroupView => _addGroupView ?? (_addGroupView = WindowServices.AdditionGroupWindow);
+        private IWindowService AddGroupView => _addGroupView ?? (_addGroupView = WindowServices.AdditionGroupWindow);
         private IWindowService _addChildView;
-        public IWindowService AddChildView => _addChildView ?? (_addChildView = WindowServices.AdditionChildWindow);
+        private IWindowService AddChildView => _addChildView ?? (_addChildView = WindowServices.AdditionChildWindow);
+        private IWindowService _childDetailsView;
+        private IWindowService ChildDetailsView => _childDetailsView ?? (_childDetailsView = WindowServices.ChildDetailsWindow);
 
         #endregion
 
@@ -49,6 +53,7 @@ namespace WpfApp.ViewModel
                     .Children
                     .Include("Person")
                     .Include("Group")
+                    .Include("ParentsChildren.Parent")
                     .ToArray();
                 if (result.Length > 0)
                 {
@@ -96,7 +101,6 @@ namespace WpfApp.ViewModel
 
         private bool ChildFilter(object o)
         {
-            Console.WriteLine("filter: " + DateTime.Now.ToString("HH:mm:ss.f"));
             var c = (Child)o;
             var p = c.Person;
 
@@ -112,6 +116,11 @@ namespace WpfApp.ViewModel
             // EnterDate
             if (FromEnterDateChildrenFilter > c.EnterDate || TillEnterDateChildrenFilter < c.EnterDate)
                 return false;
+
+            if (OnlyDebtors)
+            {
+
+            }
 
             // LastName, FirstName, Patronymic
             if (!string.IsNullOrEmpty(PersonFullNameChildrenFilter))
@@ -297,6 +306,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public bool OnlyDebtors
+        {
+            get { return _onlyDebtors; }
+            set
+            {
+                if (value == _onlyDebtors) return;
+                _onlyDebtors = value;
+                OnPropertyChangedRefreshFilter();
+            }
+        }
+
         #endregion
 
 
@@ -345,6 +365,7 @@ namespace WpfApp.ViewModel
         public IRelayCommand UpdateChildCommand { get; }
         public IRelayCommand ShowAddGroupWindowCommand { get; }
         public IRelayCommand ShowAddChildWindowCommand { get; }
+        public IRelayCommand ShowChildDetailsCommand { get; }
 
         private static readonly char[] FullNameSeparators = { ' ' };
         private string[] _firstNameChildrenFilterStrings = new string[0];
@@ -353,5 +374,6 @@ namespace WpfApp.ViewModel
         private bool _wholeNamesChildrenFilter;
         private bool _namesCaseSensitiveChildrenFilter;
         private bool? _dataFromArchiveChildrenFilter;
+        private bool _onlyDebtors;
     }
 }

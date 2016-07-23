@@ -4,14 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using WpfApp.Annotations;
 
-namespace WpfApp.ViewModel
+namespace WpfApp.Framework.Core
 {
-    public interface ICloseableViewModel
-    {
-        event EventHandler ClosingRequest;
-    }
-
-    public abstract class ViewModelBase : INotifyPropertyChanged, ICloseableViewModel
+    public abstract class ViewModelBase : PipeViewModel, INotifyPropertyChanged
     {
         #region INotifyPropertyChanged
 
@@ -27,11 +22,26 @@ namespace WpfApp.ViewModel
 
         public static readonly bool IsDesignerMode = DesignerProperties.GetIsInDesignMode(new DependencyObject());
 
-        public event EventHandler ClosingRequest;
 
-        protected void OnClosingRequest()
+        public override void OnPreInit()
         {
-            ClosingRequest?.Invoke(this, EventArgs.Empty);
+        }
+
+        public override void OnInit()
+        {
+        }
+
+        public override void OnLoaded()
+        {
+        }
+
+        public override void OnFinished()
+        {
+        }
+
+        public override bool OnFinishing()
+        {
+            return true;
         }
     }
 }

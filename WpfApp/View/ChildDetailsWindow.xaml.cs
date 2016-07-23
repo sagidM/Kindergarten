@@ -3,11 +3,11 @@
 namespace WpfApp.View
 {
     /// <summary>
-    /// Interaction logic for AddGroupWindow.xaml
+    /// Interaction logic for ChildDetailsWindow.xaml
     /// </summary>
-    public partial class AddGroupWindow : Window
+    public partial class ChildDetailsWindow : Window
     {
-        public AddGroupWindow()
+        public ChildDetailsWindow()
         {
             InitializeComponent();
         }

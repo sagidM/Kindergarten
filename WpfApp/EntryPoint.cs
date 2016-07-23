@@ -1,5 +1,4 @@
-﻿using System;
-using WpfApp.Settings;
+﻿using WpfApp.Settings;
 
 namespace WpfApp
 {

@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using DAL.Model;
 using WpfApp.Command;
+using WpfApp.Framework.Core;
 using WpfApp.Service;
 using WpfApp.Util;
 
@@ -74,7 +75,7 @@ namespace WpfApp.ViewModel
                 }
             });
             AddChildCommand.NotifyCanExecute(true);
-            OnClosingRequest();
+            Finish();
         }
 
         private readonly IFileDialogService _openFileDialogService = FileDialogServices.ImageLoader;

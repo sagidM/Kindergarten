@@ -62,7 +62,7 @@
 		</Button>
 
 		<Label Grid.Row="0" Grid.Column="0" Content="Фамилия"/>
-		<TextBox Name="TextBox" Grid.Row="0" Grid.Column="1"
+		<TextBox Grid.Row="0" Grid.Column="1"
 		         Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
 		</TextBox>
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Windows;
+using WpfApp.Framework.Core;
 using WpfApp.ViewModel;
 
 namespace WpfApp.View
@@ -14,7 +15,6 @@ namespace WpfApp.View
         public AddChildWindow()
         {
             InitializeComponent();
-            ((ICloseableViewModel) DataContext).ClosingRequest += (sender, args) => Close();
             Closed += (sender, args) =>
             {
                 if (DatePickerBirthDate.SelectedDate.HasValue)

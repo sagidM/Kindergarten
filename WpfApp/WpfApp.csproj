@@ -78,19 +78,29 @@
     <Compile Include="Util\CommonHelper.cs" />
     <Compile Include="Util\Extensions.cs" />
     <Compile Include="Util\ImageUtil.cs" />
+    <Compile Include="Util\BoolConverter.cs" />
     <Compile Include="ViewModel\AddChildViewModel.cs" />
     <Compile Include="ViewModel\AddGroupViewModel.cs" />
+    <Compile Include="ViewModel\ChildDetailsViewModel.cs" />
+    <Compile Include="Framework\Core\Pipe.cs" />
+    <Compile Include="Framework\Core\PipeViewModel.cs" />
+    <Compile Include="Framework\ViewViewModelPair.cs" />
+    <Compile Include="Framework\ViewViewModelPairs.cs" />
     <Compile Include="View\AddChildWindow.xaml.cs">
       <DependentUpon>AddChildWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Service\IWindowService.cs" />
     <Compile Include="Properties\Annotations.cs" />
     <Compile Include="Command\RelayCommand.cs" />
-    <Compile Include="ViewModel\ViewModel.cs" />
-    <Compile Include="ViewModel\ViewModelBase.cs" />
+    <Compile Include="ViewModel\MainViewModel.cs" />
+    <Compile Include="Framework\Core\ViewModelBase.cs" />
     <Compile Include="View\AddGroupWindow.xaml.cs">
       <DependentUpon>AddGroupWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="View\ChildDetailsWindow.xaml.cs">
+      <DependentUpon>ChildDetailsWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Converter\DateTimeConverter.cs" />
     <Compile Include="View\Converter\GroupsConverter.cs" />
     <Compile Include="View\Converter\ImageConverter.cs" />
     <Compile Include="View\Converter\PaymentSystemConverter.cs" />
@@ -115,6 +125,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="View\ChildDetailsWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -124,6 +138,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="EntryPoint.cs" />
+    <Compile Include="View\Converter\YearsOldConverter.cs" />
     <Compile Include="View\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

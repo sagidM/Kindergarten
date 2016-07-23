@@ -4,15 +4,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp"
-        xmlns:view="clr-namespace:WpfApp.View"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
-        xmlns:system="clr-namespace:System;assembly=mscorlib"
-        xmlns:service="clr-namespace:WpfApp.Service"
         xmlns:vm="clr-namespace:WpfApp.ViewModel"
+        xmlns:util="clr-namespace:WpfApp.Util"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="680.007" Width="909.755">
+        Title="{Binding Title}" Height="761.007" Width="923.755">
 	<Window.Resources>
-		<vm:ViewModel x:Key="ViewModel" Title="App"/>
+		<vm:MainViewModel x:Key="ViewModel" Title="App"/>
+		<util:BoolConverter x:Key="NoBodyConverter" Yes="Да" No="Нет" />
 	</Window.Resources>
 	<Window.DataContext>
 		<StaticResource ResourceKey="ViewModel"/>
@@ -22,84 +21,129 @@
 		<TabItem Header="Дети">
 			<DockPanel>
 				<ScrollViewer VerticalScrollBarVisibility="Auto">
-				<StackPanel DockPanel.Dock="Left" Width="250">
-					<StackPanel>
+					<StackPanel DockPanel.Dock="Left" Width="250">
 						<StackPanel>
-							<DockPanel>
+							<StackPanel>
+								<DockPanel>
 									<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
-							</DockPanel>
-							<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 20">
-								<StackPanel>
-									<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
-									<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
-									<TextBox Text="{Binding Path=PersonPatronymicChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." />
-									<CheckBox IsChecked="{Binding Path=WholeNamesChildrenFilter}" Content="Учитывать слова целиком"/>
-									<CheckBox IsChecked="{Binding Path=NamesCaseSensitiveChildrenFilter}" Content="Учитывать регистр"/>
-								</StackPanel>
-							</Expander>
-							
-							<Label Content="Дата зачисления"/>
-							<Grid>
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition Width="Auto"/>
-									<ColumnDefinition/>
-									<ColumnDefinition Width="Auto"/>
-									<ColumnDefinition/>
-								</Grid.ColumnDefinitions>
-								<Label Grid.Column="0" Content="от"/>
-								<DatePicker SelectedDate="{Binding FromEnterDateChildrenFilter}" Grid.Column="1" />
-								<Label Margin="10 0 0 0" Grid.Column="2" Content="до"/>
-								<DatePicker SelectedDate="{Binding TillEnterDateChildrenFilter}" Grid.Column="3" />
-							</Grid>
-							
-							<CheckBox IsChecked="{Binding DataFromArchiveChildrenFilter}" IsThreeState="True" Content="Архив" />
-						</StackPanel>
-						<Grid DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
-							<Grid.RowDefinitions>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-								<RowDefinition/>
-							</Grid.RowDefinitions>
-							<TextBox IsReadOnly="True" Grid.Row="0" Grid.Column="0" Text="{Binding Path=Id}"/>
-							<TextBox Grid.Row="1" Grid.Column="0" Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
-							<TextBox Grid.Row="2" Grid.Column="0" Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
-							<TextBox Grid.Row="3" Grid.Column="0" Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
-							<ComboBox SelectedItem="{Binding ElementName=DataGridChildren, Path=(SelectedItem).(m:Child.Group)}" DataContext="{StaticResource ViewModel}" Grid.Row="4" Grid.Column="0" ItemsSource="{Binding Groups}">
-								<ComboBox.ItemTemplate>
-									<DataTemplate>
-										<TextBlock>
-											<TextBlock.Text>
-												<MultiBinding StringFormat="{}{0}. {1}">
-													<Binding Path="Id" />
-													<Binding Path="Name" />
-												</MultiBinding>
-											</TextBlock.Text>
-										</TextBlock>
-									</DataTemplate>
-								</ComboBox.ItemTemplate>
-							</ComboBox>
-							<ComboBox Grid.Row="5" Grid.Column="0"
-							          SelectedItem="{Binding Path=PaymentSystem}"
+								</DockPanel>
+								<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 20">
+									<StackPanel>
+										<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
+										<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
+										<TextBox Text="{Binding Path=PersonPatronymicChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." />
+										<CheckBox IsChecked="{Binding Path=WholeNamesChildrenFilter}" Content="Учитывать слова целиком"/>
+										<CheckBox IsChecked="{Binding Path=NamesCaseSensitiveChildrenFilter}" Content="Учитывать регистр"/>
+									</StackPanel>
+								</Expander>
+
+								<Label Content="Дата зачисления"/>
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition/>
+										<ColumnDefinition Width="Auto"/>
+										<ColumnDefinition/>
+									</Grid.ColumnDefinitions>
+									<Label Grid.Column="0" Content="от"/>
+									<DatePicker SelectedDate="{Binding FromEnterDateChildrenFilter}" Grid.Column="1" />
+									<Label Margin="10 0 0 0" Grid.Column="2" Content="до"/>
+									<DatePicker SelectedDate="{Binding TillEnterDateChildrenFilter}" Grid.Column="3" />
+								</Grid>
+
+								<CheckBox IsChecked="{Binding DataFromArchiveChildrenFilter}" IsThreeState="True" Content="Архив" />
+								<CheckBox IsChecked="{Binding OnlyDebtors}" Content="Показать только должников"/>
+							</StackPanel>
+
+							<Separator Height="20" Margin="10"/>
+
+							<StackPanel Margin="20 40" DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
+								<StackPanel.Resources>
+									<Style TargetType="TextBlock">
+										<Setter Property="TextAlignment" Value="Center"/>
+										<Setter Property="Margin" Value="3"/>
+									</Style>
+								</StackPanel.Resources>
+								<TextBlock Text="Краткая информация"/>
+								<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
+								<TextBlock>
+									<TextBlock.Text>
+										<MultiBinding StringFormat="{}{0} {1} {2}">
+											<Binding Path="Person.LastName"/>
+											<Binding Path="Person.FirstName"/>
+											<Binding Path="Person.Patronymic"/>
+										</MultiBinding>
+									</TextBlock.Text>
+								</TextBlock>
+								<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource DateConverter}, StringFormat='Родился: {0}'}"/>
+								<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource YearsOldConverter}, StringFormat='Возраст: {0}'}"/>
+								<TextBlock Text="{Binding Path=Group.GroupType, Converter={StaticResource GroupsConverter}, StringFormat='Группа: {0}'}"/>
+								<TextBlock Text="{Binding Path=EnterDate, Converter={StaticResource DateConverter}, StringFormat='Дата зачисления: {0}'}"/>
+								<TextBlock Text="{Binding Path=LocationAddress}"/>
+								<TextBlock Text="Номера родителей:"/>
+								<ListBox ItemsSource="{Binding Path=ParentsChildren}" HorizontalAlignment="Center">
+									<ListBox.Style>
+										<Style TargetType="ListBox">
+											<Style.Triggers>
+												<Trigger Property="HasItems" Value="True">
+													<Setter Property="Background" Value="Bisque"/>
+												</Trigger>
+												<DataTrigger Binding="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=Items.Count}"
+															 Value="0">
+													<Setter Property="Template">
+														<Setter.Value>
+															<ControlTemplate>
+																<TextBlock Text="-----"/>
+															</ControlTemplate>
+														</Setter.Value>
+													</Setter>
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</ListBox.Style>
+									<ListBox.ItemTemplate>
+										<DataTemplate>
+											<TextBlock Text="{Binding Parent.PhoneNumber}"/>
+										</DataTemplate>
+									</ListBox.ItemTemplate>
+								</ListBox>
+								<Button DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" Content="Подробнее"/>
+							</StackPanel>
+
+							<StackPanel DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
+								<TextBox IsReadOnly="True" Text="{Binding Path=Id}"/>
+								<TextBox Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
+								<TextBox Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
+								<TextBox Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
+								<ComboBox SelectedItem="{Binding ElementName=DataGridChildren, Path=(SelectedItem).(m:Child.Group)}" DataContext="{StaticResource ViewModel}" ItemsSource="{Binding Groups}">
+									<ComboBox.ItemTemplate>
+										<DataTemplate>
+											<TextBlock>
+												<TextBlock.Text>
+													<MultiBinding StringFormat="{}{0}. {1}">
+														<Binding Path="Id" />
+														<Binding Path="Name" />
+													</MultiBinding>
+												</TextBlock.Text>
+											</TextBlock>
+										</DataTemplate>
+									</ComboBox.ItemTemplate>
+								</ComboBox>
+								<ComboBox SelectedItem="{Binding Path=PaymentSystem}"
 							          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
 							          ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
-							</ComboBox>
-							<TextBox Grid.Row="6" Grid.Column="0" Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}" />
-							<CheckBox Grid.Row="7" Grid.Column="0" Content="На исключение" IsChecked="{Binding IsNobody}" />
-							<DatePicker Grid.Row="8" Grid.Column="0" SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
-							<Image Grid.Row="9" MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
-						</Grid>
-						<Button Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
-					</StackPanel>
+								</ComboBox>
+								<TextBox Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}" />
+								<CheckBox Content="На исключение" IsChecked="{Binding IsNobody}" />
+								<DatePicker SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
+								<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
+							</StackPanel>
+
+							<Button Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
+						</StackPanel>
 
 
-					<Button Command="{Binding ShowAddChildWindowCommand}" Margin="0 20 0 0">Добавление</Button>
+						<Button Command="{Binding ShowAddChildWindowCommand}" Margin="0 20 0 0">Добавление</Button>
 					</StackPanel>
 				</ScrollViewer>
 
@@ -120,7 +164,14 @@
 						<DataGridTextColumn Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
 						<DataGridTextColumn Binding="{Binding Path=BirthDate}" Header="Дата рождения" />
 						<DataGridTextColumn Binding="{Binding Path=EnterDate}" Header="Дата зачисления" />
-						<DataGridCheckBoxColumn Binding="{Binding IsNobody}" Header="На исключение"/>
+						<DataGridTextColumn Binding="{Binding Path=IsNobody, Converter={StaticResource NoBodyConverter}}" Header="На исключение">
+							<DataGridTextColumn.ElementStyle>
+								<Style TargetType="TextBlock">
+									<Setter Property="Foreground" Value="DarkGreen"/>
+									<Setter Property="TextAlignment" Value="Center" />
+								</Style>
+							</DataGridTextColumn.ElementStyle>
+						</DataGridTextColumn>
 					</DataGrid.Columns>
 				</DataGrid>
 			</DockPanel>
@@ -164,34 +215,3 @@
 		</TabItem>
 	</TabControl>
 </Window>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

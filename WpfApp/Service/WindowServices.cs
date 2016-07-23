@@ -16,7 +16,7 @@ namespace WpfApp.Service
         public bool IsDialog { get; set; }  // adds set
 
         private Window _view;
-        private Window View => _view != null && _view.IsLoaded ? _view : (_view = _getNewWindow());
+        private Window View =>  _view != null && IsDialog &&_view.IsLoaded ? _view : (_view = _getNewWindow());
 
         public bool? Show()
         {
@@ -34,5 +34,8 @@ namespace WpfApp.Service
 
         public static IWindowService AdditionGroupWindow { get; } =
             new WindowService(() => new AddGroupWindow()) { IsDialog = true };
+
+        public static IWindowService ChildDetailsWindow { get; } =
+            new WindowService(() => new ChildDetailsWindow()) { IsDialog = false };
     }
 }

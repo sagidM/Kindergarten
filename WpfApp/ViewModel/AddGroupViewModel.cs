@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using DAL.Model;
 using WpfApp.Command;
+using WpfApp.Framework.Core;
 using WpfApp.Service;
 using WpfApp.Util;
 
@@ -80,7 +80,7 @@ namespace WpfApp.ViewModel
                 }
             });
             AddGroupCommand.NotifyCanExecute(true);
-            OnClosingRequest();
+            Finish();
         }
 
         public IRelayCommand OpenDialogLoadImageCommand { get; }

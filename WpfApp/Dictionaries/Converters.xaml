@@ -10,5 +10,8 @@
 	
 	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
 	<converter:ImageConverter x:Key="GroupImageConverter" ImageType="Group" DefaultImage="../resources/no_picture.jpg" />
+	<converter:DateTimeConverter x:Key="DateConverter" Format="dd.MM.yyyy"/>
+	<converter:DateTimeConverter x:Key="TimeConverter" Format="HH:mm:ss"/>
+	<converter:YearsOldConverter x:Key="YearsOldConverter" Format="y лет M месяцев d дней."/>
 	
 </ResourceDictionary>
