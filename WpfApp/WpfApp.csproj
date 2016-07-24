@@ -71,9 +71,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Settings\AppFilePaths.cs" />
-    <Compile Include="Service\FileDialogService.cs" />
-    <Compile Include="Service\IFileDialogService.cs" />
-    <Compile Include="Service\WindowServices.cs" />
+    <Compile Include="View\DialogService\FileDialogs.cs" />
     <Compile Include="Settings\Database.cs" />
     <Compile Include="Util\CommonHelper.cs" />
     <Compile Include="Util\Extensions.cs" />
@@ -89,9 +87,8 @@
     <Compile Include="View\AddChildWindow.xaml.cs">
       <DependentUpon>AddChildWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Service\IWindowService.cs" />
     <Compile Include="Properties\Annotations.cs" />
-    <Compile Include="Command\RelayCommand.cs" />
+    <Compile Include="Framework\Command\RelayCommand.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="Framework\Core\ViewModelBase.cs" />
     <Compile Include="View\AddGroupWindow.xaml.cs">
@@ -105,6 +102,10 @@
     <Compile Include="View\Converter\ImageConverter.cs" />
     <Compile Include="View\Converter\PaymentSystemConverter.cs" />
     <Compile Include="View\Converter\SexConverter.cs" />
+    <Page Include="Dictionaries\Images.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dictionaries\Styles.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

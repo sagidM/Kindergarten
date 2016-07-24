@@ -1,14 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Data;
 using DAL.Model;
-using WpfApp.Command;
+using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
-using WpfApp.Service;
 using WpfApp.Util;
 
 // ReSharper disable ExplicitCallerInfoArgument
@@ -17,13 +18,13 @@ namespace WpfApp.ViewModel
 {
     internal class MainViewModel : ViewModelBase
     {
-        private readonly KindergartenContext _context = new KindergartenContext();
+        private KindergartenContext _context;
         public MainViewModel()
         {
-            UpdateChildCommand = new RelayCommand(UpdateChild);
             ShowAddChildWindowCommand = new RelayCommand(() => StartViewModel<AddChildViewModel>(new Pipe(true)));
             ShowAddGroupWindowCommand = new RelayCommand(() => StartViewModel<AddGroupViewModel>(new Pipe(true)));
-            ShowChildDetailsCommand = new RelayCommand(() => StartViewModel<ChildDetailsViewModel>(new Pipe(false)));
+            ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
+            RefreshDataCommand = new RelayCommand(Load);
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -32,21 +33,41 @@ namespace WpfApp.ViewModel
             Load();
         }
 
-        #region Windows
+        private void ShowChildDetails()
+        {
+            var child = SelectedChild;
+            if (child == null) return;
 
-        private IWindowService _addGroupView;
-        private IWindowService AddGroupView => _addGroupView ?? (_addGroupView = WindowServices.AdditionGroupWindow);
-        private IWindowService _addChildView;
-        private IWindowService AddChildView => _addChildView ?? (_addChildView = WindowServices.AdditionChildWindow);
-        private IWindowService _childDetailsView;
-        private IWindowService ChildDetailsView => _childDetailsView ?? (_childDetailsView = WindowServices.ChildDetailsWindow);
-
-        #endregion
+            IDictionary<string, object> params0 = new Dictionary<string, object>
+            {
+                ["child"] = child,
+                ["groups"] = Groups,
+                ["owner"] = this,
+                ["context"] = _context,
+            };
+            StartViewModel<ChildDetailsViewModel>(new Pipe(params0, false));
+        }
 
         private async void Load()
         {
+            RefreshDataCommand.NotifyCanExecute(false);
+            ++LoadingDataCount;
+
+            _context = new KindergartenContext();
+            await UpdateChildrenAsync();
+            await UpdateGroupsAsync();
+
+            --LoadingDataCount;
+            RefreshDataCommand.NotifyCanExecute(true);
+        }
+
+        public async Task UpdateChildrenAsync()
+        {
+            ++LoadingDataCount;
+
             DateTime from, to;
             from = to = DateTime.Now;
+
             var c = await Task.Run(() =>
             {
                 var result = _context
@@ -54,25 +75,28 @@ namespace WpfApp.ViewModel
                     .Include("Person")
                     .Include("Group")
                     .Include("ParentsChildren.Parent")
-                    .ToArray();
-                if (result.Length > 0)
+                    .ToList();
+                Thread.Sleep(100);
+
+                if (result.Count > 0)
                 {
-                    from = result.Min(t => t.EnterDate);
-                    to = result.Max(t => t.EnterDate);
+                    if (!FromEnterDateChildrenFilter.HasValue) from = result.Min(t => t.EnterDate);
+                    if (!TillEnterDateChildrenFilter.HasValue) to = result.Max(t => t.EnterDate);
                 }
                 return result;
             });
+            if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
+            if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
             Children = CollectionViewSource.GetDefaultView(c);
-            FromEnterDateChildrenFilter = from;
-            TillEnterDateChildrenFilter = to;
-            Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
+
+            --LoadingDataCount;
         }
 
-        private async void UpdateChild()
+        private async Task UpdateGroupsAsync()
         {
-            UpdateChildCommand.NotifyCanExecute(false);
-            await Task.Run(() => _context.SaveChanges());
-            UpdateChildCommand.NotifyCanExecute(true);
+            ++LoadingDataCount;
+            Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
+            --LoadingDataCount;
         }
 
         private void SetPersonFullName()
@@ -91,7 +115,7 @@ namespace WpfApp.ViewModel
             }
             // don't call set
             _personFullNameChildrenFilter = string.Join(" ", words);
-            OnPropertyChangedRefreshFilter(nameof(PersonFullNameChildrenFilter));
+            OnPropertyChangedAndRefreshChildrenFilter(nameof(PersonFullNameChildrenFilter));
         }
 
         private static string[] SplitStringForFilter(string s)
@@ -117,7 +141,7 @@ namespace WpfApp.ViewModel
             if (FromEnterDateChildrenFilter > c.EnterDate || TillEnterDateChildrenFilter < c.EnterDate)
                 return false;
 
-            if (OnlyDebtors)
+            if (OnlyDebtorsChildrenFilter)
             {
 
             }
@@ -148,15 +172,15 @@ namespace WpfApp.ViewModel
             return true;
         }
 
-        private void OnPropertyChangedRefreshFilter([CallerMemberName] string propertyName = null)
+        private void OnPropertyChangedAndRefreshChildrenFilter([CallerMemberName] string propertyName = null)
         {
             OnPropertyChanged(propertyName);
             Children.TryRefreshFilter();
         }
 
+
         #region Search
 
-        private string _personFirstNameChildrenFilter = string.Empty;
         public string PersonFirstNameChildrenFilter
         {
             get { return _personFirstNameChildrenFilter; }
@@ -170,7 +194,6 @@ namespace WpfApp.ViewModel
             }
         }
 
-        private string _personLastNameChildrenFilter = string.Empty;
         public string PersonLastNameChildrenFilter
         {
             get { return _personLastNameChildrenFilter; }
@@ -184,7 +207,6 @@ namespace WpfApp.ViewModel
             }
         }
 
-        private string _personPatronymicChildrenFilter = string.Empty;
         public string PersonPatronymicChildrenFilter
         {
             get { return _personPatronymicChildrenFilter; }
@@ -198,7 +220,6 @@ namespace WpfApp.ViewModel
             }
         }
         
-        private string _personFullNameChildrenFilter = string.Empty;
         public string PersonFullNameChildrenFilter
         {
             get { return _personFullNameChildrenFilter; }
@@ -247,7 +268,7 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged(nameof(PersonLastNameChildrenFilter));
                 OnPropertyChanged(nameof(PersonFirstNameChildrenFilter));
                 OnPropertyChanged(nameof(PersonPatronymicChildrenFilter));
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
@@ -258,7 +279,7 @@ namespace WpfApp.ViewModel
             {
                 if (value.Equals(_fromEnterDateChildrenFilter)) return;
                 _fromEnterDateChildrenFilter = value;
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
@@ -269,7 +290,7 @@ namespace WpfApp.ViewModel
             {
                 if (value.Equals(_tillEnterDateChildrenFilter)) return;
                 _tillEnterDateChildrenFilter = value;
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
@@ -280,7 +301,7 @@ namespace WpfApp.ViewModel
             {
                 if (value == _wholeNamesChildrenFilter) return;
                 _wholeNamesChildrenFilter = value;
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
@@ -291,7 +312,7 @@ namespace WpfApp.ViewModel
             {
                 if (value == _namesCaseSensitiveChildrenFilter) return;
                 _namesCaseSensitiveChildrenFilter = value;
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
@@ -302,25 +323,23 @@ namespace WpfApp.ViewModel
             {
                 if (value == _dataFromArchiveChildrenFilter) return;
                 _dataFromArchiveChildrenFilter = value;
-                OnPropertyChangedRefreshFilter();
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
-        public bool OnlyDebtors
+        public bool OnlyDebtorsChildrenFilter
         {
-            get { return _onlyDebtors; }
+            get { return _onlyDebtorsChildrenFilter; }
             set
             {
-                if (value == _onlyDebtors) return;
-                _onlyDebtors = value;
-                OnPropertyChangedRefreshFilter();
+                if (value == _onlyDebtorsChildrenFilter) return;
+                _onlyDebtorsChildrenFilter = value;
+                OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
 
         #endregion
 
-
-        private ObservableCollection<Group> _groups;
         public ObservableCollection<Group> Groups
         {
             get { return _groups; }
@@ -331,24 +350,6 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
-
-        private string _title;
-        public string Title
-        {
-            get { return _title; }
-            set
-            {
-                if (value == _title) return;
-                _title = value;
-                OnPropertyChanged();
-            }
-        }
-
-        //BindingListCollectionView
-        private ICollectionView _children;
-        private DateTime? _fromEnterDateChildrenFilter;
-        private DateTime? _tillEnterDateChildrenFilter;
-
         public ICollectionView Children
         {
             get { return _children; }
@@ -360,20 +361,76 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
+        public string Title
+        {
+            get { return _title; }
+            set
+            {
+                if (value == _title) return;
+                _title = value;
+                OnPropertyChanged();
+            }
+        }
+        public Child SelectedChild
+        {
+            get { return _selectedChild; }
+            set
+            {
+                if (Equals(value, _selectedChild)) return;
+                _selectedChild = value;
+                OnPropertyChanged();
+            }
+        }
+        public bool IsDataLoading
+        {
+            get { return _isDataLoading; }
+            set
+            {
+                if (value == _isDataLoading) return;
+                _isDataLoading = value;
+                OnPropertyChanged();
+            }
+        }
 
-
-        public IRelayCommand UpdateChildCommand { get; }
+        
         public IRelayCommand ShowAddGroupWindowCommand { get; }
         public IRelayCommand ShowAddChildWindowCommand { get; }
         public IRelayCommand ShowChildDetailsCommand { get; }
+        public IRelayCommand RefreshDataCommand { get; }
+
+        private int LoadingDataCount
+        {
+            get { return _loadingDataCount; }
+            set
+            {
+                _loadingDataCount = value;
+                IsDataLoading = value != 0;
+            }
+        }
+
+        #region Fields
 
         private static readonly char[] FullNameSeparators = { ' ' };
         private string[] _firstNameChildrenFilterStrings = new string[0];
         private string[] _lastNameChildrenFilterStrings = new string[0];
         private string[] _patronymicChildrenFilterStrings = new string[0];
+        private string _personFirstNameChildrenFilter = string.Empty;
+        private string _personLastNameChildrenFilter = string.Empty;
+        private string _personPatronymicChildrenFilter = string.Empty;
+        private string _personFullNameChildrenFilter = string.Empty;
         private bool _wholeNamesChildrenFilter;
         private bool _namesCaseSensitiveChildrenFilter;
         private bool? _dataFromArchiveChildrenFilter;
-        private bool _onlyDebtors;
+        private bool _onlyDebtorsChildrenFilter;
+        private string _title;
+        private ICollectionView _children;
+        private ObservableCollection<Group> _groups;
+        private Child _selectedChild;
+        private DateTime? _fromEnterDateChildrenFilter;
+        private DateTime? _tillEnterDateChildrenFilter;
+        private bool _isDataLoading;
+        private int _loadingDataCount;
+
+        #endregion
     }
 }

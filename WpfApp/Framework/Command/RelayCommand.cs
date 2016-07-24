@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Input;
 
-namespace WpfApp.Command
+namespace WpfApp.Framework.Command
 {
     public interface IRelayCommand : ICommand
     {

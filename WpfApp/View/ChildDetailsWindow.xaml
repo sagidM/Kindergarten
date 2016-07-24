@@ -4,9 +4,46 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp.View"
+        xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         mc:Ignorable="d"
-        Title="ChildDetailsWindow" Height="496.717" Width="551">
-	<Grid>
-		<Label Content="{Binding S}"/>
+        Title="ChildDetailsWindow" Height="712.036" Width="741.217"
+		Name="ThisWindow">
+	<Grid DataContext="{Binding CurrentChild}">
+		<StackPanel>
+			<Label Content="{Binding Person.FirstName}"/>
+			<StackPanel>
+				<TextBox IsReadOnly="True" Text="{Binding Path=Id}"/>
+				<TextBox Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
+				<TextBox Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
+				<TextBox Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
+				<ComboBox SelectedItem="{Binding Path=CurrentChild.Group}"
+						  DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=DataContext}"
+						  ItemsSource="{Binding Groups}">
+					<ComboBox.ItemTemplate>
+						<!--(m:Child.Group)-->
+						<DataTemplate>
+							<TextBlock>
+								<TextBlock.Text>
+									<MultiBinding StringFormat="{}{0}. {1}">
+										<Binding Path="Id" />
+										<Binding Path="Name" />
+									</MultiBinding>
+								</TextBlock.Text>
+							</TextBlock>
+						</DataTemplate>
+					</ComboBox.ItemTemplate>
+				</ComboBox>
+				<ComboBox SelectedItem="{Binding Path=PaymentSystem}"
+							          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
+							          ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
+				</ComboBox>
+				<TextBox Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}" />
+				<CheckBox Content="На исключение" IsChecked="{Binding IsNobody}" />
+				<DatePicker SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
+				<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
+			</StackPanel>
+			<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+					Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
+		</StackPanel>
 	</Grid>
 </Window>

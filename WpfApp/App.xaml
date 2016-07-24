@@ -21,11 +21,72 @@
 			<ResourceDictionary.MergedDictionaries>
 				<ResourceDictionary Source="Dictionaries/Converters.xaml"/>
 				<ResourceDictionary Source="Dictionaries/Data.xaml"/>
+				<ResourceDictionary Source="Dictionaries/Images.xaml"/>
 				<ResourceDictionary Source="Dictionaries/Styles.xaml"/>
 			</ResourceDictionary.MergedDictionaries>
 		</ResourceDictionary>
 	</Application.Resources>
 </Application>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

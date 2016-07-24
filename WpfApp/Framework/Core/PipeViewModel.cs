@@ -8,7 +8,7 @@ namespace WpfApp.Framework.Core
     {
         private const string ViewViewModel = "ViewViewModelPairs";
 
-        public Pipe Pipe { get; set; }
+        public Pipe Pipe { get; internal set; }
 
         public abstract void OnPreInit();
 

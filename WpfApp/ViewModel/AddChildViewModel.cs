@@ -6,10 +6,11 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using DAL.Model;
-using WpfApp.Command;
+using Microsoft.Win32;
+using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
-using WpfApp.Service;
 using WpfApp.Util;
+using WpfApp.View.DialogService;
 
 namespace WpfApp.ViewModel
 {
@@ -78,7 +79,7 @@ namespace WpfApp.ViewModel
             Finish();
         }
 
-        private readonly IFileDialogService _openFileDialogService = FileDialogServices.ImageLoader;
+        private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
         private ImageSource _childImageSource;
         private Uri _imageUri;
 
@@ -94,9 +95,9 @@ namespace WpfApp.ViewModel
         }
         private void OpenDialogLoadImage()
         {
-            if (_openFileDialogService.Show() == false) return;
+            if (_openFileDialog.ShowDialog() == false) return;
 
-            var path = _openFileDialogService.FileName;
+            var path = _openFileDialog.FileName;
             _imageUri = new Uri(path);
             try
             {

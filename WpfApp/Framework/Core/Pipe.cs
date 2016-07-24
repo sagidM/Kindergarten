@@ -16,7 +16,7 @@ namespace WpfApp.Framework.Core
 
         //public Type ViewModelType { get; set; }
 
-        public IDictionary<string, object> Parameters { get; set; }
+        public IDictionary<string, object> Parameters { get; }
         public bool IsDialog { get; set; }
 
         public void SetParameter(string key, object value) => Parameters[key] = value;

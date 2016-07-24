@@ -7,8 +7,10 @@
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         xmlns:vm="clr-namespace:WpfApp.ViewModel"
         xmlns:util="clr-namespace:WpfApp.Util"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="761.007" Width="923.755">
+        Title="{Binding Title}" Height="761.007" Width="923.755"
+		Name="ThisWindow">
 	<Window.Resources>
 		<vm:MainViewModel x:Key="ViewModel" Title="App"/>
 		<util:BoolConverter x:Key="NoBodyConverter" Yes="Да" No="Нет" />
@@ -17,6 +19,7 @@
 		<StaticResource ResourceKey="ViewModel"/>
 	</Window.DataContext>
 
+	<Grid>
 	<TabControl>
 		<TabItem Header="Дети">
 			<DockPanel>
@@ -52,12 +55,21 @@
 								</Grid>
 
 								<CheckBox IsChecked="{Binding DataFromArchiveChildrenFilter}" IsThreeState="True" Content="Архив" />
-								<CheckBox IsChecked="{Binding OnlyDebtors}" Content="Показать только должников"/>
+								<CheckBox IsChecked="{Binding OnlyDebtorsChildrenFilter}" Content="Показать только должников"/>
 							</StackPanel>
 
 							<Separator Height="20" Margin="10"/>
 
-							<StackPanel Margin="20 40" DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
+							<StackPanel Margin="20 10" DataContext="{Binding ElementName=ThisWindow, Path=DataContext.SelectedChild}">
+								<StackPanel.Style>
+									<Style TargetType="StackPanel">
+										<Style.Triggers>
+											<Trigger Property="DataContext" Value="{x:Null}">
+												<Setter Property="Visibility" Value="Collapsed"/>
+											</Trigger>
+										</Style.Triggers>
+									</Style>
+								</StackPanel.Style>
 								<StackPanel.Resources>
 									<Style TargetType="TextBlock">
 										<Setter Property="TextAlignment" Value="Center"/>
@@ -107,47 +119,17 @@
 										</DataTemplate>
 									</ListBox.ItemTemplate>
 								</ListBox>
-								<Button DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" Content="Подробнее"/>
+								<Button Margin="10" DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" Content="Подробнее о ребёнке"/>
 							</StackPanel>
-
-							<StackPanel DataContext="{Binding Path=SelectedItem, ElementName=DataGridChildren}">
-								<TextBox IsReadOnly="True" Text="{Binding Path=Id}"/>
-								<TextBox Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
-								<TextBox Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
-								<TextBox Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
-								<ComboBox SelectedItem="{Binding ElementName=DataGridChildren, Path=(SelectedItem).(m:Child.Group)}" DataContext="{StaticResource ViewModel}" ItemsSource="{Binding Groups}">
-									<ComboBox.ItemTemplate>
-										<DataTemplate>
-											<TextBlock>
-												<TextBlock.Text>
-													<MultiBinding StringFormat="{}{0}. {1}">
-														<Binding Path="Id" />
-														<Binding Path="Name" />
-													</MultiBinding>
-												</TextBlock.Text>
-											</TextBlock>
-										</DataTemplate>
-									</ComboBox.ItemTemplate>
-								</ComboBox>
-								<ComboBox SelectedItem="{Binding Path=PaymentSystem}"
-							          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
-							          ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
-								</ComboBox>
-								<TextBox Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}" />
-								<CheckBox Content="На исключение" IsChecked="{Binding IsNobody}" />
-								<DatePicker SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
-								<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
-							</StackPanel>
-
-							<Button Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
 						</StackPanel>
 
 
-						<Button Command="{Binding ShowAddChildWindowCommand}" Margin="0 20 0 0">Добавление</Button>
+
+							<Button Command="{Binding ShowAddChildWindowCommand}" Margin="0 20 0 0" Content="Добавление"/>
 					</StackPanel>
 				</ScrollViewer>
 
-				<DataGrid IsReadOnly="True" DockPanel.Dock="Right" Background="BlueViolet" x:Name="DataGridChildren" AutoGenerateColumns="False" ItemsSource="{Binding Children}">
+				<DataGrid IsReadOnly="True" DockPanel.Dock="Right" SelectedItem="{Binding SelectedChild, Mode=TwoWay}" Background="BlueViolet" x:Name="DataGridChildren" AutoGenerateColumns="False" ItemsSource="{Binding Children}">
 					<DataGrid.Columns>
 						<DataGridTextColumn Binding="{Binding Id}" Header="№" />
 						<DataGridTextColumn Header="ФИО">
@@ -214,4 +196,20 @@
 			</DockPanel>
 		</TabItem>
 	</TabControl>
+		<Grid>
+			<Grid.Resources>
+				<util:BoolConverter x:Key="DataLoadingConverter" No="Обновить все данные" Yes="Данные обновляются..."/>
+			</Grid.Resources>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition/>
+			</Grid.RowDefinitions>
+			<Button Grid.Column="1" Width="30" Height="30" Command="{Binding RefreshDataCommand}" Style="{StaticResource ReloadButton}"
+			        Tag="{Binding IsDataLoading}" ToolTip="{Binding IsDataLoading, Converter={StaticResource DataLoadingConverter}}"/>
+		</Grid>
+	</Grid>
 </Window>
