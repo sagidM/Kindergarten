@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -25,6 +24,7 @@ namespace WpfApp.ViewModel
             ShowAddGroupWindowCommand = new RelayCommand(() => StartViewModel<AddGroupViewModel>(new Pipe(true)));
             ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
             RefreshDataCommand = new RelayCommand(Load);
+            AddNewTarifCommand = new RelayCommand<Tarif>(AddNewTarif);
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -33,19 +33,30 @@ namespace WpfApp.ViewModel
             Load();
         }
 
+        private void AddNewTarif(Tarif tarif)
+        {
+            Console.WriteLine(tarif.IsValid());
+            if (!tarif.IsValid()) return;
+
+//            _context.Tarifs.Add(tarif);
+//            _context.SaveChanges();
+//            Tarifs.Add(tarif);
+        }
+
         private void ShowChildDetails()
         {
             var child = SelectedChild;
             if (child == null) return;
 
-            IDictionary<string, object> params0 = new Dictionary<string, object>
+            IDictionary<string, object> parameters = new Dictionary<string, object>
             {
                 ["child"] = child,
                 ["groups"] = Groups,
                 ["owner"] = this,
                 ["context"] = _context,
+                ["tarifs"] = Tarifs,
             };
-            StartViewModel<ChildDetailsViewModel>(new Pipe(params0, false));
+            StartViewModel<ChildDetailsViewModel>(new Pipe(parameters, false));
         }
 
         private async void Load()
@@ -56,10 +67,13 @@ namespace WpfApp.ViewModel
             _context = new KindergartenContext();
             await UpdateChildrenAsync();
             await UpdateGroupsAsync();
+            await UpdateTarifsAsync();
 
             --LoadingDataCount;
             RefreshDataCommand.NotifyCanExecute(true);
         }
+
+        private static readonly Random Random = new Random();
 
         public async Task UpdateChildrenAsync()
         {
@@ -67,6 +81,7 @@ namespace WpfApp.ViewModel
 
             DateTime from, to;
             from = to = DateTime.Now;
+            int childNoArchivedCount = 0;
 
             var c = await Task.Run(() =>
             {
@@ -74,20 +89,29 @@ namespace WpfApp.ViewModel
                     .Children
                     .Include("Person")
                     .Include("Group")
+                    .Include("Tarif")
                     .Include("ParentsChildren.Parent")
                     .ToList();
-                Thread.Sleep(100);
+//                Thread.Sleep(Random.Next(1000));
 
                 if (result.Count > 0)
                 {
                     if (!FromEnterDateChildrenFilter.HasValue) from = result.Min(t => t.EnterDate);
                     if (!TillEnterDateChildrenFilter.HasValue) to = result.Max(t => t.EnterDate);
+                    childNoArchivedCount = result.Count(t => (t.Options & ChildOptions.Archived) == 0);
                 }
                 return result;
             });
             if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
             if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
-            Children = CollectionViewSource.GetDefaultView(c);
+
+            var selectedChild = SelectedChild;
+            Children = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
+            if (selectedChild != null && c.Count > 0)
+                SelectedChild = c.FirstOrDefault(ch => ch.Id == selectedChild.Id);
+
+            ChildNoArchivedCount = childNoArchivedCount;
+            ChildTotalCount = c.Count;
 
             --LoadingDataCount;
         }
@@ -96,6 +120,17 @@ namespace WpfApp.ViewModel
         {
             ++LoadingDataCount;
             Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
+            --LoadingDataCount;
+        }
+
+        public async Task UpdateTarifsAsync()
+        {
+            ++LoadingDataCount;
+            Tarifs = await Task.Run(() =>
+            {
+                var list = _context.Tarifs.ToList();
+                return new ObservableCollection<Tarif>(list);
+            });
             --LoadingDataCount;
         }
 
@@ -129,11 +164,10 @@ namespace WpfApp.ViewModel
             var p = c.Person;
 
 
-            // Archive
-            if (DataFromArchiveChildrenFilter.HasValue)
+            // Archived
+            if (ArchivedChildrenFilter.HasValue)
             {
-                const Groups f = DAL.Model.Groups.Finished;
-                if (((c.Group.GroupType & f) == f) != DataFromArchiveChildrenFilter.Value)
+                if (ArchivedChildrenFilter.Value ^ ((c.Options & ChildOptions.Archived) == ChildOptions.Archived))
                     return false;
             }
 
@@ -316,13 +350,13 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public bool? DataFromArchiveChildrenFilter
+        public bool? ArchivedChildrenFilter
         {
-            get { return _dataFromArchiveChildrenFilter; }
+            get { return _archivedChildrenFilter; }
             set
             {
-                if (value == _dataFromArchiveChildrenFilter) return;
-                _dataFromArchiveChildrenFilter = value;
+                if (value == _archivedChildrenFilter) return;
+                _archivedChildrenFilter = value;
                 OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
@@ -350,7 +384,7 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
-        public ICollectionView Children
+        public ListCollectionView Children
         {
             get { return _children; }
             private set
@@ -361,6 +395,39 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
+
+        public ObservableCollection<Tarif> Tarifs
+        {
+            get { return _tarifs; }
+            set
+            {
+                if (Equals(value, _tarifs)) return;
+                _tarifs = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public int ChildNoArchivedCount
+        {
+            get { return _childNoArchivedCount; }
+            set
+            {
+                if (value == _childNoArchivedCount) return;
+                _childNoArchivedCount = value;
+                OnPropertyChanged();
+            }
+        }
+        public int ChildTotalCount
+        {
+            get { return _childTotalCount; }
+            set
+            {
+                if (value == _childTotalCount) return;
+                _childTotalCount = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string Title
         {
             get { return _title; }
@@ -397,6 +464,7 @@ namespace WpfApp.ViewModel
         public IRelayCommand ShowAddChildWindowCommand { get; }
         public IRelayCommand ShowChildDetailsCommand { get; }
         public IRelayCommand RefreshDataCommand { get; }
+        public IRelayCommand AddNewTarifCommand { get; }
 
         private int LoadingDataCount
         {
@@ -420,16 +488,19 @@ namespace WpfApp.ViewModel
         private string _personFullNameChildrenFilter = string.Empty;
         private bool _wholeNamesChildrenFilter;
         private bool _namesCaseSensitiveChildrenFilter;
-        private bool? _dataFromArchiveChildrenFilter;
+        private bool? _archivedChildrenFilter;
         private bool _onlyDebtorsChildrenFilter;
         private string _title;
-        private ICollectionView _children;
+        private ListCollectionView _children;
         private ObservableCollection<Group> _groups;
         private Child _selectedChild;
         private DateTime? _fromEnterDateChildrenFilter;
         private DateTime? _tillEnterDateChildrenFilter;
         private bool _isDataLoading;
         private int _loadingDataCount;
+        private int _childTotalCount;
+        private int _childNoArchivedCount;
+        private ObservableCollection<Tarif> _tarifs;
 
         #endregion
     }

@@ -71,6 +71,13 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Settings\AppFilePaths.cs" />
+    <Compile Include="ViewModel\ChangeGroupChildViewModel.cs" />
+    <Compile Include="View\ChangeGroupChild.xaml.cs">
+      <DependentUpon>ChangeGroupChild.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Converter\ChildOptionsConverter.cs" />
+    <Compile Include="View\Converter\SelectedTarifConverter.cs" />
+    <Compile Include="View\DataTemplateSelector\TarifComboBoxDataTemplateSelector.cs" />
     <Compile Include="View\DialogService\FileDialogs.cs" />
     <Compile Include="Settings\Database.cs" />
     <Compile Include="Util\CommonHelper.cs" />
@@ -100,7 +107,6 @@
     <Compile Include="View\Converter\DateTimeConverter.cs" />
     <Compile Include="View\Converter\GroupsConverter.cs" />
     <Compile Include="View\Converter\ImageConverter.cs" />
-    <Compile Include="View\Converter\PaymentSystemConverter.cs" />
     <Compile Include="View\Converter\SexConverter.cs" />
     <Page Include="Dictionaries\Images.xaml">
       <SubType>Designer</SubType>
@@ -123,6 +129,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\AddGroupWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\ChangeGroupChild.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

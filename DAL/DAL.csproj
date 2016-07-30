@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{0B8EB3C3-3F23-4A7F-841C-F8DF4E43F703}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DAL</RootNamespace>
     <AssemblyName>DAL</AssemblyName>
@@ -77,6 +77,10 @@
     <Compile Include="Migrations\201607202343375_AddPhotoPathToPeople.Designer.cs">
       <DependentUpon>201607202343375_AddPhotoPathToPeople.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201607291146233_TarifsInsteadPaymentSystem.cs" />
+    <Compile Include="Migrations\201607291146233_TarifsInsteadPaymentSystem.Designer.cs">
+      <DependentUpon>201607291146233_TarifsInsteadPaymentSystem.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
     <Compile Include="Model\models.cs" />
@@ -109,6 +113,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201607202343375_AddPhotoPathToPeople.resx">
       <DependentUpon>201607202343375_AddPhotoPathToPeople.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201607291146233_TarifsInsteadPaymentSystem.resx">
+      <DependentUpon>201607291146233_TarifsInsteadPaymentSystem.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

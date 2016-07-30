@@ -39,6 +39,13 @@ namespace DAL.Model
                 .WithMany(g => g.Children)
                 .HasForeignKey(c => c.GroupId)
                 .WillCascadeOnDelete(false);
+
+            // disable cascade delete from Children.TarifId
+            modelBuilder.Entity<Child>()
+                .HasRequired(c => c.Tarif)
+                .WithMany(t => t.Children)
+                .HasForeignKey(c => c.TarifId)
+                .WillCascadeOnDelete(false);
         }
 
 
@@ -47,6 +54,7 @@ namespace DAL.Model
         public virtual DbSet<Parent> Parents { get; set; }
         public virtual DbSet<Group> Groups { get; set; }
         public virtual DbSet<Payment> Payments { get; set; }
+        public virtual DbSet<Tarif> Tarifs { get; set; }
         public virtual DbSet<ParentChild> ParentChildren { get; set; }
     }
 }

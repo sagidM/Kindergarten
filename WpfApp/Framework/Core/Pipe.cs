@@ -20,6 +20,15 @@ namespace WpfApp.Framework.Core
         public bool IsDialog { get; set; }
 
         public void SetParameter(string key, object value) => Parameters[key] = value;
+
+        public bool TryGetParameter<T>(string key, out T value)
+        {
+            object outValue;
+            var res = TryGetParameter(key, out outValue);
+            value = outValue is T ? (T) outValue : default(T);
+            return res;
+        }
+
         public bool TryGetParameter(string key, out object value)
         {
             object p;

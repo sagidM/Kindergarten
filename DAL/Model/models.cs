@@ -156,6 +156,11 @@ namespace DAL.Model
                 GetErrorInternal(nameof(Patronymic)) == null &&
                 GetErrorInternal(nameof(PhotoPath)) == null;
         }
+
+        public override string ToString()
+        {
+            return $"{nameof(Id)} = {Id} {nameof(FirstName)} = {FirstName}, {nameof(LastName)} = {LastName}, {nameof(Patronymic)} = {Patronymic}.";
+        }
     }
 
     public class Parent : BaseEntity<int>
@@ -169,7 +174,7 @@ namespace DAL.Model
         [MaxLength(128)]
         public string WorkAddress { get; set; }
 
-        [Required, MaxLength(10)]
+        [Required, MaxLength(10), MinLength(10)]
         public string PassportSeries { get; set; }
         [Required, MaxLength(256)]
         public string PassportIssuedBy { get; set; }
@@ -184,12 +189,8 @@ namespace DAL.Model
     {
         public virtual Person Person { get; set; }
 
-        #region Group
-
         public int GroupId { get; set; }
-        public Group Group { get; set; }
-
-        #endregion
+        public virtual Group Group { get; set; }
 
         [Required, MaxLength(128)]
         public string LocationAddress { get; set; }
@@ -208,10 +209,11 @@ namespace DAL.Model
             get { return Date; }
             set { Date = value; }
         }
+        
+        public ChildOptions Options { get; set; }
 
-        public bool IsNobody { get; set; }
-
-        public PaymentSystems PaymentSystem { get; set; }
+        public int TarifId { get; set; }
+        public virtual Tarif Tarif { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
@@ -243,6 +245,11 @@ namespace DAL.Model
                 GetErrorInternal(nameof(Group)) == null &&
                 Person.IsValid();
         }
+
+        public override string ToString()
+        {
+            return "Child: " + Person;
+        }
     }
 
     [Table("ParentChild")]
@@ -259,6 +266,45 @@ namespace DAL.Model
         public Parents ParentType { get; set; }
     }
 
+    public class Tarif : BaseEntity<int>
+    {
+        public double MonthlyPayment { get; set; }
+        public double AnnualPayment { get; set; }
+        [Required, MaxLength(255), MinLength(3)]
+        public string Note { get; set; }
+
+        public virtual ICollection<Child> Children { get; set; }
+
+        protected override string GetErrorInternal(string columnName)
+        {
+            string err = null;
+            switch (columnName)
+            {
+                case nameof(MonthlyPayment):
+                    if (MonthlyPayment < 0)
+                        err = "Monthly payment cannot be less than zero";
+                    break;
+                case nameof(AnnualPayment):
+                    if (AnnualPayment < 0)
+                        err = "Annual payment cannot be less than zero";
+                    break;
+                case nameof(Note):
+                    if (string.IsNullOrWhiteSpace(Note))
+                        err = "Note cannot be null or spaces";
+                    break;
+            }
+            return err;
+        }
+
+        public bool IsValid()
+        {
+            return
+                GetErrorInternal(nameof(MonthlyPayment)) == null &&
+                GetErrorInternal(nameof(AnnualPayment)) == null &&
+                GetErrorInternal(nameof(Note)) == null;
+        }
+    }
+
     [Table("PaymentHistory")]
     public class Payment : DateTimeNowAsDefaultEntity
     {
@@ -271,7 +317,7 @@ namespace DAL.Model
         }
 
         public int ChildId { get; set; }
-        public Child Child { get; set; }
+        public virtual Child Child { get; set; }
 
         public DateTime PaymentDate
         {
@@ -279,7 +325,7 @@ namespace DAL.Model
             set { Date = value; }
         }
 
-        public PaymentSystems PaymentSystem { get; set; }
+//        public PaymentSystems PaymentSystem { get; set; }
 
         public double PaidMoney { get; set; }
         public double Debit { get; set; }     // Debit = родитель должен заплатить. -Debit = родителю должны заплатить
@@ -290,6 +336,14 @@ namespace DAL.Model
     {
         System1 = 0,
         System2,
+    }
+
+    [Flags]
+    public enum ChildOptions
+    {
+        None = 0,
+        IsNoBody = 1,
+        Archived = 2,
     }
 
     public enum Sex : byte { Male = 0, Female = 1 }

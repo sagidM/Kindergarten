@@ -62,16 +62,15 @@
 		</Button>
 
 		<Label Grid.Row="0" Grid.Column="0" Content="Фамилия"/>
-		<TextBox Grid.Row="0" Grid.Column="1"
-		         Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
-		</TextBox>
+		<TextBox Grid.Row="0" Grid.Column="1" MaxLength="64"
+		         Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
 
 		<Label Grid.Row="1" Grid.Column="0" Content="Имя"/>
-		<TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
-		</TextBox>
+		<TextBox Grid.Row="1" Grid.Column="1" MaxLength="64"
+				 Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
 
 		<Label Grid.Row="2" Grid.Column="0" Content="Отчество"/>
-		<TextBox Grid.Row="2" Grid.Column="1"
+		<TextBox Grid.Row="2" Grid.Column="1" MaxLength="64"
 		         Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
 			<Validation.ErrorTemplate>
 				<ControlTemplate>
@@ -88,16 +87,10 @@
 		<DatePicker x:Name="DatePickerBirthDate" Grid.Row="3" Grid.Column="1" SelectedDate="{Binding BirthDate}"/>
 
 		<Label Grid.Row="4" Grid.Column="0" Content="Место жительства"/>
-		<TextBox Grid.Row="4" Grid.Column="1"
-		         Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
-		</TextBox>
+		<TextBox Grid.Row="4" Grid.Column="1" MaxLength="64"
+		         Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
 
-		<Label Grid.Row="5" Grid.Column="0" Content="Оплата"/>
-		<ComboBox Grid.Row="5" Grid.Column="1"
-				  SelectedItem="{Binding Path=PaymentSystem}"
-		          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
-				  ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
-		</ComboBox>
+		<Label Grid.Row="5" Grid.Column="0" Content="Тариф"/>
 
 		<Label Grid.Row="6" Grid.Column="0" Content="Группа"/>
 		<ComboBox Grid.Row="6" Grid.Column="1"
@@ -117,4 +110,3 @@
 		        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
 	</Grid>
 </Window>
-

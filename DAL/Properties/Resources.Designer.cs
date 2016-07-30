@@ -59,23 +59,5 @@ namespace DAL.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to 10.
-        /// </summary>
-        internal static string HighestPossibleChildYear {
-            get {
-                return ResourceManager.GetString("HighestPossibleChildYear", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to 0.
-        /// </summary>
-        internal static string LowestPossibleChildYear {
-            get {
-                return ResourceManager.GetString("LowestPossibleChildYear", resourceCulture);
-            }
-        }
     }
 }

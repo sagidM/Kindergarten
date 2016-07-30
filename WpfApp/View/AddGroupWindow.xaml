@@ -28,7 +28,7 @@
 		</Button>
 
 		<Label Content="_Название группы" Target="{Binding ElementName=TextBoxName}"/>
-		<TextBox x:Name="TextBoxName" Text="{Binding Path=Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+		<TextBox MaxLength="64" x:Name="TextBoxName" Text="{Binding Path=Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
 
 		<Label Content="_Тип группы" Target="{Binding ElementName=ComboBoxType}"/>
 		<ComboBox x:Name="ComboBoxType"

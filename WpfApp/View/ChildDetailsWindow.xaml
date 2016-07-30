@@ -5,45 +5,192 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp.View"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
+        xmlns:converter="clr-namespace:WpfApp.View.Converter"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
+        xmlns:dataTemplateSelector="clr-namespace:WpfApp.View.DataTemplateSelector"
         mc:Ignorable="d"
-        Title="ChildDetailsWindow" Height="712.036" Width="741.217"
+        Title="ChildDetailsWindow" Height="567.036" Width="761.717"
 		Name="ThisWindow">
-	<Grid DataContext="{Binding CurrentChild}">
-		<StackPanel>
-			<Label Content="{Binding Person.FirstName}"/>
-			<StackPanel>
-				<TextBox IsReadOnly="True" Text="{Binding Path=Id}"/>
-				<TextBox Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
-				<TextBox Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
-				<TextBox Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
-				<ComboBox SelectedItem="{Binding Path=CurrentChild.Group}"
-						  DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=DataContext}"
-						  ItemsSource="{Binding Groups}">
-					<ComboBox.ItemTemplate>
-						<!--(m:Child.Group)-->
-						<DataTemplate>
-							<TextBlock>
-								<TextBlock.Text>
-									<MultiBinding StringFormat="{}{0}. {1}">
-										<Binding Path="Id" />
-										<Binding Path="Name" />
-									</MultiBinding>
-								</TextBlock.Text>
-							</TextBlock>
-						</DataTemplate>
-					</ComboBox.ItemTemplate>
-				</ComboBox>
-				<ComboBox SelectedItem="{Binding Path=PaymentSystem}"
-							          ItemsSource="{Binding Source={StaticResource PaymentSystems}}"
-							          ItemTemplate="{StaticResource PaymentSystemsDataTemplate}">
-				</ComboBox>
-				<TextBox Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}" />
-				<CheckBox Content="На исключение" IsChecked="{Binding IsNobody}" />
-				<DatePicker SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
-				<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
-			</StackPanel>
-			<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-					Command="{Binding UpdateChildCommand}" Content="Сохранить"/>
-		</StackPanel>
-	</Grid>
+
+	<TabControl>
+		<TabItem Header="Информация о ребёнке">
+			<DockPanel>
+				<StackPanel Width="150" Background="Aqua" DockPanel.Dock="Right"></StackPanel>
+				<StackPanel DockPanel.Dock="Left" DataContext="{Binding CurrentChild}">
+					<TextBlock Text="Информация о ребёнке"/>
+					<Separator Height="5"/>
+					<Grid ShowGridLines="True">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<StackPanel>
+							<StackPanel>
+								<WrapPanel Margin="4">
+									<TextBlock Text="ФИО" Margin="5 5"/>
+									<TextBox MinWidth="30" MaxLength="64" Padding="5" Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged}"/>
+									<TextBox MinWidth="30" MaxLength="64" Padding="5" Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged}"/>
+									<TextBox MinWidth="30" MaxLength="64" Padding="5" Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged}"/>
+								</WrapPanel>
+							</StackPanel>
+							<Label Margin="0 10 0 0" >
+								<WrapPanel>
+									<TextBlock Text="Возраст: "/>
+									<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource YearsOldConverter}}"/>
+								</WrapPanel>
+							</Label>
+							<Label Margin="0 10 0 0" >
+								<WrapPanel>
+									<Label Content="Дата рождения: "/>
+									<DatePicker SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
+								</WrapPanel>
+							</Label>
+							<Label Margin="0 10 0 0" >
+								<WrapPanel>
+									<TextBlock Text="Дата зачисления: "/>
+									<TextBlock Text="{Binding EnterDate, Converter={StaticResource DateConverter}}"/>
+								</WrapPanel>
+							</Label>
+
+							<Label Margin="0 10 0 0" >
+								<WrapPanel>
+									<Label Content="Пол:"/>
+									<ComboBox Height="24" ItemsSource="{StaticResource Sexes}" SelectedItem="{Binding Sex}" ItemTemplate="{StaticResource SexesDataTemplate}"/>
+								</WrapPanel>
+							</Label>
+						</StackPanel>
+						<StackPanel Grid.Column="1">
+							<Label>
+								<WrapPanel>
+									<Label Content="Группа: "/>
+									<Label>
+										<Label.Content>
+											<TextBlock>
+												<TextBlock.Text>
+													<MultiBinding StringFormat="{}{0} ({1})">
+														<Binding Path="Group.Name"/>
+														<Binding Path="Group.GroupType" Converter="{StaticResource GroupsConverter}"/>
+													</MultiBinding>
+												</TextBlock.Text>
+											</TextBlock>
+										</Label.Content>
+									</Label>
+									<!--<ComboBox DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Groups}"
+											  SelectedItem="{Binding CurrentChild.Group}" ItemTemplate="{StaticResource GroupTypeDataTemplate}"/>-->
+								</WrapPanel>
+							</Label>
+							<Label>
+								<WrapPanel>
+									<Label Content="Адрес:"/>
+									<TextBox Padding="5" Text="{Binding LocationAddress}"></TextBox>
+								</WrapPanel>
+							</Label>
+
+							<Label>
+								<WrapPanel>
+									<Label Content="Тариф:"/>
+									<ComboBox DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Tarifs}"
+											  SelectedItem="{Binding CurrentChild.Tarif}">
+										<!--SelectedItem="{Binding CurrentChild.Tarif, Converter={StaticResource SelectedTarifConverter}}"-->
+										<ComboBox.ItemTemplateSelector>
+											<dataTemplateSelector:TarifComboBoxDataTemplateSelector>
+												<dataTemplateSelector:TarifComboBoxDataTemplateSelector.SelectedItemMonthlyTemplate>
+													<DataTemplate>
+														<WrapPanel>
+															<Ellipse Fill="Green" Width="10" Height="10" Margin="0 0 5 0"/>
+															<TextBlock>
+																<TextBlock.Text>
+																	<MultiBinding StringFormat="{}{0} рублей в месяц">
+																		<Binding Path="MonthlyPayment" />
+																		<!--<Binding Path="AnnualPayment" />-->
+																		<!--<Binding Path="Note" />-->
+																	</MultiBinding>
+																</TextBlock.Text>
+															</TextBlock>
+														</WrapPanel>
+													</DataTemplate>
+												</dataTemplateSelector:TarifComboBoxDataTemplateSelector.SelectedItemMonthlyTemplate>
+												<dataTemplateSelector:TarifComboBoxDataTemplateSelector.SelectedItemAnnualTemplate>
+													<DataTemplate>
+														<WrapPanel>
+															<Rectangle Width="10" Height="10" Fill="#007ACB" Margin="0 0 5 0"/>
+															<TextBlock>
+																<TextBlock.Text>
+																	<MultiBinding StringFormat="{}{0} рублей в месяц + {1} в год">
+																		<Binding Path="MonthlyPayment" />
+																		<Binding Path="AnnualPayment" />
+																		<!--<Binding Path="Note" />-->
+																	</MultiBinding>
+																</TextBlock.Text>
+															</TextBlock>
+														</WrapPanel>
+													</DataTemplate>
+												</dataTemplateSelector:TarifComboBoxDataTemplateSelector.SelectedItemAnnualTemplate>
+												<dataTemplateSelector:TarifComboBoxDataTemplateSelector.AnnualTemplate>
+													<DataTemplate>
+														<WrapPanel>
+															<Rectangle Width="10" Height="10" Fill="#007ACB" Margin="0 0 5 0"/>
+															<TextBlock>
+																<TextBlock.Text>
+																	<MultiBinding StringFormat="{}{2} ({0} р/м + {1} р/г)">
+																		<Binding Path="MonthlyPayment" />
+																		<Binding Path="AnnualPayment" />
+																		<Binding Path="Note" />
+																	</MultiBinding>
+																</TextBlock.Text>
+															</TextBlock>
+														</WrapPanel>
+													</DataTemplate>
+												</dataTemplateSelector:TarifComboBoxDataTemplateSelector.AnnualTemplate>
+												<dataTemplateSelector:TarifComboBoxDataTemplateSelector.MonthlyTemplate>
+													<DataTemplate>
+														<WrapPanel>
+															<Ellipse Fill="Green" Width="10" Height="10" Margin="0 0 5 0"/>
+															<TextBlock>
+																<TextBlock.Text>
+																	<MultiBinding StringFormat="{}{1} ({0} р/м)">
+																		<Binding Path="MonthlyPayment" />
+																		<Binding Path="Note" />
+																	</MultiBinding>
+																</TextBlock.Text>
+															</TextBlock>
+														</WrapPanel>
+													</DataTemplate>
+												</dataTemplateSelector:TarifComboBoxDataTemplateSelector.MonthlyTemplate>
+											</dataTemplateSelector:TarifComboBoxDataTemplateSelector>
+										</ComboBox.ItemTemplateSelector>
+									</ComboBox>
+								</WrapPanel>
+							</Label>
+							
+							<Label>
+								<WrapPanel>
+									<Label Content="Необходимо оплатить:"/>
+									<Label Content="???"/>
+								</WrapPanel>
+							</Label>
+						</StackPanel>
+					</Grid>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Button>sdfsdf</Button>
+					</Grid>
+
+					<TextBox IsReadOnly="True" Text="{Binding Path=Id}"/>
+					<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+					        Command="{Binding ChangeGroupCommand}" Content="Перевести в другую группу..."/>
+					<CheckBox DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Content="На исключение" IsChecked="{Binding IsBobodyOption}"/>
+					<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
+					<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+					        Command="{Binding UpdateChildCommand}" Content="Применить"/>
+				</StackPanel>
+			</DockPanel>
+		</TabItem>
+		<TabItem Header="Лицевой счет">
+
+		</TabItem>
+	</TabControl>
 </Window>
