@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,25 +16,22 @@ namespace WpfApp.ViewModel
 {
     internal class AddChildViewModel : ViewModelBase
     {
-        private readonly KindergartenContext _context;
+        private KindergartenContext _context;
         public AddChildViewModel()
         {
             AddChildCommand = new RelayCommand<Child>(AddChild);
             OpenDialogLoadImageCommand = new RelayCommand(OpenDialogLoadImage);
-            if (IsDesignerMode) return;
-
-            _context = new KindergartenContext();
-            Load();
         }
 
-        private async void Load()
+        public override void OnLoaded()
         {
-            Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
+            _context = (KindergartenContext) Pipe.GetParameter("context");
+            Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
+            Tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
+            Pipe.SetParameter("saved_result", false);
         }
 
-        private ObservableCollection<Group> _groups;
-
-        public ObservableCollection<Group> Groups
+        public IEnumerable<Group> Groups
         {
             get { return _groups; }
             set
@@ -45,9 +42,19 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public IEnumerable<Tarif> Tarifs
+        {
+            get { return _tarifs; }
+            set
+            {
+                if (Equals(value, _tarifs)) return;
+                _tarifs = value;
+                OnPropertyChanged();
+            }
+        }
+
         public IRelayCommand OpenDialogLoadImageCommand { get; }
         public IRelayCommand AddChildCommand { get; }
-
 
         private async void AddChild(Child child)
         {
@@ -56,32 +63,30 @@ namespace WpfApp.ViewModel
             AddChildCommand.NotifyCanExecute(false);
             await Task.Run(() =>
             {
-                string fileName = null;
+                string imageFileName = null;
                 try
                 {
                     if (_imageUri != null)
                     {
                         var savePath = Path.Combine(Settings.AppFilePaths.ChildImages, CommonHelper.GetUniqueString());
-                        fileName = ImageUtil.SaveImage(_imageUri, savePath);
-                        child.Person.PhotoPath = Path.GetFileName(fileName);
+                        imageFileName = ImageUtil.SaveImage(_imageUri, savePath);
+                        child.Person.PhotoPath = Path.GetFileName(imageFileName);
                     }
-                    _context.Children.Add(child);
+                    var enterChild = new EnterChild {Child = child};
+                    _context.EnterChildren.Add(enterChild);
                     _context.SaveChanges();
                 }
                 catch
                 {
-                    if (fileName != null)
-                        File.Delete(fileName);
+                    if (imageFileName != null)
+                        File.Delete(imageFileName);
                     throw;
                 }
             });
             AddChildCommand.NotifyCanExecute(true);
+            Pipe.SetParameter("saved_result", true);
             Finish();
         }
-
-        private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
-        private ImageSource _childImageSource;
-        private Uri _imageUri;
 
         public ImageSource ChildImageSource
         {
@@ -109,5 +114,11 @@ namespace WpfApp.ViewModel
                 MessageBox.Show("Изображение не поддерживается", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+
+        private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
+        private ImageSource _childImageSource;
+        private Uri _imageUri;
+        private IEnumerable<Tarif> _tarifs;
+        private IEnumerable<Group> _groups;
     }
 }

@@ -1,5 +1,4 @@
 using System.Data.Entity;
-using System.Data.Entity.ModelConfiguration.Conventions;
 
 namespace DAL.Model
 {
@@ -56,5 +55,6 @@ namespace DAL.Model
         public virtual DbSet<Payment> Payments { get; set; }
         public virtual DbSet<Tarif> Tarifs { get; set; }
         public virtual DbSet<ParentChild> ParentChildren { get; set; }
+        public virtual DbSet<EnterChild> EnterChildren { get; set; }
     }
 }

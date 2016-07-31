@@ -204,19 +204,18 @@ namespace DAL.Model
 
         public Sex Sex { get; set; }
 
-        public DateTime EnterDate
-        {
-            get { return Date; }
-            set { Date = value; }
-        }
-        
-        public ChildOptions Options { get; set; }
+        [NotMapped]
+        public EnterChild LastEnterChild { get; set; }
+
+        public bool IsNobody { get; set; }
 
         public int TarifId { get; set; }
         public virtual Tarif Tarif { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
+
+        public virtual ICollection<EnterChild> EnterChildren { get; set; }
 
         protected override string GetErrorInternal(string columnName)
         {
@@ -325,25 +324,34 @@ namespace DAL.Model
             set { Date = value; }
         }
 
-//        public PaymentSystems PaymentSystem { get; set; }
-
         public double PaidMoney { get; set; }
         public double Debit { get; set; }     // Debit = родитель должен заплатить. -Debit = родителю должны заплатить
     }
 
-
-    public enum PaymentSystems
+    [Table("EnterChildHistory")]
+    public class EnterChild : DateTimeNowAsDefaultEntity
     {
-        System1 = 0,
-        System2,
-    }
+        [MaxLength(64)]
+        public string ExpulsionNote { get; set; }
 
-    [Flags]
-    public enum ChildOptions
-    {
-        None = 0,
-        IsNoBody = 1,
-        Archived = 2,
+        public int ChildId { get; set; }
+        public virtual Child Child { get; set; }
+
+        public DateTime EnterDate
+        {
+            get { return Date; }
+            set { Date = value; }
+        }
+
+        public DateTime? ExpulsionDate { get; set; }
+
+        public override string ToString()
+        {
+            return
+                $"{nameof(Id)} = {Id}, " +
+                $"{nameof(EnterDate)} = {EnterDate}, " +
+                $"{nameof(EnterDate)} = {ExpulsionDate?.ToString() ?? "NULL"}";
+        }
     }
 
     public enum Sex : byte { Male = 0, Female = 1 }

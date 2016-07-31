@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data.Entity;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -15,12 +16,12 @@ using WpfApp.Util;
 
 namespace WpfApp.ViewModel
 {
-    internal class MainViewModel : ViewModelBase
+    public class MainViewModel : ViewModelBase
     {
         private KindergartenContext _context;
         public MainViewModel()
         {
-            ShowAddChildWindowCommand = new RelayCommand(() => StartViewModel<AddChildViewModel>(new Pipe(true)));
+            ShowAddChildWindowCommand = new RelayCommand(ShowAddChildWindow);
             ShowAddGroupWindowCommand = new RelayCommand(() => StartViewModel<AddGroupViewModel>(new Pipe(true)));
             ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
             RefreshDataCommand = new RelayCommand(Load);
@@ -31,6 +32,19 @@ namespace WpfApp.ViewModel
             if (IsDesignerMode) return;
 
             Load();
+        }
+
+        private async void ShowAddChildWindow()
+        {
+            var pipe = new Pipe(true);
+            pipe.SetParameter("context", _context);
+            pipe.SetParameter("groups", Groups);
+            pipe.SetParameter("tarifs", Tarifs);
+
+            StartViewModel<AddChildViewModel>(pipe);
+
+            if ((bool) pipe.GetParameter("saved_result"))
+                await UpdateChildrenAsync();
         }
 
         private void AddNewTarif(Tarif tarif)
@@ -79,38 +93,47 @@ namespace WpfApp.ViewModel
         {
             ++LoadingDataCount;
 
-            DateTime from, to;
-            from = to = DateTime.Now;
-            int childNoArchivedCount = 0;
+            DateTime from = DateTime.MaxValue, to = DateTime.MinValue;
+            int notArchivedCount = 0;
+            int archivedCount = 0;
 
             var c = await Task.Run(() =>
             {
-                var result = _context
-                    .Children
-                    .Include("Person")
-                    .Include("Group")
-                    .Include("Tarif")
-                    .Include("ParentsChildren.Parent")
-                    .ToList();
+                var enters = _context.EnterChildren
+                    .Include("Child.Group")
+                    .Include("Child.Person")
+                    .Include("Child.Tarif")
+                    .Where(e => e.EnterDate == _context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate));
+                var result = new List<Child>(8);
+                foreach (var enter in enters)
+                {
+                    var child = enter.Child;
+                    child.LastEnterChild = child.EnterChildren.First();
+                    if (child.LastEnterChild.ExpulsionDate != null) archivedCount++;
+
+                    DateTime enterDate = child.LastEnterChild.EnterDate;
+                    if (from > enterDate) from = enterDate;
+                    if (to < enterDate) to = enterDate;
+
+                    result.Add(child);
+                }
+                notArchivedCount = result.Count - archivedCount;
 //                Thread.Sleep(Random.Next(1000));
 
-                if (result.Count > 0)
-                {
-                    if (!FromEnterDateChildrenFilter.HasValue) from = result.Min(t => t.EnterDate);
-                    if (!TillEnterDateChildrenFilter.HasValue) to = result.Max(t => t.EnterDate);
-                    childNoArchivedCount = result.Count(t => (t.Options & ChildOptions.Archived) == 0);
-                }
                 return result;
             });
-            if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
-            if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
+            if (c.Count > 0)
+                if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
+                if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
 
             var selectedChild = SelectedChild;
-            Children = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
+            var listCollectionView = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
+//            var list = new ListCollectionView(c);
+            Children = listCollectionView;
             if (selectedChild != null && c.Count > 0)
                 SelectedChild = c.FirstOrDefault(ch => ch.Id == selectedChild.Id);
 
-            ChildNoArchivedCount = childNoArchivedCount;
+            ChildNoArchivedCount = notArchivedCount;
             ChildTotalCount = c.Count;
 
             --LoadingDataCount;
@@ -119,7 +142,11 @@ namespace WpfApp.ViewModel
         private async Task UpdateGroupsAsync()
         {
             ++LoadingDataCount;
-            Groups = await Task.Run(() => new ObservableCollection<Group>(_context.Groups));
+            Groups = await Task.Run(() =>
+            {
+//                Thread.Sleep(1000);
+                return new ObservableCollection<Group>(_context.Groups);
+            });
             --LoadingDataCount;
         }
 
@@ -167,12 +194,12 @@ namespace WpfApp.ViewModel
             // Archived
             if (ArchivedChildrenFilter.HasValue)
             {
-                if (ArchivedChildrenFilter.Value ^ ((c.Options & ChildOptions.Archived) == ChildOptions.Archived))
+                if (ArchivedChildrenFilter.Value == (c.LastEnterChild.ExpulsionDate == null))
                     return false;
             }
 
             // EnterDate
-            if (FromEnterDateChildrenFilter > c.EnterDate || TillEnterDateChildrenFilter < c.EnterDate)
+            if (FromEnterDateChildrenFilter > c.LastEnterChild.EnterDate || TillEnterDateChildrenFilter < c.LastEnterChild.EnterDate.Date)
                 return false;
 
             if (OnlyDebtorsChildrenFilter)
@@ -312,7 +339,8 @@ namespace WpfApp.ViewModel
             set
             {
                 if (value.Equals(_fromEnterDateChildrenFilter)) return;
-                _fromEnterDateChildrenFilter = value;
+                var min = _tillEnterDateChildrenFilter < value ? _tillEnterDateChildrenFilter : value;
+                _fromEnterDateChildrenFilter = min;
                 OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
@@ -323,7 +351,8 @@ namespace WpfApp.ViewModel
             set
             {
                 if (value.Equals(_tillEnterDateChildrenFilter)) return;
-                _tillEnterDateChildrenFilter = value;
+                var max = _fromEnterDateChildrenFilter > value ? _fromEnterDateChildrenFilter : value;
+                _tillEnterDateChildrenFilter = max;
                 OnPropertyChangedAndRefreshChildrenFilter();
             }
         }

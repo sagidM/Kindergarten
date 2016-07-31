@@ -81,6 +81,10 @@
     <Compile Include="Migrations\201607291146233_TarifsInsteadPaymentSystem.Designer.cs">
       <DependentUpon>201607291146233_TarifsInsteadPaymentSystem.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201607301526321_AddEnterHistoryForChildrenAndRemoveChildOptions.cs" />
+    <Compile Include="Migrations\201607301526321_AddEnterHistoryForChildrenAndRemoveChildOptions.Designer.cs">
+      <DependentUpon>201607301526321_AddEnterHistoryForChildrenAndRemoveChildOptions.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
     <Compile Include="Model\models.cs" />
@@ -116,6 +120,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201607291146233_TarifsInsteadPaymentSystem.resx">
       <DependentUpon>201607291146233_TarifsInsteadPaymentSystem.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201607301526321_AddEnterHistoryForChildrenAndRemoveChildOptions.resx">
+      <DependentUpon>201607301526321_AddEnterHistoryForChildrenAndRemoveChildOptions.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

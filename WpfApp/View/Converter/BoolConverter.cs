@@ -1,20 +1,21 @@
 ﻿using System;
 using System.Globalization;
 using System.Windows.Data;
-using DAL.Model;
 
 namespace WpfApp.View.Converter
 {
-    public class ChildOptionsConverter : IValueConverter
+    public class BoolConverter : IValueConverter
     {
+        public static object Reverce = new object();
+
         public object True { get; set; } = true;
         public object False { get; set; } = false;
+        public object Null { get; set; } = null;
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var mustBe = (ChildOptions)parameter;
-            var options = (ChildOptions)value;
-            return (options & mustBe) != 0 ? True : False;
+            if (value == null) return Null;
+            return (bool) value == (Reverce != parameter) ? True : False;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

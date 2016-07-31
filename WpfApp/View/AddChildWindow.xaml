@@ -3,15 +3,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="clr-namespace:WpfApp.ViewModel"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         xmlns:local="clr-namespace:WpfApp.View"
 		xmlns:pp="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
 		xmlns:util="clr-namespace:WpfApp.Util"
 		mc:Ignorable="d"
-        Title="Добавление ребёнка" Height="359.333" Width="398">
+        Title="Добавление ребёнка" Height="359.333" Width="398"
+		Name="ThisWindow">
 	<Window.Resources>
-		<vm:AddChildViewModel x:Key="DataContext"/>
 		<Style TargetType="Label">
 			<Setter Property="VerticalAlignment" Value="Center"/>
 			<Setter Property="HorizontalAlignment" Value="Center"/>
@@ -31,14 +30,8 @@
 		</m:Child>
 
 	</Window.Resources>
-	<Window.DataContext>
-		<StaticResource ResourceKey="DataContext"/>
-	</Window.DataContext>
 
-	<Grid>
-		<Grid.DataContext>
-			<StaticResource ResourceKey="AdditionalChild" />
-		</Grid.DataContext>
+	<Grid DataContext="{StaticResource AdditionalChild}">
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition/>
 			<ColumnDefinition/>
@@ -91,21 +84,23 @@
 		         Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
 
 		<Label Grid.Row="5" Grid.Column="0" Content="Тариф"/>
+		<ComboBox Grid.Row="5" Grid.Column="1" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Tarifs}"
+				  SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Tarif, ValidatesOnDataErrors=True}" ItemTemplateSelector="{StaticResource TarifComboBoxDataTemplateSelector}"/>
 
 		<Label Grid.Row="6" Grid.Column="0" Content="Группа"/>
 		<ComboBox Grid.Row="6" Grid.Column="1"
-		          DataContext="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=DataContext}"
+		          DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 		          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Group, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
 		          ItemsSource="{Binding Path=Groups}" DisplayMemberPath="Name"/>
 
-		<Image Grid.Row="7" Grid.Column="0" DataContext="{StaticResource DataContext}"
+		<Image Grid.Row="7" Grid.Column="0" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 			   Source="{Binding ChildImageSource}" />
 		<Button Grid.Row="7" Grid.Column="1"
-				DataContext="{StaticResource DataContext}"
+				DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 				Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
 
 		<Button Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" IsDefault="True"
-		        DataContext="{StaticResource DataContext}"
+		        DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 		        Command="{Binding AddChildCommand}" Content="Add"
 		        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
 	</Grid>

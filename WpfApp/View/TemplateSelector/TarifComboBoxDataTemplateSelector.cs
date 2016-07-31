@@ -2,10 +2,11 @@
 using System.Windows.Controls;
 using System.Windows.Media;
 using DAL.Model;
+// ReSharper disable PossibleNullReferenceException
 
-namespace WpfApp.View.DataTemplateSelector
+namespace WpfApp.View.TemplateSelector
 {
-    public class TarifComboBoxDataTemplateSelector : System.Windows.Controls.DataTemplateSelector
+    public class TarifComboBoxDataTemplateSelector : DataTemplateSelector
     {
         public DataTemplate SelectedItemMonthlyTemplate { get; set; }
         public DataTemplate SelectedItemAnnualTemplate { get; set; }

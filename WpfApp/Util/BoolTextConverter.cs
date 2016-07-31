@@ -4,7 +4,7 @@ using System.Windows.Data;
 
 namespace WpfApp.Util
 {
-    public class BoolConverter : IValueConverter
+    public class BoolTextConverter : IValueConverter
     {
         public StringComparison StringComparison { get; set; } = StringComparison.OrdinalIgnoreCase;
         public string Yes { get; set; }

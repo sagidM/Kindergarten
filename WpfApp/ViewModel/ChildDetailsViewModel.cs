@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
@@ -12,6 +15,37 @@ namespace WpfApp.ViewModel
         {
             UpdateChildCommand = new RelayCommand(UpdateChild);
             ChangeGroupCommand = new RelayCommand(ChangeGroup);
+            AddChildToArchiveCommand = new RelayCommand<string>(AddChildToArchive);
+            RemoveChildFromArchiveCommand = new RelayCommand(RemoveChildFromArchive);
+        }
+
+        public override void OnLoaded()
+        {
+            CurrentChild = (Child)Pipe.GetParameter("child");
+            OnPropertyChanged(nameof(CurrentChildIsArchived));
+            OnPropertyChanged(nameof(CurrentGroup));
+            Groups = (ObservableCollection<Group>) Pipe.GetParameter("groups");
+            Tarifs = (ObservableCollection<Tarif>) Pipe.GetParameter("tarifs");
+            _mainViewModel = (MainViewModel) Pipe.GetParameter("owner");
+            _context = (KindergartenContext) Pipe.GetParameter("context");
+        }
+
+        private void AddChildToArchive(string note)
+        {
+            if (CurrentChildIsArchived) throw new InvalidOperationException();
+
+            CurrentChild.LastEnterChild.ExpulsionDate = DateTime.Now;
+            _context.SaveChanges();
+            OnPropertyChanged(nameof(CurrentChildIsArchived));
+        }
+
+        private void RemoveChildFromArchive()
+        {
+            if (!CurrentChildIsArchived) throw new InvalidOperationException();
+            
+            CurrentChild.EnterChildren.Add(CurrentChild.LastEnterChild = new EnterChild { EnterDate = DateTime.Now });
+            _context.SaveChanges();
+            OnPropertyChanged(nameof(CurrentChildIsArchived));
         }
 
         private async void ChangeGroup()
@@ -28,7 +62,21 @@ namespace WpfApp.ViewModel
 
             var group = (Group)pipe.GetParameter("group_result");
             CurrentGroup = group;
+            await UpdateMainViewModel();
+        }
+
+        public override async void OnFinished()
+        {
+            if (!_mainIsUpdating)
+                await UpdateMainViewModel();
+        }
+
+        private bool _mainIsUpdating;
+        private async Task UpdateMainViewModel()
+        {
+            _mainIsUpdating = true;
             await _mainViewModel.UpdateChildrenAsync();
+            _mainIsUpdating = false;
         }
 
         public ObservableCollection<Tarif> Tarifs
@@ -42,20 +90,10 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public override void OnLoaded()
-        {
-            CurrentChild = (Child)Pipe.GetParameter("child");
-            OnPropertyChanged(nameof(CurrentGroup));
-            Groups = (ObservableCollection<Group>) Pipe.GetParameter("groups");
-            Tarifs = (ObservableCollection<Tarif>) Pipe.GetParameter("tarifs");
-            _mainViewModel = (MainViewModel) Pipe.GetParameter("owner");
-            _context = (KindergartenContext) Pipe.GetParameter("context");
-        }
-
         private async void UpdateChild()
         {
             _context.SaveChanges();
-            await _mainViewModel.UpdateChildrenAsync();
+            await UpdateMainViewModel();
         }
 
         public ObservableCollection<Group> Groups
@@ -76,22 +114,10 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _currentChild)) return;
                 _currentChild = value;
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(IsBobodyOption));
             }
         }
 
-        public bool IsBobodyOption
-        {
-            get { return (CurrentChild.Options & ChildOptions.IsNoBody) != 0; }
-            set
-            {
-                if (value)
-                    CurrentChild.Options |= ChildOptions.IsNoBody;
-                else
-                    CurrentChild.Options &= ~ChildOptions.IsNoBody;
-                OnPropertyChanged();
-            }
-        }
+        public bool CurrentChildIsArchived => CurrentChild.LastEnterChild.ExpulsionDate.HasValue;
 
         public Group CurrentGroup
         {
@@ -103,8 +129,10 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public IRelayCommand UpdateChildCommand{get; private set; }
+        public IRelayCommand UpdateChildCommand {get; private set; }
         public IRelayCommand ChangeGroupCommand { get; private set; }
+        public IRelayCommand AddChildToArchiveCommand { get; private set; }
+        public IRelayCommand RemoveChildFromArchiveCommand { get; private set; }
 
         private Child _currentChild;
         private ObservableCollection<Group> _groups;

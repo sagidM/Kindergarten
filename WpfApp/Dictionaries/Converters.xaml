@@ -7,12 +7,10 @@
 							   Nursery="Ясли" Junior="Младшая"
 							   Middle="Средняя" Older="Старшая" />
 	
-	<converter:ChildOptionsConverter x:Key="ChildOptionsStringConverter" True="Да" False="Нет" />
 	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
 	<converter:ImageConverter x:Key="GroupImageConverter" ImageType="Group" DefaultImage="../resources/no_picture.jpg" />
 	<converter:DateTimeConverter x:Key="DateConverter" Format="dd.MM.yyyy"/>
 	<converter:DateTimeConverter x:Key="TimeConverter" Format="HH:mm:ss"/>
 	<converter:YearsOldConverter x:Key="YearsOldConverter"/>
-	<converter:SelectedTarifConverter x:Key="SelectedTarifConverter"/>
 
 </ResourceDictionary>

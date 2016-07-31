@@ -16,6 +16,11 @@ namespace WpfApp.View.Converter
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            if (!(value is Groups))
+            {
+                Console.WriteLine("???");
+                return null;
+            }
             var g = (Groups)value;
             if ((g & Groups.Finished) == Groups.Finished)
             {

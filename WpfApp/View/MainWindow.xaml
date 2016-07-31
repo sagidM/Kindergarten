@@ -14,7 +14,8 @@
 		Name="ThisWindow">
 	<Window.Resources>
 		<vm:MainViewModel x:Key="ViewModel" Title="App"/>
-		<util:BoolConverter x:Key="DataLoadingConverter" No="Обновить все данные" Yes="Данные обновляются..."/>
+		<util:BoolTextConverter x:Key="DataLoadingConverter" No="Обновить все данные" Yes="Данные обновляются..."/>
+		<util:BoolTextConverter x:Key="NobodyConverter" No="Нет" Yes="Да"/>
 	</Window.Resources>
 	<Window.DataContext>
 		<StaticResource ResourceKey="ViewModel"/>
@@ -84,9 +85,9 @@
 											<ColumnDefinition/>
 										</Grid.ColumnDefinitions>
 										<Label Grid.Column="0" Content="от"/>
-										<DatePicker SelectedDate="{Binding FromEnterDateChildrenFilter}" Grid.Column="1" />
+										<DatePicker SelectedDate="{Binding FromEnterDateChildrenFilter}" DisplayDateEnd="{Binding TillEnterDateChildrenFilter}" Grid.Column="1" />
 										<Label Margin="10 0 0 0" Grid.Column="2" Content="до"/>
-										<DatePicker SelectedDate="{Binding TillEnterDateChildrenFilter}" Grid.Column="3" />
+										<DatePicker SelectedDate="{Binding TillEnterDateChildrenFilter}" DisplayDateStart="{Binding FromEnterDateChildrenFilter}" Grid.Column="3" />
 									</Grid>
 
 									<CheckBox IsChecked="{Binding ArchivedChildrenFilter}" IsThreeState="True" Content="Архив" />
@@ -125,7 +126,7 @@
 									<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource DateConverter}, StringFormat='Родился: {0}'}"/>
 									<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource YearsOldConverter}, StringFormat='Возраст: {0}'}"/>
 									<TextBlock Text="{Binding Path=Group.GroupType, Converter={StaticResource GroupsConverter}, StringFormat='Группа: {0}'}"/>
-									<TextBlock Text="{Binding Path=EnterDate, Converter={StaticResource DateConverter}, StringFormat='Дата зачисления: {0}'}"/>
+									<TextBlock Text="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}, StringFormat='Дата зачисления: {0}'}"/>
 									<TextBlock Text="{Binding Path=LocationAddress}"/>
 									<TextBlock Text="Номера родителей:"/>
 									<ListBox ItemsSource="{Binding Path=ParentsChildren}" HorizontalAlignment="Center">
@@ -181,23 +182,9 @@
 							<DataGridTextColumn Binding="{Binding Path=Group.Name}" Header="Группа" />
 							<DataGridTextColumn Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
 							<DataGridTextColumn Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
-							<DataGridTextColumn Binding="{Binding Path=BirthDate}" Header="Дата рождения" />
-							<DataGridTextColumn Binding="{Binding Path=EnterDate}" Header="Дата зачисления" />
-							<DataGridTextColumn Header="На исключение">
-								<DataGridTextColumn.Binding>
-									<Binding Path="Options" Converter="{StaticResource ChildOptionsStringConverter}">
-										<Binding.ConverterParameter>
-											<m:ChildOptions>IsNoBody</m:ChildOptions>
-										</Binding.ConverterParameter>
-									</Binding>
-								</DataGridTextColumn.Binding>
-								<DataGridTextColumn.ElementStyle>
-									<Style TargetType="TextBlock">
-										<Setter Property="Foreground" Value="DarkGreen"/>
-										<Setter Property="TextAlignment" Value="Center" />
-									</Style>
-								</DataGridTextColumn.ElementStyle>
-							</DataGridTextColumn>
+							<DataGridTextColumn Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
+							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
+							<DataGridTextColumn Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
 						</DataGrid.Columns>
 					</DataGrid>
 				</DockPanel>
