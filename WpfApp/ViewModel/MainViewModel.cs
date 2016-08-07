@@ -2,15 +2,19 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.Entity;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 using WpfApp.Util;
+using WpfApp.View;
 
 // ReSharper disable ExplicitCallerInfoArgument
 
@@ -18,14 +22,16 @@ namespace WpfApp.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
-        private KindergartenContext _context;
         public MainViewModel()
         {
             ShowAddChildWindowCommand = new RelayCommand(ShowAddChildWindow);
-            ShowAddGroupWindowCommand = new RelayCommand(() => StartViewModel<AddGroupViewModel>(new Pipe(true)));
+            ShowAddGroupWindowCommand = new RelayCommand(ShowAddGroupWindow);
             ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
             RefreshDataCommand = new RelayCommand(Load);
             AddNewTarifCommand = new RelayCommand<Tarif>(AddNewTarif);
+            DeleteSelectedTarifCommand = new RelayCommand(DeleteSelectedTarif);
+            ChangeGroupGroupTypeCommand = new RelayCommand<Group>(ShowChangeGroupGroupType);
+            SaveGroupCommand = new RelayCommand(SaveGroup);
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -34,10 +40,90 @@ namespace WpfApp.ViewModel
             Load();
         }
 
+        private async void SaveGroup()
+        {
+            SaveGroupCommand.NotifyCanExecute(false);
+            var s = SelectedGroup;
+            var context = new KindergartenContext();
+            var group = context.Groups.First(g => g.Id == s.Id);
+            group.CreatedDate = s.CreatedDate;
+            group.GroupType = s.GroupType;
+            group.Name = s.Name;
+            context.SaveChanges();
+            
+            await UpdateGroupsAsync();
+            SelectedGroup = Groups.First(g => g.Id == s.Id);
+            SaveGroupCommand.NotifyCanExecute(true);
+        }
+
+        private void ShowChangeGroupGroupType(Group group)
+        {
+            var pipe = new Pipe(true);
+            pipe.SetParameter("group", group);
+            StartViewModel<ChangeGroupGroupTypeViewModel>(pipe);
+
+            var type = (Groups?)pipe.GetParameter("group_type_result");
+            if (type.HasValue)
+                group.GroupType = type.Value;
+
+            // below analog of updating of group
+            var s = SelectedGroup;
+            var g = Groups;
+            Groups = null;
+            Groups = g;
+            SelectedGroup = s;
+        }
+
+        private async void ShowAddGroupWindow()
+        {
+            var pipe = new Pipe(true);
+            StartViewModel<AddGroupViewModel>(pipe);
+            var group = (Group)pipe.GetParameter("added_group_result");
+            if (group != null)
+            {
+                await UpdateGroupsAsync();
+                SelectedGroup = Groups.First(g => g.Id == group.Id);
+            }
+        }
+
+        private async void AddNewTarif(Tarif tarif)
+        {
+            if (!tarif.IsValid()) return;
+            AddNewTarifCommand.NotifyCanExecute(false);
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                context.Tarifs.Add(tarif);
+                context.SaveChanges();
+            });
+            await UpdateTarifsAsync();
+            SelectedTarif = Tarifs.First(t => t.Id == tarif.Id);
+            AddNewTarifCommand.NotifyCanExecute(true);
+        }
+
+        private async void DeleteSelectedTarif()
+        {
+            if (SelectedTarif == null) return;
+            if (SelectedTarif.ChildCount > 0)
+            {
+                MessageBox.Show($"Данным тарифом пользуются дети ({SelectedTarif.ChildCount})", "Неверное удаление");
+                return;
+            }
+
+            if (MessageBox.Show("Точно удалить?", "Удаление тарифа", MessageBoxButton.YesNo) != MessageBoxResult.Yes) return;
+
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                context.Tarifs.Remove(context.Tarifs.First(t => t.Id == SelectedTarif.Id));
+                context.SaveChanges();
+            });
+            Tarifs.Remove(SelectedTarif);
+        }
+
         private async void ShowAddChildWindow()
         {
             var pipe = new Pipe(true);
-            pipe.SetParameter("context", _context);
             pipe.SetParameter("groups", Groups);
             pipe.SetParameter("tarifs", Tarifs);
 
@@ -47,16 +133,6 @@ namespace WpfApp.ViewModel
                 await UpdateChildrenAsync();
         }
 
-        private void AddNewTarif(Tarif tarif)
-        {
-            Console.WriteLine(tarif.IsValid());
-            if (!tarif.IsValid()) return;
-
-//            _context.Tarifs.Add(tarif);
-//            _context.SaveChanges();
-//            Tarifs.Add(tarif);
-        }
-
         private void ShowChildDetails()
         {
             var child = SelectedChild;
@@ -64,10 +140,9 @@ namespace WpfApp.ViewModel
 
             IDictionary<string, object> parameters = new Dictionary<string, object>
             {
-                ["child"] = child,
+                ["child_id"] = child.Id,
                 ["groups"] = Groups,
                 ["owner"] = this,
-                ["context"] = _context,
                 ["tarifs"] = Tarifs,
             };
             StartViewModel<ChildDetailsViewModel>(new Pipe(parameters, false));
@@ -78,7 +153,6 @@ namespace WpfApp.ViewModel
             RefreshDataCommand.NotifyCanExecute(false);
             ++LoadingDataCount;
 
-            _context = new KindergartenContext();
             await UpdateChildrenAsync();
             await UpdateGroupsAsync();
             await UpdateTarifsAsync();
@@ -99,16 +173,17 @@ namespace WpfApp.ViewModel
 
             var c = await Task.Run(() =>
             {
-                var enters = _context.EnterChildren
+                var context = new KindergartenContext();
+                var enters = context.EnterChildren
                     .Include("Child.Group")
                     .Include("Child.Person")
                     .Include("Child.Tarif")
-                    .Where(e => e.EnterDate == _context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate));
+                    .Where(e => e.EnterDate == context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate));
                 var result = new List<Child>(8);
                 foreach (var enter in enters)
                 {
                     var child = enter.Child;
-                    child.LastEnterChild = child.EnterChildren.First();
+                    child.LastEnterChild = enter;
                     if (child.LastEnterChild.ExpulsionDate != null) archivedCount++;
 
                     DateTime enterDate = child.LastEnterChild.EnterDate;
@@ -127,9 +202,9 @@ namespace WpfApp.ViewModel
                 if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
 
             var selectedChild = SelectedChild;
-            var listCollectionView = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
-//            var list = new ListCollectionView(c);
-            Children = listCollectionView;
+//            var listCollectionView = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
+            var list = new ListCollectionView(c);
+            Children = list;
             if (selectedChild != null && c.Count > 0)
                 SelectedChild = c.FirstOrDefault(ch => ch.Id == selectedChild.Id);
 
@@ -144,8 +219,7 @@ namespace WpfApp.ViewModel
             ++LoadingDataCount;
             Groups = await Task.Run(() =>
             {
-//                Thread.Sleep(1000);
-                return new ObservableCollection<Group>(_context.Groups);
+                return new ObservableCollection<Group>(new KindergartenContext().Groups);
             });
             --LoadingDataCount;
         }
@@ -155,8 +229,14 @@ namespace WpfApp.ViewModel
             ++LoadingDataCount;
             Tarifs = await Task.Run(() =>
             {
-                var list = _context.Tarifs.ToList();
-                return new ObservableCollection<Tarif>(list);
+                var result = new ObservableCollection<Tarif>();
+                var tcs = new KindergartenContext().Tarifs.Select(t => new {tarif = t, ChildCount = t.Children.Count,});
+                foreach (var tc in tcs)
+                {
+                    tc.tarif.ChildCount = tc.ChildCount;
+                    result.Add(tc.tarif);
+                }
+                return result;
             });
             --LoadingDataCount;
         }
@@ -467,6 +547,17 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
+
+        public Tarif SelectedTarif
+        {
+            get { return _selectedTarif; }
+            set
+            {
+                if (Equals(value, _selectedTarif)) return;
+                _selectedTarif = value;
+                OnPropertyChanged();
+            }
+        }
         public Child SelectedChild
         {
             get { return _selectedChild; }
@@ -477,6 +568,17 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
+        public Group SelectedGroup
+        {
+            get { return _selectedGroup; }
+            set
+            {
+                if (Equals(value, _selectedGroup)) return;
+                _selectedGroup = value;
+                OnPropertyChanged();
+            }
+        }
+
         public bool IsDataLoading
         {
             get { return _isDataLoading; }
@@ -494,6 +596,9 @@ namespace WpfApp.ViewModel
         public IRelayCommand ShowChildDetailsCommand { get; }
         public IRelayCommand RefreshDataCommand { get; }
         public IRelayCommand AddNewTarifCommand { get; }
+        public IRelayCommand DeleteSelectedTarifCommand { get; }
+        public IRelayCommand ChangeGroupGroupTypeCommand { get; }
+        public IRelayCommand SaveGroupCommand { get; }
 
         private int LoadingDataCount
         {
@@ -530,6 +635,8 @@ namespace WpfApp.ViewModel
         private int _childTotalCount;
         private int _childNoArchivedCount;
         private ObservableCollection<Tarif> _tarifs;
+        private Tarif _selectedTarif;
+        private Group _selectedGroup;
 
         #endregion
     }

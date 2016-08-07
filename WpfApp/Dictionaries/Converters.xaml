@@ -8,9 +8,10 @@
 							   Middle="Средняя" Older="Старшая" />
 	
 	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
-	<converter:ImageConverter x:Key="GroupImageConverter" ImageType="Group" DefaultImage="../resources/no_picture.jpg" />
 	<converter:DateTimeConverter x:Key="DateConverter" Format="dd.MM.yyyy"/>
 	<converter:DateTimeConverter x:Key="TimeConverter" Format="HH:mm:ss"/>
 	<converter:YearsOldConverter x:Key="YearsOldConverter"/>
+	<converter:ToBoolConverter x:Key="ToBoolConverter"/>
+	<converter:ToNegateBoolConverter x:Key="ToNegateBoolConverter"/>
 
 </ResourceDictionary>

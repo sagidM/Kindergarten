@@ -147,7 +147,7 @@
 
 
 	<Style x:Key="DetailsButton" TargetType="Button">
-		<Setter Property="Button.Template">
+		<Setter Property="Template">
 			<Setter.Value>
 				<ControlTemplate>
 					<Viewbox>

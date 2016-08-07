@@ -16,7 +16,7 @@ namespace WpfApp.View.Converter
 
         public enum ImageTypes
         {
-            Child, Group,
+            Child
         }
 
         public ImageTypes ImageType
@@ -28,9 +28,6 @@ namespace WpfApp.View.Converter
                 {
                     case ImageTypes.Child:
                         _path = Path.GetFullPath(AppFilePaths.ChildImages) + Path.DirectorySeparatorChar;
-                        break;
-                    case ImageTypes.Group:
-                        _path = Path.GetFullPath(AppFilePaths.GroupImages) + Path.DirectorySeparatorChar;
                         break;
                     default:
                         throw new NotSupportedException();

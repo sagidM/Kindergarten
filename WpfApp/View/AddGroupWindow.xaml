@@ -5,20 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp.View"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
-        xmlns:vm="clr-namespace:WpfApp.ViewModel"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         mc:Ignorable="d"
-        Title="Добавление группы" Height="422.861" Width="431.176">
+        Title="Добавление группы" Height="422.861" Width="431.176"
+		Name="ThisWindow">
 	<Window.Resources>
-		<vm:AddGroupViewModel x:Key="DataContext"/>
 		<m:Group x:Key="Group"/>
 		<Style TargetType="Label">
 			<Setter Property="Margin" Value="0 10 0 0"/>
 		</Style>
 	</Window.Resources>
-	<Window.DataContext>
-		<StaticResource ResourceKey="DataContext"/>
-	</Window.DataContext>
 
 	<StackPanel DataContext="{StaticResource Group}">
 		<Button IsCancel="True">
@@ -39,13 +35,7 @@
 		<Label Content="_Дата создания группы" Target="{Binding ElementName=DatePickerCreateDate}"/>
 		<DatePicker x:Name="DatePickerCreateDate" SelectedDate="{Binding CreatedDate}" DisplayDateEnd="{x:Static system:DateTime.Now}"/>
 
-
-		<Image MaxHeight="100" DataContext="{StaticResource DataContext}"
-			   Source="{Binding GroupImageSource}" />
-		<Button DataContext="{StaticResource DataContext}"
-				Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
-		
-		<Button DataContext="{StaticResource DataContext}"
+		<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 				Command="{Binding AddGroupCommand}" CommandParameter="{StaticResource Group}"
 				Content="Добавить группу"/>
 	</StackPanel>

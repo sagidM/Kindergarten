@@ -8,9 +8,9 @@ using WpfApp.Framework.Core;
 
 namespace WpfApp.ViewModel
 {
-    public class ChangeGroupChildViewModel : ViewModelBase
+    public class ChangeChildGroupViewModel : ViewModelBase
     {
-        public ChangeGroupChildViewModel()
+        public ChangeChildGroupViewModel()
         {
             SaveCommand = new RelayCommand(SaveAsync);
         }

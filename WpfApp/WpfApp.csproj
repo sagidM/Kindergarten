@@ -107,11 +107,16 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Settings\AppFilePaths.cs" />
-    <Compile Include="ViewModel\ChangeGroupChildViewModel.cs" />
-    <Compile Include="View\ChangeGroupChild.xaml.cs">
-      <DependentUpon>ChangeGroupChild.xaml</DependentUpon>
+    <Compile Include="ViewModel\ChangeChildGroupViewModel.cs" />
+    <Compile Include="ViewModel\ChangeGroupGroupTypeViewModel.cs" />
+    <Compile Include="View\ChangeChildGroupWindow.xaml.cs">
+      <DependentUpon>ChangeChildGroupWindow.xaml</DependentUpon>
     </Compile>
-    <Compile Include="View\Converter\BoolConverter.cs" />
+    <Compile Include="View\ChangeGroupGroupTypeWindow.xaml.cs">
+      <DependentUpon>ChangeGroupGroupTypeWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Converter\FromBoolConverter.cs" />
+    <Compile Include="View\Converter\ToBoolConverter.cs" />
     <Compile Include="View\TemplateSelector\TarifComboBoxDataTemplateSelector.cs" />
     <Compile Include="View\DialogService\FileDialogs.cs" />
     <Compile Include="Settings\Database.cs" />
@@ -167,7 +172,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="View\ChangeGroupChild.xaml">
+    <Page Include="View\ChangeChildGroupWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\ChangeGroupGroupTypeWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

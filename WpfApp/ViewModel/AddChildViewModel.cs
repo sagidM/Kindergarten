@@ -16,7 +16,6 @@ namespace WpfApp.ViewModel
 {
     internal class AddChildViewModel : ViewModelBase
     {
-        private KindergartenContext _context;
         public AddChildViewModel()
         {
             AddChildCommand = new RelayCommand<Child>(AddChild);
@@ -25,7 +24,6 @@ namespace WpfApp.ViewModel
 
         public override void OnLoaded()
         {
-            _context = (KindergartenContext) Pipe.GetParameter("context");
             Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
             Tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
             Pipe.SetParameter("saved_result", false);
@@ -72,9 +70,17 @@ namespace WpfApp.ViewModel
                         imageFileName = ImageUtil.SaveImage(_imageUri, savePath);
                         child.Person.PhotoPath = Path.GetFileName(imageFileName);
                     }
+
+                    // groups and tarifs (in OnLoaded) are from other context
+                    child.GroupId = child.Group.Id;
+                    child.Group = null;
+                    child.TarifId = child.Tarif.Id;
+                    child.Tarif = null;
                     var enterChild = new EnterChild {Child = child};
-                    _context.EnterChildren.Add(enterChild);
-                    _context.SaveChanges();
+
+                    var context = new KindergartenContext();
+                    context.EnterChildren.Add(enterChild);
+                    context.SaveChanges();
                 }
                 catch
                 {

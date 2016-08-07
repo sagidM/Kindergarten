@@ -74,6 +74,15 @@
 					</DockPanel>
 				</ControlTemplate>
 			</Validation.ErrorTemplate>
+			<TextBox.Style>
+				<Style TargetType="TextBox">
+					<Style.Triggers>
+						<Trigger Property="Validation.HasError" Value="True">
+							<Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Mode=Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+						</Trigger>
+					</Style.Triggers>
+				</Style>
+			</TextBox.Style>
 		</TextBox>
 
 		<Label Grid.Row="3" Grid.Column="0" Content="Дата рождения"/>

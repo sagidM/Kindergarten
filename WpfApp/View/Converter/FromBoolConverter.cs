@@ -4,7 +4,7 @@ using System.Windows.Data;
 
 namespace WpfApp.View.Converter
 {
-    public class BoolConverter : IValueConverter
+    public class FromBoolConverter : IValueConverter
     {
         public static object Reverce = new object();
 

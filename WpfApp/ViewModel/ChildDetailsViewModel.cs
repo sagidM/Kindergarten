@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using DAL.Model;
@@ -19,15 +18,36 @@ namespace WpfApp.ViewModel
             RemoveChildFromArchiveCommand = new RelayCommand(RemoveChildFromArchive);
         }
 
-        public override void OnLoaded()
+        public override async void OnLoaded()
         {
-            CurrentChild = (Child)Pipe.GetParameter("child");
+            int id = (int)Pipe.GetParameter("child_id");
+            _context = new KindergartenContext();
+
+            Child currentChild = null;
+            IEnumerable<Group> groups = null;
+            IEnumerable<Tarif> tarifs = null;
+            MainViewModel mainViewModel = null;
+
+            await Task.Run(() =>
+            {
+                currentChild = _context.Children
+                    .Include("Person")
+                    .Include("Group")
+                    .First(c => c.Id == id);
+                groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
+                tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
+                mainViewModel = (MainViewModel)Pipe.GetParameter("owner");
+            });
+
+            CurrentChild = currentChild;
+            Groups = groups;
+            Tarifs = tarifs;
+            _mainViewModel = mainViewModel;
+
             OnPropertyChanged(nameof(CurrentChildIsArchived));
             OnPropertyChanged(nameof(CurrentGroup));
-            Groups = (ObservableCollection<Group>) Pipe.GetParameter("groups");
-            Tarifs = (ObservableCollection<Tarif>) Pipe.GetParameter("tarifs");
-            _mainViewModel = (MainViewModel) Pipe.GetParameter("owner");
-            _context = (KindergartenContext) Pipe.GetParameter("context");
+            OnPropertyChanged(nameof(SelectedTarif));
+            OnPropertyChanged(nameof(CurrentChild));
         }
 
         private void AddChildToArchive(string note)
@@ -56,7 +76,7 @@ namespace WpfApp.ViewModel
                 ["groups"] = Groups,
             };
             var pipe = new Pipe(parameters, true);
-            StartViewModel<ChangeGroupChildViewModel>(pipe);
+            StartViewModel<ChangeChildGroupViewModel>(pipe);
             if (!(bool) pipe.GetParameter("saved_new_group"))
                 return;
 
@@ -79,33 +99,12 @@ namespace WpfApp.ViewModel
             _mainIsUpdating = false;
         }
 
-        public ObservableCollection<Tarif> Tarifs
-        {
-            get { return _tarifs; }
-            set
-            {
-                if (Equals(value, _tarifs)) return;
-                _tarifs = value;
-                OnPropertyChanged();
-            }
-        }
-
         private async void UpdateChild()
         {
             _context.SaveChanges();
             await UpdateMainViewModel();
         }
 
-        public ObservableCollection<Group> Groups
-        {
-            get { return _groups; }
-            set
-            {
-                if (Equals(value, _groups)) return;
-                _groups = value;
-                OnPropertyChanged();
-            }
-        }
         public Child CurrentChild
         {
             get { return _currentChild; }
@@ -129,15 +128,47 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public Tarif SelectedTarif
+        {
+            get { return Tarifs.First(t => t.Id == CurrentChild.TarifId); }
+            set
+            {
+                if (CurrentChild.TarifId == value.Id) return;
+                CurrentChild.TarifId = value.Id;
+                OnPropertyChanged();
+            }
+        }
+
+        public IEnumerable<Tarif> Tarifs
+        {
+            get { return _tarifs; }
+            set
+            {
+                if (Equals(value, _tarifs)) return;
+                _tarifs = value;
+                OnPropertyChanged();
+            }
+        }
+        public IEnumerable<Group> Groups
+        {
+            get { return _groups; }
+            set
+            {
+                if (Equals(value, _groups)) return;
+                _groups = value;
+                OnPropertyChanged();
+            }
+        }
+
         public IRelayCommand UpdateChildCommand {get; private set; }
         public IRelayCommand ChangeGroupCommand { get; private set; }
         public IRelayCommand AddChildToArchiveCommand { get; private set; }
         public IRelayCommand RemoveChildFromArchiveCommand { get; private set; }
 
         private Child _currentChild;
-        private ObservableCollection<Group> _groups;
         private MainViewModel _mainViewModel;
+        private IEnumerable<Group> _groups;
+        private IEnumerable<Tarif> _tarifs;
         private KindergartenContext _context;
-        private ObservableCollection<Tarif> _tarifs;
     }
 }

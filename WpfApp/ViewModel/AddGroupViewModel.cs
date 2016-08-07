@@ -1,56 +1,20 @@
-using System;
-using System.IO;
 using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using DAL.Model;
-using Microsoft.Win32;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
-using WpfApp.Util;
-using WpfApp.View.DialogService;
 
 namespace WpfApp.ViewModel
 {
     public class AddGroupViewModel : ViewModelBase
     {
-
         public AddGroupViewModel()
         {
             AddGroupCommand = new RelayCommand<Group>(AddGroup);
-            OpenDialogLoadImageCommand = new RelayCommand(OpenDialogLoadImage);
         }
 
-        private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
-        private ImageSource _groupImageSource;
-        private Uri _imageUri;
-        private void OpenDialogLoadImage()
+        public override void OnLoaded()
         {
-            if (_openFileDialog.ShowDialog() == false) return;
-
-            var path = _openFileDialog.FileName;
-            _imageUri = new Uri(path);
-            try
-            {
-                GroupImageSource = new BitmapImage(_imageUri);
-            }
-            catch
-            {
-                _imageUri = null;
-                MessageBox.Show("Изображение не поддерживается", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-        }
-
-        public ImageSource GroupImageSource
-        {
-            get { return _groupImageSource; }
-            private set
-            {
-                if (Equals(value, _groupImageSource)) return;
-                _groupImageSource = value;
-                OnPropertyChanged();
-            }
+            Pipe.SetParameter("added_group_result", null);
         }
 
         private async void AddGroup(Group group)
@@ -60,31 +24,15 @@ namespace WpfApp.ViewModel
             AddGroupCommand.NotifyCanExecute(false);
             await Task.Run(() =>
             {
-                string fileName = null;
-                try
-                {
-                    if (_imageUri != null)
-                    {
-                        var savePath = Path.Combine(Settings.AppFilePaths.GroupImages, CommonHelper.GetUniqueString());
-                        fileName = ImageUtil.SaveImage(_imageUri, savePath);
-                        group.PhotoPath = Path.GetFileName(fileName);
-                    }
-                    var context = new KindergartenContext();
-                    context.Groups.Add(group);
-                    context.SaveChanges();
-                }
-                catch
-                {
-                    if (fileName != null)
-                        File.Delete(fileName);
-                    throw;
-                }
+                var context = new KindergartenContext();
+                context.Groups.Add(group);
+                context.SaveChanges();
             });
             AddGroupCommand.NotifyCanExecute(true);
+            Pipe.SetParameter("added_group_result", group);
             Finish();
         }
-
-        public IRelayCommand OpenDialogLoadImageCommand { get; }
+        
         public IRelayCommand AddGroupCommand { get; }
     }
 }

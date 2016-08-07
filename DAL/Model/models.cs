@@ -70,33 +70,29 @@ namespace DAL.Model
             set { Date = value; }
         }
 
-        [MaxLength(256)]
-        public string PhotoPath { get; set; }
-
         public virtual ICollection<Child> Children { get; set; }
 
         protected override string GetErrorInternal(string columnName)
         {
-            string err = null;
             switch (columnName)
             {
                 case nameof(Name):
                     if (string.IsNullOrWhiteSpace(Name))
-                        err = "Wrong Name";
+                        return "Wrong Name";
                     break;
-                case nameof(PhotoPath):
-                    if (!string.IsNullOrWhiteSpace(PhotoPath) && PhotoPath.Length > 255)
-                        return "PhotoPath is too long";
+                case nameof(GroupType):
+                    if (!Enum.IsDefined(typeof (Groups), GroupType))
+                        return nameof(GroupType) + " hasn't chosen";
                     break;
             }
-            return err;
+            return null;
         }
 
         public bool IsValid()
         {
             return
                 GetErrorInternal(nameof(Name)) == null &&
-                GetErrorInternal(nameof(PhotoPath)) == null;
+                GetErrorInternal(nameof(GroupType)) == null;
         }
     }
 
@@ -233,6 +229,10 @@ namespace DAL.Model
                     if (Person == null)
                         return "Person cannot be null";
                     break;
+                case nameof(Tarif):
+                    if (Tarif == null && TarifId <= 0)
+                        return "Tarif is required";
+                    break;
             }
             return null;
         }
@@ -242,6 +242,7 @@ namespace DAL.Model
             return
                 GetErrorInternal(nameof(LocationAddress)) == null &&
                 GetErrorInternal(nameof(Group)) == null &&
+                GetErrorInternal(nameof(Tarif)) == null &&
                 Person.IsValid();
         }
 
@@ -272,7 +273,10 @@ namespace DAL.Model
         [Required, MaxLength(255), MinLength(3)]
         public string Note { get; set; }
 
+        [NotMapped]
+        public int ChildCount { get; set; }
         public virtual ICollection<Child> Children { get; set; }
+
 
         protected override string GetErrorInternal(string columnName)
         {
@@ -301,6 +305,11 @@ namespace DAL.Model
                 GetErrorInternal(nameof(MonthlyPayment)) == null &&
                 GetErrorInternal(nameof(AnnualPayment)) == null &&
                 GetErrorInternal(nameof(Note)) == null;
+        }
+
+        public override string ToString()
+        {
+            return $"{nameof(Id)} = {Id}, {nameof(Note)} = {Note}";
         }
     }
 

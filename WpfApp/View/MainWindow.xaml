@@ -165,12 +165,14 @@
 						</StackPanel>
 					</ScrollViewer>
 
-					<DataGrid SelectionMode="Single" IsReadOnly="True" DockPanel.Dock="Right"
+					<DataGrid AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+							  DockPanel.Dock="Right" AlternatingRowBackground="BlanchedAlmond" RowBackground="LightGray"
 							  SelectedItem="{Binding SelectedChild, Mode=TwoWay}"
-							  x:Name="DataGridChildren" AutoGenerateColumns="False" ItemsSource="{Binding Children}">
+							  x:Name="DataGridChildren" ItemsSource="{Binding Children}">
 						<DataGrid.Columns>
 							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
-							<DataGridTextColumn Header="ФИО" SortMemberPath="Person.LastName"> <!--SortMemberPath-->
+							<DataGridTextColumn Width="*" Header="ФИО" SortMemberPath="Person.LastName">
+								<!--SortMemberPath-->
 								<DataGridTextColumn.Binding>
 									<MultiBinding StringFormat="{}{0} {1} {2}">
 										<Binding Path="Person.LastName" />
@@ -179,12 +181,12 @@
 									</MultiBinding>
 								</DataGridTextColumn.Binding>
 							</DataGridTextColumn>
-							<DataGridTextColumn Binding="{Binding Path=Group.Name}" Header="Группа" />
-							<DataGridTextColumn Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
-							<DataGridTextColumn Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
-							<DataGridTextColumn Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
-							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
-							<DataGridTextColumn Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
+							<DataGridTextColumn Width="*" Binding="{Binding Path=Group.Name}" Header="Группа" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
 						</DataGrid.Columns>
 					</DataGrid>
 				</DockPanel>
@@ -192,98 +194,64 @@
 			<TabItem Header="Группы">
 				<DockPanel>
 					<StackPanel DockPanel.Dock="Left" Width="250">
-						<Expander Background="Aqua" Header="Изменение" Padding="4">
-							<StackPanel>
-								<StackPanel DataContext="{Binding ElementName=UIGroupsTable, Path=SelectedItem}">
-									<TextBlock Text="Измененить имя"/>
-									<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Новое имя для группы..." Margin="0 2 0 10" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
-									<TextBlock Text="Изменить дату создания"/>
-									<DatePicker Margin="0 2 0 10" SelectedDateFormat="Long" SelectedDate="{Binding BirthDate}" />
-									<TextBlock Text="Изменить тип группы (и детей в ней)"/>
-									<ComboBox SelectedItem="{Binding GroupType}"
-											  ItemsSource="{Binding Source={StaticResource Groups}}"
-											  ItemTemplate="{StaticResource GroupsDataTemplate}"/>
-									<Image MaxHeight="400" Source="{Binding PhotoPath, Converter={StaticResource GroupImageConverter}}"/>
-								</StackPanel>
-								<Button Margin="0 10" Content="Применить изменения"/>
-							</StackPanel>
-						</Expander>
+						<StackPanel DataContext="{Binding ElementName=UIGroupsTable, Path=SelectedItem}"
+						            IsEnabled="{Binding ElementName=UIGroupsTable, Path=SelectedItem, Converter={StaticResource ToNegateBoolConverter}, ConverterParameter={x:Null}}">
+							<TextBlock Text="Измененить имя"/>
+							<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Новое имя для группы..." Margin="0 2 0 10" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+							<TextBlock Text="Изменить дату создания"/>
+							<DatePicker Margin="0 2 0 10" SelectedDateFormat="Long" SelectedDate="{Binding CreatedDate}" />
+							<Button Content="Изменить тип группы (и детей в ней)..." DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+							        Command="{Binding ChangeGroupGroupTypeCommand}" CommandParameter="{Binding ElementName=UIGroupsTable, Path=SelectedItem}"/>
+							<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Margin="0 10"
+							        Content="Применить изменения" Command="{Binding SaveGroupCommand}"/>
+						</StackPanel>
 
 						<Button Command="{Binding ShowAddGroupWindowCommand}" Margin="0 20 0 0" Content="Добавление..."/>
 					</StackPanel>
 
-					<!--<ListBox ItemsSource="{Binding Groups}">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<StackPanel Orientation="Horizontal">
-									<Label Content="{Binding Id, StringFormat='№ {0}.'}"/>
-									<Label Content="{Binding Name}"/>
-									<Label Content="{Binding CreatedDate}"/>
-									<Label Content="{Binding GroupType, Converter={StaticResource GroupsConverter}}"/>
-								</StackPanel>
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>--> 
 					<!-- ReSharper disable once InconsistentNaming -->
-					<DataGrid IsReadOnly="True" Background="BlueViolet" x:Name="UIGroupsTable" AutoGenerateColumns="False" ItemsSource="{Binding Groups}">
+					<DataGrid AutoGenerateColumns="False" IsReadOnly="True" Background="BlueViolet" x:Name="UIGroupsTable" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}">
 						<DataGrid.Columns>
 							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
 							<DataGridTextColumn Binding="{Binding Name}" Header="Название"/>
 							<DataGridTextColumn Binding="{Binding CreatedDate}" Header="Группа" />
 							<DataGridTextColumn Binding="{Binding GroupType}" Header="Тип группы" />
-							<DataGridTemplateColumn Header="Изображение">
-								<DataGridTemplateColumn.CellTemplate>
-									<DataTemplate>
-										<TextBlock Text="{Binding PhotoPath, TargetNullValue=[Изображение отсутствует]}"/>
-									</DataTemplate>
-								</DataGridTemplateColumn.CellTemplate>
-							</DataGridTemplateColumn>
 						</DataGrid.Columns>
 					</DataGrid>
 
 				</DockPanel>
 			</TabItem>
 			<TabItem Header="Тарифы">
-				<Grid>
-					<Grid.Resources>
-						<m:Tarif x:Key="Tarif" MonthlyPayment="1000" AnnualPayment="0" Note="Оплата за "></m:Tarif>
-					</Grid.Resources>
-					<Grid.RowDefinitions>
-						<RowDefinition/>
-						<RowDefinition Height="Auto"/>
-					</Grid.RowDefinitions>
-					<ScrollViewer Grid.Row="0">
-					<ListBox Background="Bisque" ItemsSource="{Binding Tarifs}">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<StackPanel Orientation="Horizontal">
-									<StackPanel.Resources>
-										<Style TargetType="TextBox">
-											<Setter Property="VerticalContentAlignment" Value="Center"/>
-										</Style>
-									</StackPanel.Resources>
-									<Label Content="{Binding Id}"/>
-									<TextBox Width="100" Text="{Binding MonthlyPayment}"/>
-									<TextBox Width="100" Text="{Binding AnnualPayment}"/>
-									<TextBox Width="300" Text="{Binding Note}"/>
-								</StackPanel>
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-					</ScrollViewer>
-					<StackPanel Grid.Row="1" DataContext="{StaticResource Tarif}">
-						<Label>Оплата в месяц</Label>
-						<TextBox Margin="0 0 0 10" Text="{Binding Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged, Path=MonthlyPayment}"/>
-						<Label>Оплата в год</Label>
-						<TextBox Margin="0 0 0 10" Text="{Binding Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged, Path=AnnualPayment}"/>
-						<Label>Примечание</Label>
-						<TextBox Margin="0 0 0 10" Text="{Binding Source={StaticResource Tarif}, Path=Note, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
-						<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-								Command="{Binding AddNewTarifCommand}"
-								CommandParameter="{StaticResource Tarif}"
-								Content="Добавить новый тариф"/>
+				<TabItem.Resources>
+					<m:Tarif x:Key="Tarif" MonthlyPayment="1000" AnnualPayment="0"></m:Tarif>
+				</TabItem.Resources>
+				<DockPanel>
+					<StackPanel MinWidth="250" DockPanel.Dock="Left" DataContext="{StaticResource Tarif}">
+						<Label Content="Оплата в месяц"/>
+						<TextBox Margin="0 0 0 10" Text="{Binding MonthlyPayment, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged}"/>
+						<Label Content="Оплата в год"/>
+						<TextBox Margin="0 0 0 10" Text="{Binding AnnualPayment, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged}"/>
+						<Label Content="Примечание"/>
+						<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание к оплате..." Margin="0 0 0 10" Text="{Binding Note, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+						<Button DataContext="{Binding DataContext, ElementName=ThisWindow}"
+								Command="{Binding DeleteSelectedTarifCommand}" Content="Удалить выбранный тариф"/>
+						<Button DataContext="{Binding DataContext, ElementName=ThisWindow}"
+							Command="{Binding AddNewTarifCommand}"
+							CommandParameter="{StaticResource Tarif}"
+							Content="Добавить новый тариф"/>
 					</StackPanel>
-				</Grid>
+					<ScrollViewer DockPanel.Dock="Right">
+						<DataGrid IsReadOnly="True"  SelectionMode="Single" AutoGenerateColumns="False" SelectedItem="{Binding SelectedTarif}" Background="Bisque" ItemsSource="{Binding Tarifs}">
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="№" Binding="{Binding Id}"/>
+								<DataGridTextColumn Header="Месячная оплата" Binding="{Binding MonthlyPayment}"/>
+								<DataGridTextColumn Header="Годовая оплата" Binding="{Binding AnnualPayment}"/>
+								<DataGridTextColumn Header="Примечание" Binding="{Binding Note}"/>
+								<DataGridTextColumn Header="Количество детей с таким тарифом" Binding="{Binding ChildCount}"/>
+							</DataGrid.Columns>
+						</DataGrid>
+					</ScrollViewer>
+				</DockPanel>
 			</TabItem>
 		</TabControl>
 	</DockPanel>

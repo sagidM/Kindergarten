@@ -14,7 +14,8 @@
 						<framework:ViewViewModelPair View="View/AddChildWindow.xaml" ViewModel="viewModel:AddChildViewModel"/>
 						<framework:ViewViewModelPair View="View/AddGroupWindow.xaml" ViewModel="viewModel:AddGroupViewModel"/>
 						<framework:ViewViewModelPair View="View/ChildDetailsWindow.xaml" ViewModel="viewModel:ChildDetailsViewModel"/>
-						<framework:ViewViewModelPair View="View/ChangeGroupChild.xaml" ViewModel="viewModel:ChangeGroupChildViewModel"/>
+						<framework:ViewViewModelPair View="View/ChangeChildGroupWindow.xaml" ViewModel="viewModel:ChangeChildGroupViewModel"/>
+						<framework:ViewViewModelPair View="View/ChangeGroupGroupTypeWindow.xaml" ViewModel="viewModel:ChangeGroupGroupTypeViewModel"/>
 					</x:Array>
 				</framework:ViewViewModelPairs.Pairs>
 			</framework:ViewViewModelPairs>

@@ -16,11 +16,6 @@ namespace WpfApp.View.Converter
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (!(value is Groups))
-            {
-                Console.WriteLine("???");
-                return null;
-            }
             var g = (Groups)value;
             if ((g & Groups.Finished) == Groups.Finished)
             {
@@ -40,14 +35,14 @@ namespace WpfApp.View.Converter
                 case Groups.Older:
                     return Older;
                 default:
-                    throw new InvalidEnumArgumentException();
+                    return null;
             }
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var s = (string)value;
-            Func<string, bool> f = (ss) => s.Equals(ss, StringComparison.OrdinalIgnoreCase);
+            Func<string, bool> f = ss => s.Equals(ss, StringComparison.OrdinalIgnoreCase);
 
             if (f(Finished)) return Groups.Finished;
             if (f(Nursery)) return Groups.Nursery;

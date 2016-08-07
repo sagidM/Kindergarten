@@ -82,7 +82,7 @@
 							<Label>
 								<WrapPanel>
 									<Label Content="Адрес:"/>
-									<TextBox Padding="5" Text="{Binding LocationAddress}"></TextBox>
+									<TextBox Padding="5" Text="{Binding LocationAddress, UpdateSourceTrigger=PropertyChanged}"></TextBox>
 								</WrapPanel>
 							</Label>
 
@@ -90,7 +90,7 @@
 								<WrapPanel>
 									<Label Content="Тариф:"/>
 									<ComboBox DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Tarifs}"
-											  SelectedItem="{Binding CurrentChild.Tarif}" ItemTemplateSelector="{StaticResource TarifComboBoxDataTemplateSelector}"/>
+											  SelectedItem="{Binding SelectedTarif}" ItemTemplateSelector="{StaticResource TarifComboBoxDataTemplateSelector}"/>
 								</WrapPanel>
 							</Label>
 							
@@ -104,15 +104,15 @@
 					</Grid>
 					<StackPanel DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
 						<StackPanel.Resources>
-							<converter:BoolConverter x:Key="EnableConverter">
-								<converter:BoolConverter.True>sdf</converter:BoolConverter.True>
-							</converter:BoolConverter>
+							<converter:FromBoolConverter x:Key="EnableConverter">
+								<converter:FromBoolConverter.True>sdf</converter:FromBoolConverter.True>
+							</converter:FromBoolConverter>
 						</StackPanel.Resources>
 						<TextBlock Text="В архиве:"/>
 						<TextBox Text="{Binding CurrentChildIsArchived, Mode=OneWay}"/>
-						<TextBox IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:BoolConverter.Reverce}}"
+						<TextBox IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
 								 Name="ArchiveNote" Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..."/>
-						<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:BoolConverter.Reverce}}"
+						<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
 								Command="{Binding AddChildToArchiveCommand}" CommandParameter="{Binding ElementName=ArchiveNote, Path=Text}" Content="Сохранить и отправить в архив"/>
 						<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}}"
 								Command="{Binding RemoveChildFromArchiveCommand}" Content="Сохранить и убрать из архива"/>

@@ -39,7 +39,6 @@ namespace DAL
             {
                 Name = "Солнышко",
                 GroupType = Groups.Nursery,
-                PhotoPath = "sun_photo",
             };
 //            k.Groups.Add(group);
             var child = new Child
