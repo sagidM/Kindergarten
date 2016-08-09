@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
@@ -20,6 +21,28 @@ namespace WpfApp.ViewModel
         {
             AddChildCommand = new RelayCommand<Child>(AddChild);
             OpenDialogLoadImageCommand = new RelayCommand(OpenDialogLoadImage);
+            CaptureFromCameraCommand = new RelayCommand(CaptureFromCamera);
+        }
+
+        private void CaptureFromCamera()
+        {
+            string path = @"C:\Users\123\Downloads\Camera Final\WpfCamera\bin\Debug\WpfCamera.exe";
+            var process = new Process
+            {
+                StartInfo =
+                {
+                    FileName = path,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                },
+            };
+            process.Start();
+            var imagePath = process.StandardOutput.ReadToEnd();
+            imagePath = @"C:\Users\123\Downloads\Camera Final\WpfCamera\bin\Debug\photo.jpg";
+            if (imagePath.Length > 0)
+            {
+                SetChildImage(imagePath);
+            }
         }
 
         public override void OnLoaded()
@@ -50,9 +73,6 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
-
-        public IRelayCommand OpenDialogLoadImageCommand { get; }
-        public IRelayCommand AddChildCommand { get; }
 
         private async void AddChild(Child child)
         {
@@ -109,10 +129,20 @@ namespace WpfApp.ViewModel
             if (_openFileDialog.ShowDialog() == false) return;
 
             var path = _openFileDialog.FileName;
+            SetChildImage(path);
+        }
+
+        private void SetChildImage(string path)
+        {
             _imageUri = new Uri(path);
             try
             {
-                ChildImageSource = new BitmapImage(_imageUri);
+                var b = new BitmapImage();
+                b.BeginInit();
+                b.CacheOption = BitmapCacheOption.OnLoad;
+                b.UriSource = _imageUri;
+                b.EndInit();
+                ChildImageSource = b;
             }
             catch
             {
@@ -120,6 +150,10 @@ namespace WpfApp.ViewModel
                 MessageBox.Show("Изображение не поддерживается", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
+
+        public IRelayCommand OpenDialogLoadImageCommand { get; }
+        public IRelayCommand AddChildCommand { get; }
+        public IRelayCommand CaptureFromCameraCommand { get; }
 
         private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
         private ImageSource _childImageSource;

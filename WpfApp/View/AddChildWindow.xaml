@@ -104,9 +104,14 @@
 
 		<Image Grid.Row="7" Grid.Column="0" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 			   Source="{Binding ChildImageSource}" />
-		<Button Grid.Row="7" Grid.Column="1"
-				DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-				Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
+		<Grid Grid.Row="7" Grid.Column="1" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition/>
+				<ColumnDefinition/>
+			</Grid.ColumnDefinitions>
+			<Button Grid.Column="0" Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
+			<Button Grid.Column="1" Content="С камеры" Command="{Binding CaptureFromCameraCommand}"/>
+		</Grid>
 
 		<Button Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" IsDefault="True"
 		        DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"

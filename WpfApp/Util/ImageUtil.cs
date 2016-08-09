@@ -11,7 +11,7 @@ namespace WpfApp.Util
 
         public static BitmapEncoder GetEncoderWithCompressedImage(Uri source)
         {
-            var frame = BitmapFrame.Create(source, BitmapCreateOptions.None, BitmapCacheOption.None);
+            var frame = BitmapFrame.Create(source, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             int width = frame.PixelWidth;
             int height = frame.PixelHeight;
             BitmapImage bitmap;
@@ -28,11 +28,11 @@ namespace WpfApp.Util
                 int decWidth = (int)Math.Round(width * factor);
                 //int decHeight = (int)Math.Round(height * factor);
 
-                var ms = new MemoryStream(File.ReadAllBytes(source.OriginalString));
                 bitmap = new BitmapImage();
 
                 bitmap.BeginInit();
-                bitmap.StreamSource = ms;
+                bitmap.UriSource = source;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
                 bitmap.DecodePixelWidth = decWidth;
                 //bitmap.DecodePixelHeight = decHeight;
                 bitmap.EndInit();
