@@ -1,0 +1,27 @@
+﻿<Window x:Class="WpfApp.View.AddTarifWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp.View"
+        xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
+        mc:Ignorable="d"
+        Title="AddTarifWindow" Height="300" Width="300" Name="ThisWindow">
+    <StackPanel>
+		<StackPanel.Resources>
+			<m:Tarif x:Key="Tarif" MonthlyPayment="1000" AnnualPayment="0"></m:Tarif>
+		</StackPanel.Resources>
+		<StackPanel MinWidth="250" DockPanel.Dock="Left" DataContext="{StaticResource Tarif}">
+			<Label Content="Оплата в месяц"/>
+			<TextBox Margin="0 0 0 10" Text="{Binding MonthlyPayment, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged}"/>
+			<Label Content="Оплата в год"/>
+			<TextBox Margin="0 0 0 10" Text="{Binding AnnualPayment, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged}"/>
+			<Label Content="Примечание"/>
+			<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание к оплате..." Margin="0 0 0 10" Text="{Binding Note, Source={StaticResource Tarif}, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+			<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+					Command="{Binding AddTarifCommand}"
+					CommandParameter="{StaticResource Tarif}"
+					Content="Добавить новый тариф"/>
+		</StackPanel>
+	</StackPanel>
+</Window>

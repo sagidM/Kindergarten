@@ -16,7 +16,8 @@ namespace Camera
             InitializeComponent();
             IViewModel viewModel = new MainViewModel(Dispatcher);
             DataContext = viewModel;
-            Closed += (s, e) => viewModel.Close();
+            Closed += (s, e) => viewModel.OnClosed();
+            viewModel.CloseRequire += (s, e) => Close();
         }
 
         private void ShowSettingsBorder_OnMouseEnter(object sender, MouseEventArgs e)

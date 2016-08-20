@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using AForge.Video.DirectShow;
+
 // ReSharper disable BitwiseOperatorOnEnumWithoutFlags
 
 namespace Camera
@@ -44,6 +48,36 @@ namespace Camera
             get { return (bool) GetValue(IsFlipXProperty); }
             set { SetValue(IsFlipXProperty, value); }
         }
+
+        public static readonly DependencyProperty CamerasProperty = DependencyProperty.Register(
+            nameof(Cameras), typeof (IEnumerable<string>), typeof (MainViewModel), new PropertyMetadata(default(string)));
+
+        public IEnumerable<string> Cameras
+        {
+            get { return (IEnumerable<string>) GetValue(CamerasProperty); }
+            set { SetValue(CamerasProperty, value); }
+        }
+
+        public static readonly DependencyProperty SelectedIndexCameraProperty = DependencyProperty.Register(
+            nameof(SelectedIndexCamera), typeof (int), typeof (MainViewModel), new PropertyMetadata(default(int),
+                (o, args) =>
+                {
+                }));
+
+        public int SelectedIndexCamera
+        {
+            get { return (int) GetValue(SelectedIndexCameraProperty); }
+            set { SetValue(SelectedIndexCameraProperty, value); }
+        }
+
+        public static readonly DependencyProperty IsRunningProperty = DependencyProperty.Register(
+            "IsRunning", typeof (bool), typeof (MainViewModel), new PropertyMetadata(default(bool)));
+
+        public bool IsRunning
+        {
+            get { return (bool) GetValue(IsRunningProperty); }
+            set { SetValue(IsRunningProperty, value); }
+        }
         
         private static void OnFlipPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
@@ -58,6 +92,8 @@ namespace Camera
         public ICommand TakePictureCommand { get; }
         public ICommand ShowSettingsCommand { get; }
         public ICommand TurnRightCommand { get; }
+        public ICommand UpdateCamerasCommand { get; }
+        public ICommand RefreshCameraCommand { get; }
         public ImageFormat ImageFormat { get; set; } = ImageFormat.Jpeg;
 
         public MainViewModel(Dispatcher dispatcher)
@@ -67,14 +103,49 @@ namespace Camera
             TakePictureCommand = new RelayCommand<object>(OnTakePicture);
             ShowSettingsCommand = new RelayCommand<object>(ShowSettings);
             TurnRightCommand = new RelayCommand<object>(OnTurnRight);
-            _webcam = new Webcam(ImageFormat.Bmp);
+            UpdateCamerasCommand = new RelayCommand<object>(OnUpdateCameras);
+            RefreshCameraCommand = new RelayCommand<object>(OnRefreshCamera);
             _setImage = new Action<ImageSource>(b =>
             {
                 ImageSource = b;
             });
 
+            _webcam = new Webcam(ImageFormat.Bmp);
             _webcam.NewWpfFrame += _webcam_NewWpfFrame;
-            _webcam.StartCaptureVideo(0);
+            _webcam.DevicesUpdated += _webcam_DevicesUpdated;
+            _webcam.SelectedIndexChanged += _webcam_SelectedIndexChanged;
+
+            OnRefreshCamera(null);
+        }
+
+        private void OnRefreshCamera(object o)
+        {
+            IsRunning = false;
+
+            if (_webcam.IsRunning) _webcam.Stop();
+            _webcam.UpdateDevices();
+            var devices = _webcam.VideoDevices;
+            if (devices.Count > 0)
+            {
+                _webcam.StartCaptureVideo(0);
+                IsRunning = _webcam.IsRunning;
+                _webcam_DevicesUpdated(devices);
+            }
+        }
+
+        private void _webcam_SelectedIndexChanged(int oldValue, int newValue)
+        {
+            SelectedIndexCamera = newValue;
+        }
+
+        private void _webcam_DevicesUpdated(FilterInfoCollection obj)
+        {
+            Cameras = obj.Cast<FilterInfo>().Select(d => d.Name);
+        }
+
+        private void OnUpdateCameras(object o)
+        {
+            _webcam.UpdateDevices();
         }
 
         private RotateFlipType _rotateType = RotateFlipType.RotateNoneFlipNone;
@@ -94,6 +165,9 @@ namespace Camera
             // ToString returns capitalize string format
             string fileName = Path.GetFullPath(Util.NewImageFileName(ImageFormat.ToString().ToLowerInvariant()));
             _webcam.CaptureCurrentFrame(fileName, ImageFormat, ImageAngle);
+            Console.WriteLine(fileName);
+            if (!Util.OneMorePhotoLeft())
+                CloseRequire?.Invoke(this, EventArgs.Empty);
         }
 
         private void _webcam_NewWpfFrame(object sender, NewStreamFrameEventArgs e)
@@ -108,10 +182,12 @@ namespace Camera
             _lastInvoke = _dispatcher.BeginInvoke(_setImage, image);
         }
 
-        public void Close()
+        public void OnClosed()
         {
-            _webcam.StopSignal();
+            if (_webcam.IsRunning) _webcam.StopSignal();
         }
+
+        public event EventHandler CloseRequire;
 
         private readonly Webcam _webcam;
         private readonly Delegate _setImage;
@@ -143,6 +219,12 @@ namespace Camera
                     }
                 };
             }
+            if (args.Length > 2 && args[2].Length > 0)
+            {
+                int.TryParse(args[2], out _photoCountDecrement);
+                if (_photoCountDecrement > 0)
+                    IsInfinityPhotoCount = false;
+            }
         }
 
         private static Func<string, string> _getNewFileName;
@@ -152,6 +234,18 @@ namespace Camera
         public static string NewImageFileName(string format)
         {
             return _getNewFileName(format);
+        }
+        
+        private static int _photoCountDecrement;
+        private static readonly bool IsInfinityPhotoCount = true;
+
+        public static bool OneMorePhotoLeft()
+        {
+            if (IsInfinityPhotoCount) return true;
+            if (_photoCountDecrement <= 1)
+                return false;
+            --_photoCountDecrement;
+            return  true;
         }
     }
 }

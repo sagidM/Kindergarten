@@ -1,7 +1,10 @@
-﻿namespace Camera
+﻿using System;
+
+namespace Camera
 {
     public interface IViewModel
     {
-        void Close();
+        void OnClosed();
+        event EventHandler CloseRequire;
     }
 }

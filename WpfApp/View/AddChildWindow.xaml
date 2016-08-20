@@ -7,14 +7,11 @@
         xmlns:local="clr-namespace:WpfApp.View"
 		xmlns:pp="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
 		xmlns:util="clr-namespace:WpfApp.Util"
+		xmlns:converter="clr-namespace:WpfApp.View.Converter"
 		mc:Ignorable="d"
-        Title="Добавление ребёнка" Height="359.333" Width="398"
+        Title="Добавление ребёнка" Height="485.333" Width="889.417"
 		Name="ThisWindow">
 	<Window.Resources>
-		<Style TargetType="Label">
-			<Setter Property="VerticalAlignment" Value="Center"/>
-			<Setter Property="HorizontalAlignment" Value="Center"/>
-		</Style>
 		<Style TargetType="TextBox">
 			<Style.Triggers>
 				<Trigger Property="Validation.HasError" Value="True">
@@ -33,89 +30,328 @@
 
 	<Grid DataContext="{StaticResource AdditionalChild}">
 		<Grid.ColumnDefinitions>
-			<ColumnDefinition/>
-			<ColumnDefinition/>
+			<ColumnDefinition Width="3*"/>
+			<ColumnDefinition Width="2*"/>
 		</Grid.ColumnDefinitions>
-		<Grid.RowDefinitions>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-			<RowDefinition/>
-		</Grid.RowDefinitions>
-
 		<Button IsCancel="True">
 			<Button.Template>
 				<ControlTemplate/>
 			</Button.Template>
 		</Button>
 
-		<Label Grid.Row="0" Grid.Column="0" Content="Фамилия"/>
-		<TextBox Grid.Row="0" Grid.Column="1" MaxLength="64"
-		         Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+		<StackPanel Grid.Column="0" Orientation="Vertical" Name="ParentCommonContainer">
 
-		<Label Grid.Row="1" Grid.Column="0" Content="Имя"/>
-		<TextBox Grid.Row="1" Grid.Column="1" MaxLength="64"
-				 Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+			<Grid Margin="10 0" Name="CommonContainer" >
+				<Grid.Resources>
+					<converter:RangeDoubleConverter x:Key="Small" Maximum="340" Minimum="0"/>
+					<converter:RangeDoubleConverter x:Key="Medium" Maximum="700" Minimum="340"/>
+					<converter:RangeDoubleConverter x:Key="Big" Minimum="700"/>
+					<Style x:Key="DataCellGrid" TargetType="Panel">
+						<Setter Property="Margin" Value="10"/>
+					</Style>
+					<Style x:Key="NeighborElement" TargetType="FrameworkElement">
+						<Setter Property="Tag" Value="{Binding ElementName=CommonContainer, Path=Tag}"/>
+						<Setter Property="Control.VerticalContentAlignment" Value="Center"/>
+						<Style.Triggers>
+							<Trigger Property="Tag" Value="Small">
+								<Setter Property="Control.FontSize" Value="12"/>
+								<Setter Property="Grid.Column" Value="0"/>
+								<Setter Property="Grid.ColumnSpan" Value="2"/>
+								<Setter Property="Grid.Row" Value="1"/>
+							</Trigger>
+							<Trigger Property="Tag" Value="Medium">
+								<Setter Property="Control.FontSize" Value="14"/>
+								<Setter Property="Height" Value="30"/>
+								<Setter Property="VerticalAlignment" Value="Center"/>
+								<Setter Property="Grid.Column" Value="0"/>
+								<Setter Property="Grid.ColumnSpan" Value="2"/>
+								<Setter Property="Grid.Row" Value="1"/>
+							</Trigger>
+							<Trigger Property="Tag" Value="Big">
+								<Setter Property="Control.FontSize" Value="16"/>
+								<Setter Property="Grid.Column" Value="1"/>
+								<Setter Property="Grid.Row" Value="0"/>
+							</Trigger>
+						</Style.Triggers>
+					</Style>
+				</Grid.Resources>
+				<Grid.Style>
+					<Style TargetType="Grid">
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding ElementName=ParentCommonContainer, Path=ActualWidth, Converter={StaticResource Small}}" Value="True">
+								<Setter Property="Tag" Value="Small"/>
+							</DataTrigger>
+							<DataTrigger Binding="{Binding ElementName=ParentCommonContainer, Path=ActualWidth, Converter={StaticResource Medium}}" Value="True">
+								<Setter Property="Tag" Value="Medium"/>
+							</DataTrigger>
+							<DataTrigger Binding="{Binding ElementName=ParentCommonContainer, Path=ActualWidth, Converter={StaticResource Big}}" Value="True">
+								<Setter Property="Tag" Value="Big"/>
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</Grid.Style>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition/>
+					<ColumnDefinition/>
+				</Grid.ColumnDefinitions>
+				<Grid.RowDefinitions>
+					<RowDefinition/>
+					<RowDefinition/>
+				</Grid.RowDefinitions>
 
-		<Label Grid.Row="2" Grid.Column="0" Content="Отчество"/>
-		<TextBox Grid.Row="2" Grid.Column="1" MaxLength="64"
-		         Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
-			<Validation.ErrorTemplate>
-				<ControlTemplate>
-					<DockPanel>
-						<Border BorderBrush="Red" BorderThickness="1">
-							<AdornedElementPlaceholder DockPanel.Dock="Top"/>
-						</Border>
-					</DockPanel>
-				</ControlTemplate>
-			</Validation.ErrorTemplate>
-			<TextBox.Style>
-				<Style TargetType="TextBox">
-					<Style.Triggers>
-						<Trigger Property="Validation.HasError" Value="True">
-							<Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Mode=Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
-						</Trigger>
-					</Style.Triggers>
-				</Style>
-			</TextBox.Style>
-		</TextBox>
+				<!--Left block-->
+				<StackPanel Grid.Column="0" Grid.Row="0" Name="StackPanelLeftBlock" Tag="{Binding ElementName=CommonContainer, Path=Tag}"
+				            Orientation="Vertical">
+					<StackPanel.Style>
+						<Style TargetType="StackPanel">
+							<Style.Triggers>
+								<Trigger Property="Tag" Value="Small">
+									<Setter Property="Grid.ColumnSpan" Value="2"/>
+								</Trigger>
+							</Style.Triggers>
+						</Style>
+					</StackPanel.Style>
 
-		<Label Grid.Row="3" Grid.Column="0" Content="Дата рождения"/>
-		<DatePicker x:Name="DatePickerBirthDate" Grid.Row="3" Grid.Column="1" SelectedDate="{Binding BirthDate}"/>
+					<!-- ReSharper disable Xaml.MissingGridIndex -->
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Target="{Binding ElementName=Surname}" Content="_Фамилия"/>
+						<TextBox Name="Surname" MaxLength="64" Text="{Binding Path=Person.LastName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+						         Style="{StaticResource NeighborElement}">
+						</TextBox>
+					</Grid>
 
-		<Label Grid.Row="4" Grid.Column="0" Content="Место жительства"/>
-		<TextBox Grid.Row="4" Grid.Column="1" MaxLength="64"
-		         Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Имя"/>
+						<TextBox Style="{StaticResource NeighborElement}" MaxLength="64" Text="{Binding Path=Person.FirstName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+					</Grid>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Отчество"/>
+						<TextBox Tag="{Binding ElementName=CommonContainer, Path=Tag}" MaxLength="64" Text="{Binding Path=Person.Patronymic, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}">
+							<Validation.ErrorTemplate>
+								<ControlTemplate>
+									<DockPanel>
+										<Border BorderBrush="Red" BorderThickness="1">
+											<AdornedElementPlaceholder DockPanel.Dock="Top"/>
+										</Border>
+									</DockPanel>
+								</ControlTemplate>
+							</Validation.ErrorTemplate>
+							<TextBox.Style>
+								<Style TargetType="Control" BasedOn="{StaticResource NeighborElement}">
+									<Style.Triggers>
+										<Trigger Property="Validation.HasError" Value="True">
+											<Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Mode=Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
+										</Trigger>
+									</Style.Triggers>
+								</Style>
+							</TextBox.Style>
+						</TextBox>
+					</Grid>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Дата рождения"/>
+						<DatePicker Style="{StaticResource NeighborElement}" x:Name="DatePickerBirthDate" SelectedDate="{Binding BirthDate}"/>
+					</Grid>
+				</StackPanel>
+				<!---->
+				<!--Right block-->
+				<StackPanel Orientation="Vertical" Tag="{Binding ElementName=CommonContainer, Path=Tag}">
+					<StackPanel.Style>
+						<Style TargetType="StackPanel">
+							<Style.Triggers>
+								<Trigger Property="Tag" Value="Small">
+									<Setter Property="Grid.Column" Value="0"/>
+									<Setter Property="Grid.ColumnSpan" Value="2"/>
+									<Setter Property="Grid.Row" Value="1"/>
+								</Trigger>
+								<Trigger Property="Tag" Value="Medium">
+									<Setter Property="Grid.Column" Value="1"/>
+									<Setter Property="Grid.Row" Value="0"/>
+								</Trigger>
+								<Trigger Property="Tag" Value="Big">
+									<Setter Property="Grid.Column" Value="1"/>
+									<Setter Property="Grid.Row" Value="0"/>
+								</Trigger>
+							</Style.Triggers>
+						</Style>
+					</StackPanel.Style>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Пол"/>
+						<Grid Style="{StaticResource NeighborElement}">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition/>
+								<ColumnDefinition/>
+							</Grid.ColumnDefinitions>
+							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter=Male}" Content="Мальчик" />
+							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter=Female}" Content="Девочка" Grid.Column="1" />
+						</Grid>
 
-		<Label Grid.Row="5" Grid.Column="0" Content="Тариф"/>
-		<ComboBox Grid.Row="5" Grid.Column="1" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Tarifs}"
-				  SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Tarif, ValidatesOnDataErrors=True}" ItemTemplateSelector="{StaticResource TarifComboBoxDataTemplateSelector}"/>
+					</Grid>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Место жительства"/>
+						<TextBox Style="{StaticResource NeighborElement}" MaxLength="64" Text="{Binding Path=LocationAddress, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}" />
+					</Grid>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Тариф"/>
+						<ComboBox Style="{StaticResource NeighborElement}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" ItemsSource="{Binding Tarifs}"
+						          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Tarif, ValidatesOnDataErrors=True}" ItemTemplateSelector="{StaticResource TarifComboBoxDataTemplateSelector}"/>
+					</Grid>
 
-		<Label Grid.Row="6" Grid.Column="0" Content="Группа"/>
-		<ComboBox Grid.Row="6" Grid.Column="1"
-		          DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-		          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Group, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-		          ItemsSource="{Binding Path=Groups}" DisplayMemberPath="Name"/>
+					<Grid Style="{StaticResource DataCellGrid}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Группа"/>
+						<ComboBox Style="{StaticResource NeighborElement}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+						          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Group, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+						          ItemsSource="{Binding Path=Groups}" DisplayMemberPath="Name"/>
+					</Grid>
+					<!-- ReSharper restore Xaml.MissingGridIndex -->
+				</StackPanel>
 
-		<Image Grid.Row="7" Grid.Column="0" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-			   Source="{Binding ChildImageSource}" />
-		<Grid Grid.Row="7" Grid.Column="1" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition/>
-				<ColumnDefinition/>
-			</Grid.ColumnDefinitions>
-			<Button Grid.Column="0" Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
-			<Button Grid.Column="1" Content="С камеры" Command="{Binding CaptureFromCameraCommand}"/>
-		</Grid>
+			</Grid>
 
-		<Button Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="2" IsDefault="True"
-		        DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
-		        Command="{Binding AddChildCommand}" Content="Add"
-		        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
+			<Grid Margin="0 50" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<Grid.Resources>
+					<m:Parents x:Key="Father">Father</m:Parents>
+					<m:Parents x:Key="Mother">Mother</m:Parents>
+					<m:Parents x:Key="Other">Other</m:Parents>
+					<!--<Style x:Key="CloseButton" BasedOn="{StaticResource ClosingButton}"></Style>-->
+				</Grid.Resources>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition/>
+					<ColumnDefinition Width="Auto"/>
+					<ColumnDefinition/>
+				</Grid.ColumnDefinitions>
+				<StackPanel Grid.Column="1">
+					<WrapPanel HorizontalAlignment="Center">
+						<Button Content="Выбрать отца..." Command="{Binding ChooseParentCommand}" CommandParameter="{StaticResource Father}"/>
+						<Button Margin="3 0 0 0" Height="20" Style="{StaticResource ClosingButton}" Command="{Binding DetachParentCommand}" CommandParameter="{StaticResource Father}"/>
+					</WrapPanel>
+					<StackPanel DataContext="{Binding SelectedFather}">
+						<TextBlock Text="{Binding Person.FullName}"/>
+					</StackPanel>
+				</StackPanel>
+				<StackPanel Grid.Column="3">
+					<WrapPanel HorizontalAlignment="Center">
+						<Button Content="Выбрать мать..." Command="{Binding ChooseParentCommand}" CommandParameter="{StaticResource Mother}"/>
+						<Button Margin="3 0 0 0" Height="20" Style="{StaticResource ClosingButton2}" Command="{Binding DetachParentCommand}" CommandParameter="{StaticResource Mother}"/>
+					</WrapPanel>
+					<StackPanel DataContext="{Binding SelectedMother}">
+						<TextBlock Text="{Binding Person.FullName}"/>
+					</StackPanel>
+				</StackPanel>
+				<StackPanel Grid.Column="5">
+					<WrapPanel HorizontalAlignment="Center">
+						<Button Content="Выбрать иного представителя..." Command="{Binding ChooseParentCommand}" CommandParameter="{StaticResource Other}"/>
+						<Button Margin="3 0 0 0" Height="20" Style="{StaticResource ClosingButton}" Command="{Binding DetachParentCommand}" CommandParameter="{StaticResource Other}"/>
+					</WrapPanel>
+					<TextBlock>
+						<TextBlock.Text>
+							<MultiBinding StringFormat="{}{0}: {1}">
+								<Binding Path="OtherParentText" />
+								<Binding Path="SelectedOther.Person.FullName" />
+							</MultiBinding>
+						</TextBlock.Text>
+					</TextBlock>
+				</StackPanel>
+			</Grid>
+
+			<Button IsDefault="True" HorizontalAlignment="Right" Padding="30 0" Margin="0 0 20 0"
+			        DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+			        Command="{Binding AddChildCommand}" Content="Добавить"
+			        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
+		</StackPanel>
+
+
+		<DockPanel Grid.Column="1">
+			<Grid DockPanel.Dock="Bottom" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition/>
+					<ColumnDefinition/>
+				</Grid.ColumnDefinitions>
+				<Button Grid.Column="0" Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
+				<Button Grid.Column="1" Content="С камеры" Command="{Binding CaptureFromCameraCommand}"/>
+			</Grid>
+			<Button DockPanel.Dock="Top" Command="{Binding OpenImageChosenCommand}" Cursor="Hand" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<Button.Template>
+					<ControlTemplate>
+						<ControlTemplate.Resources>
+							<converter:NullConverter x:Key="NullConverter">
+								<converter:NullConverter.Null>
+									<ImageSource>../resources/no_picture.jpg</ImageSource>
+								</converter:NullConverter.Null>
+							</converter:NullConverter>
+						</ControlTemplate.Resources>
+						<Image Source="{Binding ChildImageSource, Converter={StaticResource NullConverter}}">
+						</Image>
+					</ControlTemplate>
+				</Button.Template>
+			</Button>
+		</DockPanel>
 	</Grid>
 </Window>

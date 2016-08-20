@@ -11,33 +11,98 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using DAL.Model;
+using Microsoft.Windows.Controls;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 using WpfApp.Util;
 using WpfApp.View;
+using WpfApp.View.DialogService;
 
 // ReSharper disable ExplicitCallerInfoArgument
 
 namespace WpfApp.ViewModel
 {
+    public class My : DataGridTextColumn
+    {
+        public static readonly DependencyProperty TagProperty = DependencyProperty.Register(
+            "Tag", typeof (object), typeof (My), new PropertyMetadata(default(object)));
+
+        public object Tag
+        {
+            get { return (object) GetValue(TagProperty); }
+            set { SetValue(TagProperty, value); }
+        }
+    }
+
     public class MainViewModel : ViewModelBase
     {
         public MainViewModel()
         {
-            ShowAddChildWindowCommand = new RelayCommand(ShowAddChildWindow);
-            ShowAddGroupWindowCommand = new RelayCommand(ShowAddGroupWindow);
+            ShowAddChildCommand = new RelayCommand(ShowAddChildWindow);
+            ShowAddGroupCommand = new RelayCommand(ShowAddGroupWindow);
             ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
+            ShowAddNewTarifCommand = new RelayCommand(ShowAddNewTarif);
             RefreshDataCommand = new RelayCommand(Load);
-            AddNewTarifCommand = new RelayCommand<Tarif>(AddNewTarif);
             DeleteSelectedTarifCommand = new RelayCommand(DeleteSelectedTarif);
             ChangeGroupGroupTypeCommand = new RelayCommand<Group>(ShowChangeGroupGroupType);
             SaveGroupCommand = new RelayCommand(SaveGroup);
+            SaveTarifCommand = new RelayCommand<Tarif>(SaveTarif);
+            GroupToggleArchiveCommand = new RelayCommand<Group>(GroupToggleArchive);
 
             NamesCaseSensitiveChildrenFilter = false;
 
             if (IsDesignerMode) return;
 
             Load();
+            TablesFontSize = 12;
+        }
+
+        private void GroupToggleArchive(Group group)
+        {
+            KindergartenContext context;
+            if ((group.GroupType & DAL.Model.Groups.Finished) != 0)
+            {
+                // finished -> non finished
+                context = new KindergartenContext();
+            }
+            else
+            {
+                // non finished -> finished
+                var text = "Введите примечание для каждого ребёнка, добавляемого в архив";
+                var extraInfo = "Внимание, добавление группы в архив добавит туда и всех детей находящихся в группе.\r\n" +
+                                "Восстанавливать каждого ребёнка из архива придётся по отдельности.";
+                var title = "Архив";
+                var note = IODialog.InputDialog(text, title, $"Добавление группы \"{group.Name}\" в архив", extraInfo);
+                if(note == null) return;
+
+                context = new KindergartenContext();
+                var enters = context.EnterChildren.Where(c => c.Child.Group.Id == group.Id && c.ExpulsionDate == null);
+                var now = DateTime.Now;
+                foreach (var enter in enters)
+                {
+                    enter.ExpulsionDate = now;
+                    enter.ExpulsionNote = note;
+                }
+            }
+            var groupEntity = context.Groups.First(g => g.Id == group.Id);
+            groupEntity.GroupType ^= DAL.Model.Groups.Finished;
+            group.GroupType ^= DAL.Model.Groups.Finished;
+            context.SaveChanges();
+
+            UpdateGroupsAsync().ConfigureAwait(false);
+        }
+
+        private async void SaveTarif(Tarif tarif)
+        {
+            if (!tarif.IsValid()) return;
+
+            var context = new KindergartenContext();
+            var entity = context.Tarifs.First(t => t.Id == tarif.Id);
+            entity.AnnualPayment = tarif.AnnualPayment;
+            entity.MonthlyPayment = tarif.MonthlyPayment;
+            entity.Note = tarif.Note;
+            context.SaveChanges();
+            await UpdateTarifsAsync();
         }
 
         private async void SaveGroup()
@@ -52,7 +117,7 @@ namespace WpfApp.ViewModel
             context.SaveChanges();
             
             await UpdateGroupsAsync();
-            SelectedGroup = Groups.First(g => g.Id == s.Id);
+            SelectedGroup = Groups.Cast<Group>().First(g => g.Id == s.Id);
             SaveGroupCommand.NotifyCanExecute(true);
         }
 
@@ -76,29 +141,42 @@ namespace WpfApp.ViewModel
 
         private async void ShowAddGroupWindow()
         {
+            ShowAddGroupCommand.NotifyCanExecute(false);
             var pipe = new Pipe(true);
-            StartViewModel<AddGroupViewModel>(pipe);
+            try
+            {
+                StartViewModel<AddGroupViewModel>(pipe);
+            }
+            finally
+            {
+                ShowAddGroupCommand.NotifyCanExecute(true);
+            }
             var group = (Group)pipe.GetParameter("added_group_result");
             if (group != null)
             {
                 await UpdateGroupsAsync();
-                SelectedGroup = Groups.First(g => g.Id == group.Id);
+                SelectedGroup = Groups.Cast<Group>().First(g => g.Id == group.Id);
             }
         }
 
-        private async void AddNewTarif(Tarif tarif)
+        private void ShowAddNewTarif()
         {
-            if (!tarif.IsValid()) return;
-            AddNewTarifCommand.NotifyCanExecute(false);
-            await Task.Run(() =>
+            ShowAddNewTarifCommand.NotifyCanExecute(false);
+            var pipe = new Pipe(true);
+            try
             {
-                var context = new KindergartenContext();
-                context.Tarifs.Add(tarif);
-                context.SaveChanges();
-            });
-            await UpdateTarifsAsync();
-            SelectedTarif = Tarifs.First(t => t.Id == tarif.Id);
-            AddNewTarifCommand.NotifyCanExecute(true);
+                StartViewModel<AddTarifViewModel>(pipe);
+            }
+            finally
+            {
+                ShowAddNewTarifCommand.NotifyCanExecute(true);
+            }
+            var tarif = (Tarif)pipe.GetParameter("tarif_result");
+            if (tarif != null)
+            {
+                Tarifs.Add(tarif);
+                SelectedTarifClone = tarif;
+            }
         }
 
         private async void DeleteSelectedTarif()
@@ -119,15 +197,24 @@ namespace WpfApp.ViewModel
                 context.SaveChanges();
             });
             Tarifs.Remove(SelectedTarif);
+            SelectedTarifClone = null;
         }
 
         private async void ShowAddChildWindow()
         {
+            ShowAddChildCommand.NotifyCanExecute(false);
             var pipe = new Pipe(true);
-            pipe.SetParameter("groups", Groups);
+            pipe.SetParameter("groups", Groups.Cast<Group>().ToList());
             pipe.SetParameter("tarifs", Tarifs);
 
-            StartViewModel<AddChildViewModel>(pipe);
+            try
+            {
+                StartViewModel<AddChildViewModel>(pipe);
+            }
+            finally
+            {
+                ShowAddChildCommand.NotifyCanExecute(true);
+            }
 
             if ((bool) pipe.GetParameter("saved_result"))
                 await UpdateChildrenAsync();
@@ -141,7 +228,7 @@ namespace WpfApp.ViewModel
             IDictionary<string, object> parameters = new Dictionary<string, object>
             {
                 ["child_id"] = child.Id,
-                ["groups"] = Groups,
+                ["groups"] = Groups.Cast<Group>().ToList(),
                 ["owner"] = this,
                 ["tarifs"] = Tarifs,
             };
@@ -167,7 +254,7 @@ namespace WpfApp.ViewModel
         {
             ++LoadingDataCount;
 
-            DateTime from = DateTime.MaxValue, to = DateTime.MinValue;
+            DateTime from = DateTime.MaxValue;
             int notArchivedCount = 0;
             int archivedCount = 0;
 
@@ -188,7 +275,6 @@ namespace WpfApp.ViewModel
 
                     DateTime enterDate = child.LastEnterChild.EnterDate;
                     if (from > enterDate) from = enterDate;
-                    if (to < enterDate) to = enterDate;
 
                     result.Add(child);
                 }
@@ -199,7 +285,6 @@ namespace WpfApp.ViewModel
             });
             if (c.Count > 0)
                 if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
-                if (!TillEnterDateChildrenFilter.HasValue) TillEnterDateChildrenFilter = to;
 
             var selectedChild = SelectedChild;
 //            var listCollectionView = (ListCollectionView) CollectionViewSource.GetDefaultView(c);
@@ -214,13 +299,10 @@ namespace WpfApp.ViewModel
             --LoadingDataCount;
         }
 
-        private async Task UpdateGroupsAsync()
+        public async Task UpdateGroupsAsync()
         {
             ++LoadingDataCount;
-            Groups = await Task.Run(() =>
-            {
-                return new ObservableCollection<Group>(new KindergartenContext().Groups);
-            });
+            Groups = await Task.Run(() => new ListCollectionView(new KindergartenContext().Groups.ToList()));
             --LoadingDataCount;
         }
 
@@ -310,6 +392,9 @@ namespace WpfApp.ViewModel
                     return false;
 
             }
+            if (!string.IsNullOrEmpty(GroupNameChildrenFilter) &&
+                c.Group.Name.IndexOf(GroupNameChildrenFilter, StringComparison.InvariantCultureIgnoreCase) < 0)
+                return false;
             return true;
         }
 
@@ -470,6 +555,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public string GroupNameChildrenFilter
+        {
+            get { return _groupNameChildrenFilter; }
+            set
+            {
+                if (value == _groupNameChildrenFilter) return;
+                _groupNameChildrenFilter = value;
+                OnPropertyChangedAndRefreshChildrenFilter();
+            }
+        }
+
         public bool OnlyDebtorsChildrenFilter
         {
             get { return _onlyDebtorsChildrenFilter; }
@@ -483,16 +579,33 @@ namespace WpfApp.ViewModel
 
         #endregion
 
-        public ObservableCollection<Group> Groups
+        public ListCollectionView Groups
         {
             get { return _groups; }
-            set
+            private set
             {
                 if (Equals(value, _groups)) return;
                 _groups = value;
+                if (_groups != null)
+                    _groups.Filter = o =>
+                        !ShowGroupsFromArchive.HasValue ||
+                        ShowGroupsFromArchive.Value == ((((Group) o).GroupType & DAL.Model.Groups.Finished) != 0);
                 OnPropertyChanged();
             }
         }
+
+        public bool? ShowGroupsFromArchive
+        {
+            get { return _showGroupsFromArchive; }
+            set
+            {
+                if (value == _showGroupsFromArchive) return;
+                _showGroupsFromArchive = value;
+                OnPropertyChanged();
+                _groups.TryRefreshFilter();
+            }
+        }
+
         public ListCollectionView Children
         {
             get { return _children; }
@@ -500,7 +613,7 @@ namespace WpfApp.ViewModel
             {
                 if (Equals(value, _children)) return;
                 _children = value;
-                _children.Filter = ChildFilter;
+                if (_children != null) _children.Filter = ChildFilter;
                 OnPropertyChanged();
             }
         }
@@ -556,8 +669,21 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _selectedTarif)) return;
                 _selectedTarif = value;
                 OnPropertyChanged();
+                SelectedTarifClone = value;
             }
         }
+
+        public Tarif SelectedTarifClone
+        {
+            get { return _selectedTarifClone; }
+            set
+            {
+                if (Equals(value, _selectedTarifClone)) return;
+                _selectedTarifClone = value?.Clone();
+                OnPropertyChanged();
+            }
+        }
+
         public Child SelectedChild
         {
             get { return _selectedChild; }
@@ -587,18 +713,34 @@ namespace WpfApp.ViewModel
                 if (value == _isDataLoading) return;
                 _isDataLoading = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsNotDataLoading));
             }
         }
 
+        public double TablesFontSize
+        {
+            get { return _tablesFontSize; }
+            set
+            {
+                if (value.Equals(_tablesFontSize)) return;
+                _tablesFontSize = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsNotDataLoading => !IsDataLoading;
+
         
-        public IRelayCommand ShowAddGroupWindowCommand { get; }
-        public IRelayCommand ShowAddChildWindowCommand { get; }
+        public IRelayCommand ShowAddGroupCommand { get; }
+        public IRelayCommand ShowAddChildCommand { get; }
         public IRelayCommand ShowChildDetailsCommand { get; }
         public IRelayCommand RefreshDataCommand { get; }
-        public IRelayCommand AddNewTarifCommand { get; }
+        public IRelayCommand ShowAddNewTarifCommand { get; }
         public IRelayCommand DeleteSelectedTarifCommand { get; }
         public IRelayCommand ChangeGroupGroupTypeCommand { get; }
         public IRelayCommand SaveGroupCommand { get; }
+        public IRelayCommand SaveTarifCommand { get; }
+        public IRelayCommand GroupToggleArchiveCommand { get; }
 
         private int LoadingDataCount
         {
@@ -626,7 +768,7 @@ namespace WpfApp.ViewModel
         private bool _onlyDebtorsChildrenFilter;
         private string _title;
         private ListCollectionView _children;
-        private ObservableCollection<Group> _groups;
+        private ListCollectionView _groups;
         private Child _selectedChild;
         private DateTime? _fromEnterDateChildrenFilter;
         private DateTime? _tillEnterDateChildrenFilter;
@@ -637,6 +779,10 @@ namespace WpfApp.ViewModel
         private ObservableCollection<Tarif> _tarifs;
         private Tarif _selectedTarif;
         private Group _selectedGroup;
+        private Tarif _selectedTarifClone;
+        private bool? _showGroupsFromArchive = false;
+        private string _groupNameChildrenFilter;
+        private double _tablesFontSize;
 
         #endregion
     }

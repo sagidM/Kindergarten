@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace Camera
+namespace Camera.Converter
 {
     class ImageAngleConverter : IValueConverter
     {

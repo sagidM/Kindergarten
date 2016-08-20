@@ -9,15 +9,18 @@
 		<ResourceDictionary>
 			<!--x:Key: see ViewModel.Core.PipeViewModel-->
 			<framework:ViewViewModelPairs x:Key="ViewViewModelPairs">
-				<framework:ViewViewModelPairs.Pairs>
+<!--				<framework:ViewViewModelPairs.Pairs>-->
 					<x:Array Type="framework:ViewViewModelPair">
 						<framework:ViewViewModelPair View="View/AddChildWindow.xaml" ViewModel="viewModel:AddChildViewModel"/>
 						<framework:ViewViewModelPair View="View/AddGroupWindow.xaml" ViewModel="viewModel:AddGroupViewModel"/>
+						<framework:ViewViewModelPair View="View/AddParentWindow.xaml" ViewModel="viewModel:AddParentViewModel"/>
+						<framework:ViewViewModelPair View="View/AddTarifWindow.xaml" ViewModel="viewModel:AddTarifViewModel"/>
 						<framework:ViewViewModelPair View="View/ChildDetailsWindow.xaml" ViewModel="viewModel:ChildDetailsViewModel"/>
 						<framework:ViewViewModelPair View="View/ChangeChildGroupWindow.xaml" ViewModel="viewModel:ChangeChildGroupViewModel"/>
 						<framework:ViewViewModelPair View="View/ChangeGroupGroupTypeWindow.xaml" ViewModel="viewModel:ChangeGroupGroupTypeViewModel"/>
+						<framework:ViewViewModelPair View="View/SaveOrRepealParentChangesDialog.xaml" ViewModel="viewModel:SaveOrRepealParentChangesViewModel"/>
 					</x:Array>
-				</framework:ViewViewModelPairs.Pairs>
+<!--				</framework:ViewViewModelPairs.Pairs>-->
 			</framework:ViewViewModelPairs>
 			
 			<ResourceDictionary.MergedDictionaries>

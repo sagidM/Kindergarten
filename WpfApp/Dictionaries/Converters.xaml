@@ -3,7 +3,7 @@
                     xmlns:converter="clr-namespace:WpfApp.View.Converter">
 
 	<converter:SexConverter x:Key="SexConverter"/>
-	<converter:GroupsConverter x:Key="GroupsConverter" Finished="Завершённая"
+	<converter:GroupsConverter x:Key="GroupsConverter"
 							   Nursery="Ясли" Junior="Младшая"
 							   Middle="Средняя" Older="Старшая" />
 	
@@ -13,5 +13,15 @@
 	<converter:YearsOldConverter x:Key="YearsOldConverter"/>
 	<converter:ToBoolConverter x:Key="ToBoolConverter"/>
 	<converter:ToNegateBoolConverter x:Key="ToNegateBoolConverter"/>
+	<converter:SingleEnumConverter x:Key="SingleEnumConverter"/>
+	
+	<converter:FromBoolConverter x:Key="VisibleCollapsedVisibilityConverter">
+		<converter:FromBoolConverter.True>
+			<Visibility>Visible</Visibility>
+		</converter:FromBoolConverter.True>
+		<converter:FromBoolConverter.False>
+			<Visibility>Collapsed</Visibility>
+		</converter:FromBoolConverter.False>
+	</converter:FromBoolConverter>
 
 </ResourceDictionary>

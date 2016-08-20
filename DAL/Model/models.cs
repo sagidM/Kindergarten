@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace DAL.Model
 {
@@ -117,6 +118,10 @@ namespace DAL.Model
         public string LastName { get; set; }
         [MaxLength(64)]
         public string Patronymic { get; set; }
+
+        [NotMapped]
+        public string FullName => string.Join(" ", LastName, FirstName, Patronymic);
+
         [MaxLength(255)]
         public string PhotoPath { get; set; }
 
@@ -179,6 +184,25 @@ namespace DAL.Model
         public string PhoneNumber { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
+
+        protected override string GetErrorInternal(string columnName)
+        {
+            switch (columnName)
+            {
+                case nameof(PassportSeries):
+                    if (PassportSeries.Length != 10)
+                        return "Серия и номер паспорта должны состоять из 10 цифр";
+                    if (!PassportSeries.All(char.IsDigit))
+                        return "Серия и номер паспорта должны состоять только из цифр";
+                    break;
+            }
+            return null;
+        }
+
+        public bool IsValid()
+        {
+            return GetErrorInternal(nameof(PassportSeries)) == null;
+        }
     }
 
     public class Child : DateTimeNowAsDefaultEntity
@@ -264,9 +288,11 @@ namespace DAL.Model
         public virtual Parent Parent { get; set; }
 
         public Parents ParentType { get; set; }
+        [MaxLength(32)]
+        public string ParentTypeText { get; set; }
     }
 
-    public class Tarif : BaseEntity<int>
+    public class Tarif : BaseEntity<int>, ICloneable
     {
         public double MonthlyPayment { get; set; }
         public double AnnualPayment { get; set; }
@@ -310,6 +336,21 @@ namespace DAL.Model
         public override string ToString()
         {
             return $"{nameof(Id)} = {Id}, {nameof(Note)} = {Note}";
+        }
+
+        object ICloneable.Clone() => Clone();
+
+        public Tarif Clone()
+        {
+            return new Tarif
+            {
+                Id = Id,
+                Children = Children,
+                AnnualPayment = AnnualPayment,
+                ChildCount = ChildCount,
+                MonthlyPayment = MonthlyPayment,
+                Note = Note,
+            };
         }
     }
 
@@ -359,7 +400,7 @@ namespace DAL.Model
             return
                 $"{nameof(Id)} = {Id}, " +
                 $"{nameof(EnterDate)} = {EnterDate}, " +
-                $"{nameof(EnterDate)} = {ExpulsionDate?.ToString() ?? "NULL"}";
+                $"{nameof(ExpulsionDate)} = {ExpulsionDate?.ToString() ?? "NULL"}";
         }
     }
 

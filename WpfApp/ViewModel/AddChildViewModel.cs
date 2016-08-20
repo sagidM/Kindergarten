@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -17,29 +20,92 @@ namespace WpfApp.ViewModel
 {
     internal class AddChildViewModel : ViewModelBase
     {
+        private static readonly string WebcamPath = ConfigurationManager.AppSettings["WebcamPath"];
+        private const string WebcamArguments = "photo 1";
+
+        public IRelayCommand OpenDialogLoadImageCommand { get; }
+        public IRelayCommand AddChildCommand { get; }
+        public IRelayCommand CaptureFromCameraCommand { get; }
+        public IRelayCommand OpenImageChosenCommand { get; }
+        public IRelayCommand ChooseParentCommand { get; }
+        public IRelayCommand DetachParentCommand { get; }
+
         public AddChildViewModel()
         {
             AddChildCommand = new RelayCommand<Child>(AddChild);
             OpenDialogLoadImageCommand = new RelayCommand(OpenDialogLoadImage);
             CaptureFromCameraCommand = new RelayCommand(CaptureFromCamera);
+            OpenImageChosenCommand = new RelayCommand(OpenChosenImage);
+            ChooseParentCommand = new RelayCommand<Parents>(ChooseParent);
+            DetachParentCommand = new RelayCommand<Parents>(DetachParent);
+        }
+
+        private void DetachParent(Parents parents)
+        {
+            switch (parents)
+            {
+                case Parents.Father:
+                    SelectedFather = null;
+                    break;
+                case Parents.Mother:
+                    SelectedMother = null;
+                    break;
+                case Parents.Other:
+                    OtherParentText = null;
+                    SelectedOther = null;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(parents), parents, null);
+            }
+        }
+
+        private void ChooseParent(Parents parentType)
+        {
+            var pipe = new Pipe(true);
+
+            string text = null;
+            if (parentType == Parents.Other)
+            {
+                text = IODialog.InputDialog("Кем приходится ребёнку", "Иной представитель", OtherParentText);
+                if (text == null)
+                    return;
+            }
+            StartViewModel<AddParentViewModel>(pipe);
+            var parent = (Parent) pipe.GetParameter("parent_result");
+            if (parent == null) return;
+            switch (parentType)
+            {
+                case Parents.Father:
+                    SelectedFather = parent;
+                    break;
+                case Parents.Mother:
+                    SelectedMother = parent;
+                    break;
+                case Parents.Other:
+                    OtherParentText = text;
+                    SelectedOther = parent;
+                    break;
+            }
+        }
+
+        private void OpenChosenImage()
+        {
+            if (_imageUri != null)
+                Process.Start(_imageUri.AbsolutePath);
         }
 
         private void CaptureFromCamera()
         {
-            string path = @"C:\Users\123\Downloads\Camera Final\WpfCamera\bin\Debug\WpfCamera.exe";
             var process = new Process
             {
                 StartInfo =
                 {
-                    FileName = path,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
+                    FileName = WebcamPath, RedirectStandardOutput = true, UseShellExecute = false, Arguments = WebcamArguments,
                 },
             };
             process.Start();
-            var imagePath = process.StandardOutput.ReadToEnd();
-            imagePath = @"C:\Users\123\Downloads\Camera Final\WpfCamera\bin\Debug\photo.jpg";
-            if (imagePath.Length > 0)
+            var imagePath = process.StandardOutput.ReadLine();
+            if (imagePath != null)
             {
                 SetChildImage(imagePath);
             }
@@ -51,6 +117,7 @@ namespace WpfApp.ViewModel
             Tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
             Pipe.SetParameter("saved_result", false);
         }
+
 
         public IEnumerable<Group> Groups
         {
@@ -74,9 +141,62 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public Parent SelectedFather
+        {
+            get { return _selectedFather; }
+            set
+            {
+                if (Equals(value, _selectedFather)) return;
+                _selectedFather = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Parent SelectedMother
+        {
+            get { return _selectedMother; }
+            set
+            {
+                if (Equals(value, _selectedMother)) return;
+                _selectedMother = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Parent SelectedOther
+        {
+            get { return _selectedOther; }
+            set
+            {
+                if (Equals(value, _selectedOther)) return;
+                _selectedOther = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Sex OtherSex
+        {
+            get { return _otherSex; }
+            set
+            {
+                if (value == _otherSex) return;
+                _otherSex = value;
+                OnPropertyChanged();
+            }
+        }
+
         private async void AddChild(Child child)
         {
-            if (!child.IsValid()) return;
+            if (!child.IsValid())
+            {
+                MessageBox.Show("Не все поля заполнены/пункты выбраны");
+                return;
+            }
+            if (SelectedOther == null && SelectedMother == null && SelectedFather == null)
+            {
+                MessageBox.Show("Должен быть выбран хотя бы один из родителей либо иной представитель", "Некорректный выбор", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
             AddChildCommand.NotifyCanExecute(false);
             await Task.Run(() =>
@@ -100,6 +220,13 @@ namespace WpfApp.ViewModel
 
                     var context = new KindergartenContext();
                     context.EnterChildren.Add(enterChild);
+
+                    if (SelectedFather != null)
+                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedFather.Id, ParentType = Parents.Father});
+                    if (SelectedMother != null)
+                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedMother.Id, ParentType = Parents.Mother});
+                    if (SelectedOther != null)
+                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedOther.Id, ParentType = Parents.Other, ParentTypeText = OtherParentText});
                     context.SaveChanges();
                 }
                 catch
@@ -124,6 +251,19 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
+
+        public string OtherParentText
+        {
+            get { return _otherParentText; }
+            set
+            {
+                if (value == _otherParentText) return;
+                _otherParentText = value;
+                OnPropertyChanged();
+            }
+        }
+
+
         private void OpenDialogLoadImage()
         {
             if (_openFileDialog.ShowDialog() == false) return;
@@ -151,14 +291,16 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public IRelayCommand OpenDialogLoadImageCommand { get; }
-        public IRelayCommand AddChildCommand { get; }
-        public IRelayCommand CaptureFromCameraCommand { get; }
-
-        private readonly OpenFileDialog _openFileDialog = FileDialogs.LoadOneImage;
+        private readonly OpenFileDialog _openFileDialog = IODialog.LoadOneImage;
         private ImageSource _childImageSource;
         private Uri _imageUri;
         private IEnumerable<Tarif> _tarifs;
         private IEnumerable<Group> _groups;
+        private Parent _selectedFather;
+        private Parent _selectedOther;
+        private Parent _selectedMother;
+
+        private Sex _otherSex;
+        private string _otherParentText;
     }
 }

@@ -3,6 +3,7 @@
 
 	<ResourceDictionary.MergedDictionaries>
 		<ResourceDictionary Source="Images.xaml"/>
+		<ResourceDictionary Source="ComboBox.xaml"/>
 	</ResourceDictionary.MergedDictionaries>
 	
 	
@@ -127,7 +128,7 @@
 						</Viewbox.Tag>
 						<Grid>
 							<Ellipse Fill="#33000000" Width="100" Height="100" Name="Fill" Visibility="Visible" />
-							<Path Data="{Binding Source={StaticResource PathSettings}, Path=Geometry}" Stretch="Uniform" Name="Path" Fill="White" Width="50" Height="50" RenderTransformOrigin="0.5,0.5">
+							<Path Data="{Binding Source={StaticResource PathSettings}, Path=Geometry}" Stretch="Uniform" Name="Path" Fill="White" Width="50" Height="50">
 								<Path.RenderTransform>
 									<ScaleTransform ScaleX="1" ScaleY="1" />
 								</Path.RenderTransform>
@@ -146,12 +147,39 @@
 					<Viewbox>
 						<Grid>
 							<Rectangle Fill="#33000000" RadiusX="5" RadiusY="5" Width="20" Height="20" Name="Fill" Visibility="Visible" />
-							<Path Data="{Binding Source={StaticResource Menu2}, Path=Geometry}" Stretch="Uniform" Name="Path" Fill="White" Width="10" Height="10" RenderTransformOrigin="0.5,0.5"/>
+							<Path Data="{Binding Source={StaticResource Menu2}, Path=Geometry}" Stretch="Uniform" Name="Path" Fill="White" Width="10" Height="10"/>
 						</Grid>
 					</Viewbox>
 				</ControlTemplate>
 			</Setter.Value>
 		</Setter>
 	</Style>
-	
+
+	<Style x:Key="UpdateCameras" TargetType="ButtonBase">
+		<Setter Property="Template">
+			<Setter.Value>
+				<ControlTemplate>
+					<ControlTemplate.Triggers>
+						<Trigger Property="Button.IsMouseOver" Value="True">
+							<Setter Property="Ellipse.Fill" TargetName="Fill" Value="#33ffffff"></Setter>
+						</Trigger>
+						<Trigger Property="Button.IsPressed" Value="True">
+							<Setter Property="Ellipse.Fill" TargetName="Fill" Value="#7F000000"></Setter>
+						</Trigger>
+					</ControlTemplate.Triggers>
+					<Viewbox>
+						<Grid>
+							<Rectangle Fill="#33000000" RadiusX="5" RadiusY="5" Width="20" Height="20" Name="Fill" Visibility="Visible" />
+							<Path Data="{Binding Source={StaticResource PathReload1}, Path=Geometry}" Stretch="Uniform" Name="Path" Fill="White" Width="10" Height="10"/>
+						</Grid>
+					</Viewbox>
+				</ControlTemplate>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
+	<Style x:Key="ComboBoxCameras" TargetType="ComboBox">
+		
+	</Style>
+
 </ResourceDictionary>

@@ -1,0 +1,64 @@
+﻿<Window x:Class="WpfApp.View.SaveOrRepealParentChangesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp.View"
+        xmlns:model="clr-namespace:DAL.Model;assembly=DAL"
+        xmlns:viewModel="clr-namespace:WpfApp.ViewModel"
+        mc:Ignorable="d"
+        Height="140" Width="500">
+	<Window.Style>
+		<Style TargetType="Window">
+			<Style.Triggers>
+				<DataTrigger Binding="{Binding ParentType}" Value="{x:Static model:Parents.Father}">
+					<Setter Property="Title" Value="Отец"/>
+				</DataTrigger>
+				<DataTrigger Binding="{Binding ParentType}" Value="{x:Static model:Parents.Mother}">
+					<Setter Property="Title" Value="Мать"/>
+				</DataTrigger>
+				<DataTrigger Binding="{Binding ParentType}" Value="{x:Static model:Parents.Other}">
+					<Setter Property="Title" Value="Иной представитель"/>
+				</DataTrigger>
+			</Style.Triggers>
+		</Style>
+	</Window.Style>
+	<Grid>
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+		
+		<Label FontSize="14" DataContext="{Binding ParentType}" Grid.Row="0" Margin="10" HorizontalAlignment="Center">
+			<Label.Style>
+				<Style TargetType="Label">
+					<Style.Triggers>
+						<Trigger Property="DataContext" Value="{x:Static model:Parents.Father}">
+							<Setter Property="Content" Value="Сохранить изменения отца?"/>
+						</Trigger>
+						<Trigger Property="DataContext" Value="{x:Static model:Parents.Mother}">
+							<Setter Property="Content" Value="Сохранить изменения матери?"/>
+						</Trigger>
+						<Trigger Property="DataContext" Value="{x:Static model:Parents.Other}">
+							<Setter Property="Content" Value="Сохранить изменения иного представителя?"/>
+						</Trigger>
+					</Style.Triggers>
+				</Style>
+			</Label.Style>
+		</Label>
+		<Grid Grid.Row="1">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition/>
+			</Grid.ColumnDefinitions>
+			<Button Command="{Binding CloseWithResultCommand}" CommandParameter="{x:Static viewModel:SavingResult.Save}" Width="120" Grid.Column="1" Content="Сохранить"/>
+			<Button Command="{Binding CloseWithResultCommand}" CommandParameter="{x:Static viewModel:SavingResult.NotSave}" Width="120" Grid.Column="3" Content="Не сохранять"/>
+			<Button Command="{Binding CloseWithResultCommand}" CommandParameter="{x:Static viewModel:SavingResult.Cancel}" Width="120" Grid.Column="5" IsCancel="True" Content="Отмена"/>
+		</Grid>
+	</Grid>
+</Window>

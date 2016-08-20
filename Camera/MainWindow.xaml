@@ -4,10 +4,20 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Camera"
+        xmlns:converter="clr-namespace:Camera.Converter"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="Camera" Height="450" Width="625" Background="Black">
+        Title="Camera" Height="450" Width="625" Background="Black" Icon="resources/Camera1.ico">
 	<Window.Resources>
-		<local:ImageAngleConverter x:Key="ImageAngleConverter" MinValue="-9999" MaxValue="9999"/>
+		<converter:ImageAngleConverter x:Key="ImageAngleConverter" MinValue="-9999" MaxValue="9999"/>
+		<converter:BoolConverter x:Key="VisibilityConverter">
+			<converter:BoolConverter.True>
+				<Visibility>Visible</Visibility>
+			</converter:BoolConverter.True>
+			<converter:BoolConverter.False>
+				<Visibility>Hidden</Visibility>
+			</converter:BoolConverter.False>
+		</converter:BoolConverter>
 	</Window.Resources>
 	<Grid>
         <Image Name="Image" Source="{Binding ImageSource}" RenderTransformOrigin="0.5 0.5">
@@ -27,9 +37,9 @@
 			</Grid.ColumnDefinitions>
 
 			<Viewbox Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0">
-				<Button Name="ButtonScreenshot" Command="{Binding TakePictureCommand}" Style="{StaticResource TakePictureButton}" Content="Photo" ToolTip="Сделать фото"/>
+				<Button Name="ButtonScreenshot" Command="{Binding TakePictureCommand}" Style="{StaticResource TakePictureButton}" Content="Photo" />
 			</Viewbox>
-			<StackPanel MouseEnter="MenuStackPanel_OnMouseEnter" MouseLeave="MenuStackPanel_OnMouseLeave" IsEnabled="False" Opacity="0.1" Name="MenuStackPanel" Background="#64000000" Width="100" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Grid.RowSpan="2" HorizontalAlignment="Right">
+			<StackPanel MouseEnter="MenuStackPanel_OnMouseEnter" MouseLeave="MenuStackPanel_OnMouseLeave" IsEnabled="False" Opacity="0.1" Name="MenuStackPanel" Background="#64000000" Width="100" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Right">
 				<StackPanel.Style>
 					<Style TargetType="StackPanel">
 						<Style.Triggers>
@@ -60,10 +70,31 @@
 				<Border Margin="0 10" Width="50" Height="50" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="20" Background="#99393939">
 					<TextBox TextAlignment="Center" VerticalContentAlignment="Center" Foreground="White" BorderThickness="0" Background="Transparent" Text="{Binding ImageAngle, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ImageAngleConverter}}"/>
 				</Border>
+				<StackPanel Margin="0 10 0 0" Orientation="Horizontal">
+					<ComboBox FontSize="9" Width="70" Name="ComboBoxSelectCamera" SelectedIndex="{Binding SelectedIndexCamera}" ItemsSource="{Binding Cameras}"/>
+					<WrapPanel>
+						<Button Style="{StaticResource UpdateCameras}" Command="{Binding UpdateCamerasCommand}" Content="Update"/>
+					</WrapPanel>
+				</StackPanel>
 			</StackPanel>
 			<Label MinWidth="50" Height="50" Margin="20" VerticalAlignment="Top" Style="{StaticResource HoverMenu}"
 				   Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Right"
 				   MouseEnter="ShowSettingsBorder_OnMouseEnter" Name="ShowSettingsBorder"/>
 		</Grid>
-    </Grid>
+<!--		<Button Command="{Binding RefreshCameraCommand}" FontSize="24">-->
+<!--			<Button.Content>-->
+<!--				<StackPanel>-->
+<!--					<Label HorizontalAlignment="Center" Content="Камера не найдена."/>-->
+<!--					<Label HorizontalAlignment="Center" Content="Повторить поиск..."/>-->
+<!--				</StackPanel>-->
+<!--			</Button.Content>-->
+<!--			<Button.Visibility>-->
+<!--				<Binding Path="IsRunning" Converter="{StaticResource VisibilityConverter}">-->
+<!--					<Binding.ConverterParameter>-->
+<!--						<system:Boolean>False</system:Boolean>-->
+<!--					</Binding.ConverterParameter>-->
+<!--				</Binding>-->
+<!--			</Button.Visibility>-->
+<!--		</Button>-->
+	</Grid>
 </Window>

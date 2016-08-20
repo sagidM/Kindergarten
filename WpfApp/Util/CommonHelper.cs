@@ -1,4 +1,5 @@
 ﻿using System;
+using WpfApp.View;
 
 namespace WpfApp.Util
 {

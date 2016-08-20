@@ -17,8 +17,8 @@ namespace WpfApp.View
             InitializeComponent();
             Closed += (sender, args) =>
             {
-                if (DatePickerBirthDate.SelectedDate.HasValue)
-                    DefaultChildBirthDate = DatePickerBirthDate.SelectedDate.Value;
+//                if (DatePickerBirthDate.SelectedDate.HasValue)
+//                    DefaultChildBirthDate = DatePickerBirthDate.SelectedDate.Value;
             };
         }
     }

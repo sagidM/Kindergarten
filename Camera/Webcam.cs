@@ -29,23 +29,48 @@ namespace Camera
 
         public bool IsRunning => _videoCaptureDevice != null && _videoCaptureDevice.IsRunning;
 
-        public int SelectedDeviceIndex { get; private set; }
+        public int SelectedDeviceIndex
+        {
+            get { return _selectedDeviceIndex; }
+            private set
+            {
+                int old = _selectedDeviceIndex;
+                _selectedDeviceIndex = value;
+                SelectedIndexChanged?.Invoke(old, value);
+            }
+        }
 
         public RotateFlipType RotateFlipType { get; set; }
 
         public void UpdateDevices()
         {
+            string monikerString = null;
+            if (IsRunning)
+                monikerString = VideoDevices[SelectedDeviceIndex].MonikerString;
             _videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            DevicesUpdated?.Invoke(_videoDevices);
+
+            if (monikerString == null || _videoDevices.Count == 0)
+            {
+                SelectedDeviceIndex = -1;
+                return;
+            }
+
+            for (int i = 0; i < _videoDevices.Count; i++)
+            {
+                if (_videoDevices[i].MonikerString == monikerString)
+                {
+                    SelectedDeviceIndex = i;
+                    return;
+                }
+            }
+            // unreachable
         }
 
         public void StartCaptureVideo(int deviceIndex = 0)
         {
             SelectedDeviceIndex = deviceIndex;
-            if (_videoCaptureDevice != null)
-            {
-                _videoCaptureDevice.NewFrame -= OnNewWpfFrame;
-                _videoCaptureDevice.Stop();
-            }
+            _videoCaptureDevice?.Stop();
 
             _videoCaptureDevice = new VideoCaptureDevice(VideoDevices[deviceIndex].MonikerString);
             _videoCaptureDevice.NewFrame += OnNewWpfFrame;
@@ -157,18 +182,21 @@ namespace Camera
             return new Size((int) Math.Abs(Math.Max(x1, x2)* 2), (int)Math.Abs(Math.Max(y1, y2) *2));
         }
 
+        public void ShowSettings()
+        {
+            _videoCaptureDevice.DisplayPropertyPage(IntPtr.Zero);
+        }
+
 
         public event NewStreamFrameEventHandler NewWpfFrame;
+        public event Action<int, int> SelectedIndexChanged;
+        public event Action<FilterInfoCollection> DevicesUpdated;
 
 
         private VideoCaptureDevice _videoCaptureDevice;
         private Bitmap _currentFrame;
         private FilterInfoCollection _videoDevices;
-
-        public void ShowSettings()
-        {
-            _videoCaptureDevice.DisplayPropertyPage(IntPtr.Zero);
-        }
+        private int _selectedDeviceIndex;
     }
 
     public delegate void NewStreamFrameEventHandler(object sender, NewStreamFrameEventArgs e);

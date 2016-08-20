@@ -1,7 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 using WpfApp.Framework.Core;
+using WpfApp.Util;
 
 namespace WpfApp.Framework
 {
@@ -31,17 +34,23 @@ namespace WpfApp.Framework
             StartLifeCycle(window, viewModel, pipe);
         }
 
-        private static void StartLifeCycle(Window window, PipeViewModel viewModel, Pipe pipe)
+        private void StartLifeCycle(Window window, PipeViewModel viewModel, Pipe pipe)
         {
             viewModel.OnPreInit();
-
+            
             window.DataContext = viewModel;
             window.Loaded += (s, e) => viewModel.OnLoaded();
             window.Closing += (s, e) => { e.Cancel = !viewModel.OnFinishing(); };
+            var sw = new Stopwatch();
+            sw.Start();
+            var conf = WindowStateSaver.ConfigureWindow(View.OriginalString, window);
+            sw.Stop();
+            Console.WriteLine(sw.Elapsed);
             bool closed = false;
             window.Closed += (s, e) =>
             {
                 closed = true;
+                conf.Snapshot();
                 viewModel.OnFinished();
             };
             viewModel.FinishRequest += window.Close;

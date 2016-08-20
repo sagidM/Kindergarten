@@ -1,0 +1,82 @@
+﻿<Window x:Class="WpfApp.View.AddParentWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp.View"
+        xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
+        xmlns:converter="clr-namespace:WpfApp.View.Converter"
+        mc:Ignorable="d"
+        Title="Ответственные за ребёнка" Height="583.775" Width="802.033" Name="ThisWindow">
+	<Window.Resources>
+		<m:Parent x:Key="Parent">
+			<m:Parent.Person>
+				<m:Person/>
+			</m:Parent.Person>
+		</m:Parent>
+		<converter:PassportConverter x:Key="PassportConverter"/>
+	</Window.Resources>
+
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition MinWidth="200" MaxWidth="450" Width="1*"/>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="2*"/>
+		</Grid.ColumnDefinitions>
+		<Button IsCancel="True">
+			<Button.Template>
+				<ControlTemplate/>
+			</Button.Template>
+		</Button>
+		<DockPanel Grid.Column="0">
+			<Label Margin="0 0 0 10" HorizontalAlignment="Center" DockPanel.Dock="Top" Content="Добавьте или выберите из списка"/>
+			<StackPanel DataContext="{Binding Source={StaticResource Parent}}">
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." Text="{Binding Person.LastName}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." Text="{Binding Person.FirstName}" />
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." Text="{Binding Person.Patronymic}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Номер телефона..." Text="{Binding PhoneNumber}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Адрес прописки..." Text="{Binding LocationAddress}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Место жительства..." Text="{Binding ResidenceAddress}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Адрес работы..." Text="{Binding WorkAddress}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Паспорт выдан..." Text="{Binding PassportIssuedBy}"/>
+				<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Серия паспорта..." Text="{Binding PassportSeries, ValidatesOnDataErrors=True}" MaxLength="10"/>
+				<DockPanel>
+					<Label DockPanel.Dock="Left" Content="Дата выдачи паспорта:"/>
+					<DatePicker DisplayDateStart="01.01.1900" DockPanel.Dock="Right" DisplayDate="01.01.2000" SelectedDate="{Binding PassportIssueDate}"/>
+				</DockPanel>
+				<!--				<Image Source="{Binding ParentImageSource}"/>-->
+				<!--				<Button Content="Выбрать изображение"/>-->
+
+				<Button Margin="50 10" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Command="{Binding SaveParentCommand}" CommandParameter="{StaticResource Parent}" Content="Добавить"/>
+			</StackPanel>
+		</DockPanel>
+		<GridSplitter VerticalAlignment="Stretch" HorizontalAlignment="Center" Grid.Column="1" Width="5"></GridSplitter>
+		<DockPanel Grid.Column="2">
+			<Button IsDefault="True" DockPanel.Dock="Bottom" Content="Выбрать" Command="{Binding ChooseParentCommand}"
+					CommandParameter="{Binding ElementName=ListBoxParents, Path=SelectedItem}"/>
+			<TextBox DockPanel.Dock="Top" Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchParentFilter, UpdateSourceTrigger=PropertyChanged}"/>
+			<ListBox Name="ListBoxParents" DockPanel.Dock="Top" ItemsSource="{Binding Parents}" HorizontalContentAlignment="Stretch">
+				<ListBox.ItemTemplate>
+					<DataTemplate>
+						<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Background="#F3F3F3" Tag="{Binding ElementName=ThisWindow, Path=DataContext}">
+							<StackPanel.ContextMenu>
+								<ContextMenu>
+									<MenuItem Command="{Binding Path=PlacementTarget.(StackPanel.Tag).ChooseParentCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}}"
+											  Header="Выбрать" CommandParameter="{Binding}"/>
+								</ContextMenu>
+							</StackPanel.ContextMenu>
+							<StackPanel.InputBindings>
+								<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ChooseParentCommand}"
+											  CommandParameter="{Binding}" Gesture="LeftDoubleClick"/>
+							</StackPanel.InputBindings>
+							<Label Content="{Binding Id}"/>
+							<Label Margin="20 0" Content="{Binding Person.FullName}"/>
+							<Label Content="{Binding PassportSeries, Converter={StaticResource PassportConverter}}"/>
+						</StackPanel>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+			</ListBox>
+		</DockPanel>
+	</Grid>
+</Window>
+

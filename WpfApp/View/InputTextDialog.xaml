@@ -1,0 +1,23 @@
+﻿<Window x:Class="WpfApp.View.InputTextDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp.View"
+        mc:Ignorable="d"
+        Title="InputTextDialog" Width="312.311"
+		WindowStyle="SingleBorderWindow" SizeToContent="WidthAndHeight">
+	<StackPanel Margin="30 10">
+		<TextBlock Name="TextField" TextAlignment="Center" Text="Here is default text" />
+		<TextBox Margin="10 20" Name="MessageField" />
+		<Grid>
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition/>
+				<ColumnDefinition/>
+			</Grid.ColumnDefinitions>
+			<Button Click="ButtonOk_OnClick" IsDefault="True" Margin="10" Grid.Column="0" Content="Ок"/>
+			<Button IsCancel="True" Margin="10" Grid.Column="1" Content="Отмена"/>
+		</Grid>
+		<TextBlock Name="ExtraInfoField"/>
+	</StackPanel>
+</Window>

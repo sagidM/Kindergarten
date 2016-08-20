@@ -1,6 +1,6 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 using DAL.Model;
 
@@ -12,44 +12,42 @@ namespace WpfApp.View.Converter
         public string Junior { get; set; }
         public string Middle { get; set; }
         public string Older { get; set; }
-        public string Finished { get; set; }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var g = (Groups)value;
-            if ((g & Groups.Finished) == Groups.Finished)
-            {
-                //Add finished string
-                //g ^= Groups.Finished;
-                return Finished;
-            }
-
-            switch (g)
-            {
-                case Groups.Nursery:
-                    return Nursery;
-                case Groups.Junior:
-                    return Junior;
-                case Groups.Middle:
-                    return Middle;
-                case Groups.Older:
-                    return Older;
-                default:
-                    return null;
-            }
+            if ((g & Groups.Nursery) == Groups.Nursery)
+                return Nursery;
+            if ((g & Groups.Junior) == Groups.Junior)
+                return Junior;
+            if ((g & Groups.Middle) == Groups.Middle)
+                return Middle;
+            if ((g & Groups.Older) == Groups.Older)
+                return Older;
+            return DependencyProperty.UnsetValue;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            var s = (string)value;
-            Func<string, bool> f = ss => s.Equals(ss, StringComparison.OrdinalIgnoreCase);
+            throw new NotImplementedException();
+        }
+    }
 
-            if (f(Finished)) return Groups.Finished;
-            if (f(Nursery)) return Groups.Nursery;
-            if (f(Junior)) return Groups.Junior;
-            if (f(Middle)) return Groups.Middle;
-            if (f(Older)) return Groups.Older;
-            return null;
+    public class GroupsFinishedConverter : IValueConverter
+    {
+        public string Finished { get; set; }
+        public string NonFinished { get; set; }
+
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var finished = ((Groups)value & Groups.Finished) == Groups.Finished;
+            return finished ? Finished : NonFinished;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
         }
     }
 }

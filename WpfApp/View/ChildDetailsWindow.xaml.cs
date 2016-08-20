@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 
 namespace WpfApp.View
 {
@@ -10,6 +11,10 @@ namespace WpfApp.View
         public ChildDetailsWindow()
         {
             InitializeComponent();
+            PreviewKeyDown += (o, e) =>
+            {
+                if (e.Key == Key.Escape) Close();
+            };
         }
     }
 }
