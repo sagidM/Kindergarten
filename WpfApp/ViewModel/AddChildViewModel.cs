@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -61,8 +59,6 @@ namespace WpfApp.ViewModel
 
         private void ChooseParent(Parents parentType)
         {
-            var pipe = new Pipe(true);
-
             string text = null;
             if (parentType == Parents.Other)
             {
@@ -70,6 +66,15 @@ namespace WpfApp.ViewModel
                 if (text == null)
                     return;
             }
+
+            var pipe = new Pipe(true);
+
+            var exclude = new List<int>(3);
+            if (SelectedFather != null) exclude.Add(SelectedFather.Id);
+            if (SelectedMother != null) exclude.Add(SelectedMother.Id);
+            if (SelectedOther != null) exclude.Add(SelectedOther.Id);
+            pipe.SetParameter("exclude_parent_ids", exclude.ToArray());
+
             StartViewModel<AddParentViewModel>(pipe);
             var parent = (Parent) pipe.GetParameter("parent_result");
             if (parent == null) return;
@@ -115,7 +120,7 @@ namespace WpfApp.ViewModel
         {
             Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
             Tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
-            Pipe.SetParameter("saved_result", false);
+            Pipe.SetParameter("saved_child_result", null);
         }
 
 
@@ -216,7 +221,7 @@ namespace WpfApp.ViewModel
                     child.Group = null;
                     child.TarifId = child.Tarif.Id;
                     child.Tarif = null;
-                    var enterChild = new EnterChild {Child = child};
+                    var enterChild = new EnterChild {Child = child, EnterDate = ChildAddedDate };
 
                     var context = new KindergartenContext();
                     context.EnterChildren.Add(enterChild);
@@ -236,9 +241,20 @@ namespace WpfApp.ViewModel
                     throw;
                 }
             });
+            Pipe.SetParameter("saved_child_result", child);
             AddChildCommand.NotifyCanExecute(true);
-            Pipe.SetParameter("saved_result", true);
             Finish();
+        }
+
+        public DateTime ChildAddedDate
+        {
+            get { return _childAddedDate; }
+            set
+            {
+                if (value.Equals(_childAddedDate)) return;
+                _childAddedDate = value;
+                OnPropertyChanged();
+            }
         }
 
         public ImageSource ChildImageSource
@@ -302,5 +318,6 @@ namespace WpfApp.ViewModel
 
         private Sex _otherSex;
         private string _otherParentText;
+        private DateTime _childAddedDate = DateTime.Now;
     }
 }

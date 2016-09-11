@@ -1,0 +1,14 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=mscorlib">
+
+	<Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockStyle}">
+		<Setter Property="FontSize" Value="14"/>
+	</Style>
+	<Style TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
+		<Setter Property="FontSize" Value="14.667"/>
+	</Style>
+	<Style TargetType="Label" BasedOn="{StaticResource LabelStyle}">
+		<Setter Property="FontSize" Value="14.667"/>
+	</Style>
+</ResourceDictionary>

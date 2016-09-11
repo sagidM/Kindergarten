@@ -13,6 +13,7 @@ namespace WpfApp.Settings
         public static void CreateAllDirectories()
         {
             Directory.CreateDirectory(PersonImages);
+            App.Logger.Trace("Directories created");
         }
     }
 }

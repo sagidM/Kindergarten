@@ -2,9 +2,8 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:converter="clr-namespace:WpfApp.View.Converter"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
-	
 	<ResourceDictionary.MergedDictionaries>
-		
+
 		<!--Themes-->
 
 		<!-- IG Theme -->
@@ -29,10 +28,6 @@
 
 		<ResourceDictionary Source="TabItem.xaml"/>
 	</ResourceDictionary.MergedDictionaries>
-
-
-
-
 
 	<Style x:Key="PlaceHolderTextBoxOld" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
 		<Setter Property="Template">
@@ -75,7 +70,7 @@
 			</Setter.Value>
 		</Setter>
 	</Style>
-	
+
 	<Style x:Key="PlaceHolderTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
 		<Setter Property="Template">
 			<Setter.Value>
@@ -144,7 +139,7 @@
 				<RotateTransform Angle="0"/>
 			</Setter.Value>
 		</Setter>
-		
+
 		<Setter Property="Template">
 			<Setter.Value>
 				<ControlTemplate>
@@ -152,10 +147,10 @@
 						<Border Background="Transparent" CornerRadius="50">
 							<Path RenderTransformOrigin="0.5 0.5" Fill="{TemplateBinding Background}">
 								<Path.Data>
-								<GeometryGroup>
-									<StaticResource ResourceKey="ReloadData" />
-								</GeometryGroup>
-							</Path.Data>
+									<GeometryGroup>
+										<StaticResource ResourceKey="ReloadData" />
+									</GeometryGroup>
+								</Path.Data>
 							</Path>
 						</Border>
 					</Viewbox>
@@ -242,7 +237,7 @@
 							<Path Name="path" Data="{StaticResource DetailsData}" Fill="Black"/>
 						</Border>
 					</Viewbox>
-					
+
 					<ControlTemplate.Triggers>
 						<Trigger Property="Button.IsMouseOver" Value="True">
 							<Setter TargetName="border" Property="Border.Background" Value="Gray"/>
@@ -337,7 +332,7 @@
 			</Trigger>
 		</ControlTemplate.Triggers>
 	</ControlTemplate>
-	
+
 
 	<Style x:Key="ClosingButton">
 		<Setter Property="Button.Template">
@@ -548,5 +543,78 @@
 			</Setter.Value>
 		</Setter>
 	</Style>
+
+	<Style x:Key="DetachButton" TargetType="Button">
+		<Setter Property="Height" Value="30"/>
+		<Setter Property="SnapsToDevicePixels" Value="True"/>
+		<Setter Property="Template">
+			<Setter.Value>
+				<ControlTemplate TargetType="Button">
+					<Border Name="WrapBorder" BorderThickness="1" Margin="5 0 0 0">
+						<StackPanel HorizontalAlignment="Center" Name="StackPanel" Orientation="Horizontal" Background="#01000000">
+							<Border Name="Border" Padding="4" Margin="5 0 0 0">
+								<Viewbox Height="20" Width="20">
+									<Path Name="Path"  Data="{StaticResource DetachData}" Fill="#474747"/>
+								</Viewbox>
+							</Border>
+							<TextBlock Foreground="#474747" Margin="0 0 9 0" VerticalAlignment="Center" Name="TextBlock" Text="{TemplateBinding Content}"/>
+						</StackPanel>
+					</Border>
+					<ControlTemplate.Triggers>
+						<Trigger Property="IsMouseOver" Value="True">
+							<Setter TargetName="WrapBorder" Property="BorderBrush" Value="Gray"/>
+							<Setter TargetName="WrapBorder" Property="Background" Value="#0A000000"/>
+							<!--							<Setter TargetName="StackPanel" Property="Background" Value="{StaticResource ItemBackgroundBrush}"/>-->
+						</Trigger>
+						<Trigger Property="IsPressed" Value="True">
+							<Setter TargetName="WrapBorder" Property="BorderBrush" Value="Transparent"/>
+							<Setter TargetName="TextBlock" Property="TextBlock.Foreground" Value="White"/>
+							<Setter TargetName="Path" Property="Fill" Value="White"/>
+							<Setter TargetName="StackPanel" Property="Background" Value="#1e78e6"/>
+						</Trigger>
+					</ControlTemplate.Triggers>
+				</ControlTemplate>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
+	<Style x:Key="AttachButton" TargetType="Button">
+		<Setter Property="Height" Value="30"/>
+		<!--<Setter Property="Width" Value="250"/>-->
+		<Setter Property="HorizontalAlignment" Value="Center"/>
+		<Setter Property="SnapsToDevicePixels" Value="True"/>
+		<Setter Property="Template">
+			<Setter.Value>
+				<ControlTemplate TargetType="Button">
+					<Border HorizontalAlignment="Center" Name="WrapBorder" BorderThickness="1" Margin="5 0 0 0">
+						<StackPanel Name="StackPanel" Orientation="Horizontal" Background="#01000000">
+							<Border Name="Border" Padding="4" Margin="5 0 0 0">
+								<Viewbox Height="20" Width="20">
+									<Path Name="Path" Data="{StaticResource FatherParentLogoData}" Stroke="#474747"/>
+								</Viewbox>
+							</Border>
+							<TextBlock Foreground="#474747" Margin="0 0 9 0" VerticalAlignment="Center" Name="TextBlock" Text="{TemplateBinding Content}"/>
+						</StackPanel>
+					</Border>
+					<ControlTemplate.Triggers>
+						<Trigger Property="IsMouseOver" Value="True">
+							<Setter TargetName="WrapBorder" Property="BorderBrush" Value="Gray"/>
+							<Setter TargetName="WrapBorder" Property="Background" Value="#0A000000"/>
+							<!--<Setter TargetName="StackPanel" Property="Background" Value="{StaticResource ItemBackgroundBrush}"/>-->
+						</Trigger>
+						<Trigger Property="IsPressed" Value="True">
+							<Setter TargetName="WrapBorder" Property="BorderBrush" Value="Transparent"/>
+							<Setter TargetName="TextBlock" Property="TextBlock.Foreground" Value="White"/>
+							<Setter TargetName="Path" Property="Fill" Value="Transparent"/>
+							<Setter TargetName="Path" Property="Stroke" Value="White"/>
+							<Setter TargetName="Path" Property="StrokeThickness" Value="3"/>
+							<Setter TargetName="StackPanel" Property="Background" Value="#1e78e6"/>
+						</Trigger>
+					</ControlTemplate.Triggers>
+				</ControlTemplate>
+			</Setter.Value>
+		</Setter>
+	</Style>
+
 
 </ResourceDictionary>

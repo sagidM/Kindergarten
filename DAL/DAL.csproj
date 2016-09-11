@@ -97,6 +97,14 @@
     <Compile Include="Migrations\201608161019529_RemoveParentSex_AddParentChildParentTypeText.Designer.cs">
       <DependentUpon>201608161019529_RemoveParentSex_AddParentChildParentTypeText.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201608221701377_AddAnnualPaymentAndChangePayment.cs" />
+    <Compile Include="Migrations\201608221701377_AddAnnualPaymentAndChangePayment.Designer.cs">
+      <DependentUpon>201608221701377_AddAnnualPaymentAndChangePayment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201609091519383_MoneyPaymentAndDebt.cs" />
+    <Compile Include="Migrations\201609091519383_MoneyPaymentAndDebt.Designer.cs">
+      <DependentUpon>201609091519383_MoneyPaymentAndDebt.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
     <Compile Include="Model\models.cs" />
@@ -144,6 +152,12 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201608161019529_RemoveParentSex_AddParentChildParentTypeText.resx">
       <DependentUpon>201608161019529_RemoveParentSex_AddParentChildParentTypeText.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201608221701377_AddAnnualPaymentAndChangePayment.resx">
+      <DependentUpon>201608221701377_AddAnnualPaymentAndChangePayment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201609091519383_MoneyPaymentAndDebt.resx">
+      <DependentUpon>201609091519383_MoneyPaymentAndDebt.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -9,7 +9,7 @@
 		xmlns:util="clr-namespace:WpfApp.Util"
 		xmlns:converter="clr-namespace:WpfApp.View.Converter"
 		mc:Ignorable="d"
-        Title="Добавление ребёнка" Height="485.333" Width="889.417"
+        Title="Добавление ребёнка" Height="551.333" Width="1058.417"
 		Name="ThisWindow">
 	<Window.Resources>
 		<Style TargetType="TextBox">
@@ -39,7 +39,8 @@
 			</Button.Template>
 		</Button>
 
-		<StackPanel Grid.Column="0" Orientation="Vertical" Name="ParentCommonContainer">
+		<ScrollViewer Grid.Column="0">
+		<StackPanel Orientation="Vertical" Name="ParentCommonContainer">
 
 			<Grid Margin="10 0" Name="CommonContainer" >
 				<Grid.Resources>
@@ -271,6 +272,11 @@
 
 			</Grid>
 
+			<WrapPanel DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<Label Content="Дата добавления"/>
+				<DatePicker SelectedDate="{Binding ChildAddedDate}"/>
+			</WrapPanel>
+
 			<Grid Margin="0 50" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
 				<Grid.Resources>
 					<m:Parents x:Key="Father">Father</m:Parents>
@@ -326,6 +332,7 @@
 			        Command="{Binding AddChildCommand}" Content="Добавить"
 			        CommandParameter="{Binding Source={StaticResource AdditionalChild}, ValidatesOnDataErrors=True, ValidatesOnExceptions=True}"/>
 		</StackPanel>
+		</ScrollViewer>
 
 
 		<DockPanel Grid.Column="1">

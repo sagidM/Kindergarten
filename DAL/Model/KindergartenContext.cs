@@ -52,7 +52,8 @@ namespace DAL.Model
         public virtual DbSet<Child> Children { get; set; }
         public virtual DbSet<Parent> Parents { get; set; }
         public virtual DbSet<Group> Groups { get; set; }
-        public virtual DbSet<Payment> Payments { get; set; }
+        public virtual DbSet<MonthlyPayment> MonthlyPayments { get; set; }
+        public virtual DbSet<RangePayment> AnnualPayments { get; set; }
         public virtual DbSet<Tarif> Tarifs { get; set; }
         public virtual DbSet<ParentChild> ParentChildren { get; set; }
         public virtual DbSet<EnterChild> EnterChildren { get; set; }

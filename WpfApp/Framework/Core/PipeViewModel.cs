@@ -27,13 +27,13 @@ namespace WpfApp.Framework.Core
             StartViewModel(viewModelType, Pipe.Default);
         }
 
-        public virtual void StartViewModel(Type type, Pipe pipe)
+        private static void StartViewModel(Type type, Pipe pipe)
         {
             var pairs = (ViewViewModelPairs)Application.Current.Resources[ViewViewModel];
             var pair = pairs.Pairs.FirstOrDefault(p => p.ViewModel == type);
 
             if (pair == null)
-                throw new ArgumentException("ViewModel don't register", type.FullName);
+                throw new ArgumentException($"ViewModel \"{type.FullName}\" doesn't register", nameof(type));
 
             pair.Start(pipe);
         }

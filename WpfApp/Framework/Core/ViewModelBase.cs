@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -6,7 +6,7 @@ using WpfApp.Annotations;
 
 namespace WpfApp.Framework.Core
 {
-    public abstract class ViewModelBase : PipeViewModel, INotifyPropertyChanged
+    public abstract class ViewModelBase : PipeViewModel, INotifyPropertyChanged, ISaverData
     {
         #region INotifyPropertyChanged
 
@@ -43,5 +43,39 @@ namespace WpfApp.Framework.Core
         {
             return true;
         }
+
+        public object this[string key]
+        {
+            get { return _data[key]; }
+            set
+            {
+                object val;
+                if (_data.TryGetValue(key, out val) && val == value) return;
+                _data[key] = value;
+                OnPropertyChanged(System.Windows.Data.Binding.IndexerName);
+            }
+        }
+
+        public object this[string key, object defaultValue]
+        {
+            get
+            {
+                object result;
+                return _data.TryGetValue(key, out result) ? result : /*this[key] =*/ defaultValue;  // save current defaultValue if not exists
+            }
+            set { this[key] = value; }   // for Mode=TwoWay
+        }
+
+        #region ISaverData
+
+        object ISaverData.GetAllData() => _data;
+        void ISaverData.SetAllData(object data)
+        {
+            _data = data == null ? new Dictionary<string, object>() : (IDictionary<string, object>) data;
+        }
+
+        private IDictionary<string, object> _data;
+
+        #endregion
     }
 }

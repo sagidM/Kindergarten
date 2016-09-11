@@ -248,7 +248,7 @@
 
   <!-- *********************************  ComboBoxItem Style  ********************************* -->
   <Style x:Key="ComboBoxItemStyle" TargetType="ComboBoxItem">
-    <Setter Property="FontSize" Value="14.667" />
+    <Setter Property="FontSize" Value="13.333" />
     <Setter Property="FontFamily" Value="Segoe UI" />
     <Setter Property="MinHeight" Value="30" />
     <Setter Property="Padding" Value="6,0" />
@@ -444,7 +444,7 @@
   <!-- ********************************** CheckBoxStyle **********************************-->
   <Style x:Key="CheckBoxStyle" TargetType="CheckBox">
     <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
-    <Setter Property="FontSize" Value="14.667" />
+    <Setter Property="FontSize" Value="13.333" />
     <Setter Property="FontFamily" Value="Segoe UI" />
     <Setter Property="HorizontalContentAlignment" Value="Left" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -621,7 +621,7 @@
   <!-- *********************************  ButtonStyle  ********************************* -->
   <Style x:Key="ButtonStyle" TargetType="Button">
     <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}" />
-    <Setter Property="FontSize" Value="14.667" />
+    <Setter Property="FontSize" Value="13.333" />
     <Setter Property="FontFamily" Value="Segoe UI" />
     <Setter Property="Padding" Value="10,0,10,2" />
     <Setter Property="MinHeight" Value="30" />

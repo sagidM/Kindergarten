@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Data;
@@ -24,6 +25,8 @@ namespace WpfApp.ViewModel
 
         private void ChooseParent(Parent parent)
         {
+            if (ExcludeIds.IndexOf(parent.Id) >= 0) return;
+
             Pipe.SetParameter("parent_result", parent);
             Finish();
         }
@@ -48,6 +51,7 @@ namespace WpfApp.ViewModel
         public override void OnLoaded()
         {
             Pipe.SetParameter("parent_result", null);
+            ExcludeIds = (int[]) Pipe.GetParameter("exclude_parent_ids");
             UpdateParents();
         }
 
@@ -73,7 +77,7 @@ namespace WpfApp.ViewModel
                         {
                             if (p.Person.FullName.IndexOf(SearchParentFilter, StringComparison.InvariantCultureIgnoreCase) >= 0)
                                 return true;
-                            if (p.Id.ToString() == SearchParentFilter)
+                            if (p.Id.ToString().IndexOf(SearchParentFilter, StringComparison.InvariantCultureIgnoreCase) >= 0)
                                 return true;
                             return false;
                         }
@@ -91,8 +95,8 @@ namespace WpfApp.ViewModel
             {
                 if (value == _searchParentFilter) return;
                 _searchParentFilter = value;
-                Parents.TryRefreshFilter();
                 OnPropertyChanged();
+                Parents.TryRefreshFilter();
             }
         }
 
@@ -106,7 +110,9 @@ namespace WpfApp.ViewModel
                 OnPropertyChanged();
             }
         }
-        
+
+        public IList<int> ExcludeIds { get; private set; }
+
         private ListCollectionView _parents;
         private BitmapImage _parentImageSource;
         private string _searchParentFilter;

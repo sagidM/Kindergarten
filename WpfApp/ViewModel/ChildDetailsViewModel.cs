@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 using WpfApp.View.DialogService;
+using WpfApp.View.UI;
 
 namespace WpfApp.ViewModel
 {
@@ -19,6 +22,7 @@ namespace WpfApp.ViewModel
         public IRelayCommand RemoveChildFromArchiveCommand { get; }
         public IRelayCommand AttachParentCommand { get; }
         public IRelayCommand DetachParentCommand { get; }
+        public IRelayCommand PayFeeCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -28,6 +32,7 @@ namespace WpfApp.ViewModel
             RemoveChildFromArchiveCommand = new RelayCommand(RemoveChildFromArchive);
             AttachParentCommand = new RelayCommand<Parents>(AttachParent);
             DetachParentCommand = new RelayCommand<Parents>(DetachParent);
+            PayFeeCommand = new RelayCommand<string>(PayFee);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -38,11 +43,11 @@ namespace WpfApp.ViewModel
             _otherNotifier = new DirtyPropertyChangeNotifier();
             _otherNotifier.StartTracking();
 
-            Action onToggleDirty = () => OnPropertyChanged(nameof(IsDirty));
-            _childNotifier.ToggleDirty += onToggleDirty;
-            _fatherNotifier.ToggleDirty += onToggleDirty;
-            _motherNotifier.ToggleDirty += onToggleDirty;
-            _otherNotifier.ToggleDirty += onToggleDirty;
+            Action onDirtyCountChanged = () => OnPropertyChanged(nameof(DirtyCount));
+            _childNotifier.DirtyCountChanged += onDirtyCountChanged;
+            _fatherNotifier.DirtyCountChanged += onDirtyCountChanged;
+            _motherNotifier.DirtyCountChanged += onDirtyCountChanged;
+            _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
         }
 
         public override async void OnLoaded()
@@ -97,9 +102,9 @@ namespace WpfApp.ViewModel
                 currentChild = enters[0].Child; // 0 - enters consists of same elements
                 currentChild.LastEnterChild = enters[maxEnterIndex];
 
-                groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
-                tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
-                mainViewModel = (MainViewModel) Pipe.GetParameter("owner");
+                groups = (IEnumerable<Group>)Pipe.GetParameter("groups");
+                tarifs = (IEnumerable<Tarif>)Pipe.GetParameter("tarifs");
+                mainViewModel = (MainViewModel)Pipe.GetParameter("owner");
             });
 
             CurrentChild = currentChild;
@@ -110,9 +115,11 @@ namespace WpfApp.ViewModel
             Tarifs = tarifs;
             _mainViewModel = mainViewModel;
 
+            CurrentChildGroup = currentChild.Group;
             OnPropertyChanged(nameof(CurrentChildIsArchived));
-            OnPropertyChanged(nameof(CurrentGroup));
             OnPropertyChanged(nameof(CurrentChildTarif));
+
+            await LoadPayments();
 
             _childNotifier.SetProperty(nameof(CurrentChildTarif), CurrentChildTarif);
             _childNotifier.SetProperty("FatherId", CurrentFather?.Id);
@@ -120,6 +127,22 @@ namespace WpfApp.ViewModel
             _childNotifier.SetProperty("OtherId", CurrentOther?.Id);
 
             OnPropertyChanged(nameof(CurrentChild));
+        }
+
+        private async Task LoadPayments()
+        {
+            MonthlyPaymentsInYearsResult paymentsResult = null;
+            await Task.Run(() =>
+            {
+                var id = CurrentChild.Id;
+                // MonthlyPayments
+                _paymentsContext = new KindergartenContext();
+                paymentsResult = MonthlyPaymentsInYear.ToYears(
+                    _paymentsContext.MonthlyPayments.Where(p => p.ChildId == id),
+                    _paymentsContext.EnterChildren.Where(p => p.ChildId == id));
+            });
+            PaymentsInYears = paymentsResult.MonthlyPaymentsInYears;
+            LastMonthlyPayment = paymentsResult.LastPayment;
         }
 
         private void DetachParent(Parents parentType)
@@ -192,8 +215,6 @@ namespace WpfApp.ViewModel
 
         private void AttachParent(Parents parentType)
         {
-            var pipe = new Pipe(true);
-
             string text = null;
             if (parentType == Parents.Other)
             {
@@ -201,6 +222,15 @@ namespace WpfApp.ViewModel
                 if (text == null)
                     return;
             }
+
+            var pipe = new Pipe(true);
+
+            var exclude = new List<int>(3);
+            if (CurrentFather != null) exclude.Add(CurrentFather.Id);
+            if (CurrentMother != null) exclude.Add(CurrentMother.Id);
+            if (CurrentOther != null) exclude.Add(CurrentOther.Id);
+            pipe.SetParameter("exclude_parent_ids", exclude.ToArray());
+
             StartViewModel<AddParentViewModel>(pipe);
             var parent0 = (Parent) pipe.GetParameter("parent_result");
             if (parent0 == null) return;
@@ -228,9 +258,40 @@ namespace WpfApp.ViewModel
             }
         }
 
+        private async void PayFee(string moneyStr)
+        {
+            double money;
+            if (!double.TryParse(moneyStr, out money))
+            {
+                return;
+            }
+            if (money <= 0) return;
+
+            if (MessageBox.Show("Вы уверены, что хотите внести оплату в размере " + money + " рублей?",
+                "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Information) != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var now = DateTime.Now;
+            var hadToPay = TotalChildUnpaidMoney;
+            var payment = new MonthlyPayment {ChildId = CurrentChild.Id, PaidMoney = money, DebtAfterPaying = hadToPay, Description = MonthlyPaymentDescription };
+            _paymentsContext.MonthlyPayments.Add(payment);
+            _paymentsContext.SaveChanges();
+            await LoadPayments();
+        }
+
         private async void SaveChanges()
         {
             SaveChangesCommand.NotifyCanExecute(false);
+
+            if (CurrentFather == null && CurrentMother == null && CurrentOther == null)
+            {
+                MessageBox.Show("Должен быть выбран хотя бы один из родителей либо иной представитель", "Некорректный выбор", MessageBoxButton.OK, MessageBoxImage.Information);
+                SaveChangesCommand.NotifyCanExecute(true);
+                return;
+            }
+
             await Task.Run(() =>
             {
                 var context = new KindergartenContext();
@@ -259,22 +320,28 @@ namespace WpfApp.ViewModel
                         }
                         else if (old.ParentId != currentParent.Id)
                         {
+                            // TODO: Here must be right update query
                             //old.ParentId = currentParent.Id;
                             context.ParentChildren.Remove(old);
                             context.ParentChildren.Add(new ParentChild {ChildId=CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText});
-                            // TODO: Here must be right update query
                         }
                     }
                 };
                 changeParent(father, CurrentFather, Parents.Father);
                 changeParent(mother, CurrentMother, Parents.Mother);
                 changeParent(other, CurrentOther, Parents.Other);
-
-                context.SaveChanges();
-                _childContext.SaveChanges();
-                _fatherContext?.SaveChanges();
-                _motherContext?.SaveChanges();
-                _otherContext?.SaveChanges();
+                try
+                {
+                    context.SaveChanges();
+                    _childContext.SaveChanges();
+                    _fatherContext?.SaveChanges();
+                    _motherContext?.SaveChanges();
+                    _otherContext?.SaveChanges();
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.Message, "Error");
+                }
 
 
                 _childNotifier.ClearDirties();
@@ -334,11 +401,11 @@ namespace WpfApp.ViewModel
             };
             var pipe = new Pipe(parameters, true);
             StartViewModel<ChangeChildGroupViewModel>(pipe);
-            if (!(bool) pipe.GetParameter("saved_new_group"))
+            var savedGroup = (Group)pipe.GetParameter("saved_group_result");
+            if (savedGroup == null)
                 return;
 
-            var group = (Group) pipe.GetParameter("group_result");
-            CurrentGroup = group;
+            CurrentChildGroup = savedGroup;
             await UpdateMainViewModel();
         }
 
@@ -357,7 +424,23 @@ namespace WpfApp.ViewModel
             _mainIsUpdating = false;
         }
 
-        public bool IsDirty => _childNotifier.HasDirty || _fatherNotifier.HasDirty || _motherNotifier.HasDirty || _otherNotifier.HasDirty;
+        public bool IsDirty => DirtyCount > 0;
+
+        private int _bufferDirtyCount;
+        public int DirtyCount
+        {
+            get
+            {
+                var dirtyCount = _childNotifier.DirtyFieldCount + _fatherNotifier.DirtyFieldCount +
+                                 _motherNotifier.DirtyFieldCount + _otherNotifier.DirtyFieldCount;
+                if (_bufferDirtyCount != dirtyCount)
+                {
+                    _bufferDirtyCount = dirtyCount;
+                    OnPropertyChanged(nameof(IsDirty));
+                }
+                return dirtyCount;
+            }
+        }
 
         #region CurrentChild (dirty)
 
@@ -391,7 +474,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentChildPersonLastName
         {
-            get { return CurrentChild.Person.LastName; }
+            get { return CurrentChild?.Person?.LastName; }
             set
             {
                 var person = CurrentChild.Person;
@@ -403,7 +486,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentChildPersonFirstName
         {
-            get { return CurrentChild.Person.FirstName; }
+            get { return CurrentChild?.Person?.FirstName; }
             set
             {
                 var person = CurrentChild.Person;
@@ -415,7 +498,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentChildPersonPatronymic
         {
-            get { return CurrentChild.Person.Patronymic; }
+            get { return CurrentChild?.Person?.Patronymic; }
             set
             {
                 var person = CurrentChild.Person;
@@ -427,7 +510,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentChildLocationAddress
         {
-            get { return CurrentChild.LocationAddress; }
+            get { return CurrentChild?.LocationAddress; }
             set
             {
                 if (value == CurrentChild.LocationAddress) return;
@@ -519,7 +602,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPersonLastName
         {
-            get { return CurrentFather.Person.LastName; }
+            get { return CurrentFather?.Person?.LastName; }
             set
             {
                 var person = CurrentFather.Person;
@@ -531,7 +614,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPersonFirstName
         {
-            get { return CurrentFather.Person.FirstName; }
+            get { return CurrentFather?.Person?.FirstName; }
             set
             {
                 var person = CurrentFather.Person;
@@ -543,7 +626,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPersonPatronymic
         {
-            get { return CurrentFather.Person.Patronymic; }
+            get { return CurrentFather?.Person?.Patronymic; }
             set
             {
                 var person = CurrentFather.Person;
@@ -555,7 +638,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherLocationAddress
         {
-            get { return CurrentFather.LocationAddress; }
+            get { return CurrentFather?.LocationAddress; }
             set
             {
                 if (CurrentFather.LocationAddress == value) return;
@@ -566,7 +649,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherResidenceAddress
         {
-            get { return CurrentFather.ResidenceAddress; }
+            get { return CurrentFather?.ResidenceAddress; }
             set
             {
                 if (CurrentFather.ResidenceAddress == value) return;
@@ -577,7 +660,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherWorkAddress
         {
-            get { return CurrentFather.WorkAddress; }
+            get { return CurrentFather?.WorkAddress; }
             set
             {
                 if (CurrentFather.WorkAddress == value) return;
@@ -588,7 +671,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPhoneNumber
         {
-            get { return CurrentFather.PhoneNumber; }
+            get { return CurrentFather?.PhoneNumber; }
             set
             {
                 if (CurrentFather.PhoneNumber == value) return;
@@ -599,7 +682,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPassportSeries
         {
-            get { return CurrentFather.PassportSeries; }
+            get { return CurrentFather?.PassportSeries; }
             set
             {
                 if (CurrentFather.PassportSeries == value) return;
@@ -610,7 +693,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentFatherPassportIssuedBy
         {
-            get { return CurrentFather.PassportIssuedBy; }
+            get { return CurrentFather?.PassportIssuedBy; }
             set
             {
                 if (CurrentFather.PassportIssuedBy == value) return;
@@ -669,7 +752,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPersonLastName
         {
-            get { return CurrentMother.Person.LastName;
+            get { return CurrentMother?.Person?.LastName;
             }
             set
             {
@@ -682,7 +765,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPersonFirstName
         {
-            get { return CurrentMother.Person.FirstName; }
+            get { return CurrentMother?.Person?.FirstName; }
             set
             {
                 var person = CurrentMother.Person;
@@ -694,7 +777,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPersonPatronymic
         {
-            get { return CurrentMother.Person.Patronymic; }
+            get { return CurrentMother?.Person?.Patronymic; }
             set
             {
                 var person = CurrentMother.Person;
@@ -706,7 +789,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherLocationAddress
         {
-            get { return CurrentMother.LocationAddress; }
+            get { return CurrentMother?.LocationAddress; }
             set
             {
                 if (CurrentMother.LocationAddress == value) return;
@@ -717,7 +800,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherResidenceAddress
         {
-            get { return CurrentMother.ResidenceAddress; }
+            get { return CurrentMother?.ResidenceAddress; }
             set
             {
                 if (CurrentMother.ResidenceAddress == value) return;
@@ -728,7 +811,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherWorkAddress
         {
-            get { return CurrentMother.WorkAddress; }
+            get { return CurrentMother?.WorkAddress; }
             set
             {
                 if (CurrentMother.WorkAddress == value) return;
@@ -739,7 +822,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPhoneNumber
         {
-            get { return CurrentMother.PhoneNumber; }
+            get { return CurrentMother?.PhoneNumber; }
             set
             {
                 if (CurrentMother.PhoneNumber == value) return;
@@ -750,7 +833,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPassportSeries
         {
-            get { return CurrentMother.PassportSeries; }
+            get { return CurrentMother?.PassportSeries; }
             set
             {
                 if (CurrentMother.PassportSeries == value) return;
@@ -761,7 +844,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPassportIssuedBy
         {
-            get { return CurrentMother.PassportIssuedBy; }
+            get { return CurrentMother?.PassportIssuedBy; }
             set
             {
                 if (CurrentMother.PassportIssuedBy == value) return;
@@ -820,7 +903,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPersonLastName
         {
-            get { return CurrentOther.Person.LastName; }
+            get { return CurrentOther?.Person?.LastName; }
             set
             {
                 var person = CurrentOther.Person;
@@ -832,7 +915,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPersonFirstName
         {
-            get { return CurrentOther.Person.FirstName; }
+            get { return CurrentOther?.Person?.FirstName; }
             set
             {
                 var person = CurrentOther.Person;
@@ -844,7 +927,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPersonPatronymic
         {
-            get { return CurrentOther.Person.Patronymic; }
+            get { return CurrentOther?.Person?.Patronymic; }
             set
             {
                 var person = CurrentOther.Person;
@@ -856,7 +939,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherLocationAddress
         {
-            get { return CurrentOther.LocationAddress; }
+            get { return CurrentOther?.LocationAddress; }
             set
             {
                 if (CurrentOther.LocationAddress == value) return;
@@ -867,7 +950,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherResidenceAddress
         {
-            get { return CurrentOther.ResidenceAddress; }
+            get { return CurrentOther?.ResidenceAddress; }
             set
             {
                 if (CurrentOther.ResidenceAddress == value) return;
@@ -878,7 +961,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherWorkAddress
         {
-            get { return CurrentOther.WorkAddress; }
+            get { return CurrentOther?.WorkAddress; }
             set
             {
                 if (CurrentOther.WorkAddress == value) return;
@@ -889,7 +972,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPhoneNumber
         {
-            get { return CurrentOther.PhoneNumber; }
+            get { return CurrentOther?.PhoneNumber; }
             set
             {
                 if (CurrentOther.PhoneNumber == value) return;
@@ -900,7 +983,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPassportSeries
         {
-            get { return CurrentOther.PassportSeries; }
+            get { return CurrentOther?.PassportSeries; }
             set
             {
                 if (CurrentOther.PassportSeries == value) return;
@@ -911,7 +994,7 @@ namespace WpfApp.ViewModel
 
         public string CurrentOtherPassportIssuedBy
         {
-            get { return CurrentOther.PassportIssuedBy; }
+            get { return CurrentOther?.PassportIssuedBy; }
             set
             {
                 if (CurrentOther.PassportIssuedBy == value) return;
@@ -935,12 +1018,13 @@ namespace WpfApp.ViewModel
 
         public bool CurrentChildIsArchived => CurrentChild.LastEnterChild.ExpulsionDate.HasValue;
 
-        public Group CurrentGroup
+        public Group CurrentChildGroup
         {
-            get { return CurrentChild.Group; }
+            get { return _currentChildGroup; }
             set
             {
-                CurrentChild.Group = value;
+                if (Equals(value, _currentChildGroup)) return;
+                _currentChildGroup = value;
                 OnPropertyChanged();
             }
         }
@@ -952,6 +1036,17 @@ namespace WpfApp.ViewModel
             {
                 if (value == _otherParentText) return;
                 _otherParentText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string MonthlyPaymentDescription
+        {
+            get { return _monthlyPaymentDescription; }
+            set
+            {
+                if (value == _monthlyPaymentDescription) return;
+                _monthlyPaymentDescription = value;
                 OnPropertyChanged();
             }
         }
@@ -981,6 +1076,74 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public ObservableCollection<MonthlyPaymentsInYear> PaymentsInYears
+        {
+            get { return _paymentsInYears; }
+            set
+            {
+                if (Equals(value, _paymentsInYears)) return;
+                _paymentsInYears = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public MonthlyPayment LastMonthlyPayment
+        {
+            get { return _lastMonthlyPayment; }
+            set
+            {
+                if (Equals(value, _lastMonthlyPayment)) return;
+                _lastMonthlyPayment = value;
+
+                _totalCreditBuffer = null;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(TotalChildUnpaidMonthCount));
+                OnPropertyChanged(nameof(TotalChildUnpaidMoney));
+                OnPropertyChanged(nameof(TotalChildDeposit));
+            }
+        }
+
+        public double TotalChildUnpaidMonthCount
+        {
+            get
+            {
+                if (LastMonthlyPayment == null) return 0;
+                var now = DateTime.Now;
+                var paymentDate = LastMonthlyPayment.PaymentDate;
+                return (now.Year - paymentDate.Year) * 12 + (now.Month - paymentDate.Month);
+            }
+        }
+
+        private double? _totalCreditBuffer;
+        private double GetTotalCredit()
+        {
+            if (LastMonthlyPayment == null) return 0.0;
+            if (!_totalCreditBuffer.HasValue)
+            {
+                _totalCreditBuffer = TotalChildUnpaidMonthCount*CurrentChild.Tarif.MonthlyPayment +
+                                    LastMonthlyPayment.DebtAfterPaying - LastMonthlyPayment.PaidMoney;
+            }
+            return _totalCreditBuffer.Value;
+        }
+
+        public double TotalChildUnpaidMoney
+        {
+            get
+            {
+                var credit = GetTotalCredit();
+                return credit > 0 ? credit : 0;
+            }
+        }
+
+        public double TotalChildDeposit
+        {
+            get
+            {
+                var credit = GetTotalCredit();
+                return credit < 0 ? -credit : 0;
+            }
+        }
+
         private Child _currentChild;
         private MainViewModel _mainViewModel;
         private IEnumerable<Group> _groups;
@@ -997,5 +1160,10 @@ namespace WpfApp.ViewModel
         private KindergartenContext _fatherContext;
         private KindergartenContext _motherContext;
         private KindergartenContext _otherContext;
+        private Group _currentChildGroup;
+        private ObservableCollection<MonthlyPaymentsInYear> _paymentsInYears;
+        private KindergartenContext _paymentsContext;
+        private MonthlyPayment _lastMonthlyPayment;
+        private string _monthlyPaymentDescription;
     }
 }

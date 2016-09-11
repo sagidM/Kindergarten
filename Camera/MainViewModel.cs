@@ -58,10 +58,18 @@ namespace Camera
             set { SetValue(CamerasProperty, value); }
         }
 
+        private static bool _skipSelectedIndexCameraCallback;
         public static readonly DependencyProperty SelectedIndexCameraProperty = DependencyProperty.Register(
             nameof(SelectedIndexCamera), typeof (int), typeof (MainViewModel), new PropertyMetadata(default(int),
                 (o, args) =>
                 {
+                    if (_skipSelectedIndexCameraCallback)
+                    {
+                        _skipSelectedIndexCameraCallback = false;
+                        return; // skipping
+                    }
+                    var self = (MainViewModel)o;
+                    self._webcam.StartCaptureVideo((int) args.NewValue);
                 }));
 
         public int SelectedIndexCamera
@@ -135,6 +143,7 @@ namespace Camera
 
         private void _webcam_SelectedIndexChanged(int oldValue, int newValue)
         {
+            _skipSelectedIndexCameraCallback = true;
             SelectedIndexCamera = newValue;
         }
 
@@ -146,6 +155,8 @@ namespace Camera
         private void OnUpdateCameras(object o)
         {
             _webcam.UpdateDevices();
+            if (_webcam.VideoDevices.Count > 0)
+                _webcam.StartCaptureVideo(0);
         }
 
         private RotateFlipType _rotateType = RotateFlipType.RotateNoneFlipNone;

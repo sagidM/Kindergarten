@@ -1,46 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Data.Entity;
-using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using DAL.Model;
-using Microsoft.Windows.Controls;
+using WpfApp.Framework;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 using WpfApp.Util;
-using WpfApp.View;
 using WpfApp.View.DialogService;
+using static WpfApp.App;
 
 // ReSharper disable ExplicitCallerInfoArgument
 
 namespace WpfApp.ViewModel
 {
-    public class My : DataGridTextColumn
-    {
-        public static readonly DependencyProperty TagProperty = DependencyProperty.Register(
-            "Tag", typeof (object), typeof (My), new PropertyMetadata(default(object)));
-
-        public object Tag
-        {
-            get { return (object) GetValue(TagProperty); }
-            set { SetValue(TagProperty, value); }
-        }
-    }
-
     public class MainViewModel : ViewModelBase
     {
         public MainViewModel()
         {
+            if (IsDesignerMode) return;
+
+            var mainWindow = Application.Current.MainWindow;
+            var saver = WindowStateSaver.ConfigureWindow(Application.Current.StartupUri.LocalPath, mainWindow, this);
+            mainWindow.Closed += (w, e) => saver.Snapshot();
+
             ShowAddChildCommand = new RelayCommand(ShowAddChildWindow);
             ShowAddGroupCommand = new RelayCommand(ShowAddGroupWindow);
-            ShowChildDetailsCommand = new RelayCommand(ShowChildDetails);
+            ShowChildDetailsCommand = new RelayCommand<Child>(ShowChildDetails);
             ShowAddNewTarifCommand = new RelayCommand(ShowAddNewTarif);
             RefreshDataCommand = new RelayCommand(Load);
             DeleteSelectedTarifCommand = new RelayCommand(DeleteSelectedTarif);
@@ -51,10 +41,7 @@ namespace WpfApp.ViewModel
 
             NamesCaseSensitiveChildrenFilter = false;
 
-            if (IsDesignerMode) return;
-
             Load();
-            TablesFontSize = 12;
         }
 
         private void GroupToggleArchive(Group group)
@@ -216,15 +203,20 @@ namespace WpfApp.ViewModel
                 ShowAddChildCommand.NotifyCanExecute(true);
             }
 
-            if ((bool) pipe.GetParameter("saved_result"))
+            var addedChild = (Child)pipe.GetParameter("saved_child_result");
+            if (addedChild != null)
+            {
+                var mResult = MessageBox.Show("Ребёнок добавлен.\r\nОткрыть портфолио?", "Что дальше?", MessageBoxButton.YesNo);
+                if (mResult == MessageBoxResult.Yes)
+                {
+                    ShowChildDetailsCommand.Execute(addedChild);
+                }
                 await UpdateChildrenAsync();
+            }
         }
 
-        private void ShowChildDetails()
+        private void ShowChildDetails(Child child)
         {
-            var child = SelectedChild;
-            if (child == null) return;
-
             IDictionary<string, object> parameters = new Dictionary<string, object>
             {
                 ["child_id"] = child.Id,
@@ -237,6 +229,7 @@ namespace WpfApp.ViewModel
 
         private async void Load()
         {
+            Logger.Debug("Before updating MainViewModel");
             RefreshDataCommand.NotifyCanExecute(false);
             ++LoadingDataCount;
 
@@ -246,6 +239,7 @@ namespace WpfApp.ViewModel
 
             --LoadingDataCount;
             RefreshDataCommand.NotifyCanExecute(true);
+            Logger.Debug("After updating MainViewModel");
         }
 
         private static readonly Random Random = new Random();
@@ -265,7 +259,9 @@ namespace WpfApp.ViewModel
                     .Include("Child.Group")
                     .Include("Child.Person")
                     .Include("Child.Tarif")
-                    .Where(e => e.EnterDate == context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate));
+                    .Include("Child.ParentsChildren.Parent")
+                    .Where(e => e.EnterDate == context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate))
+                    .OrderByDescending(e => e.EnterDate);
                 var result = new List<Child>(8);
                 foreach (var enter in enters)
                 {
@@ -297,6 +293,7 @@ namespace WpfApp.ViewModel
             ChildTotalCount = c.Count;
 
             --LoadingDataCount;
+            Logger.Trace("Children were updated");
         }
 
         public async Task UpdateGroupsAsync()
@@ -304,6 +301,7 @@ namespace WpfApp.ViewModel
             ++LoadingDataCount;
             Groups = await Task.Run(() => new ListCollectionView(new KindergartenContext().Groups.ToList()));
             --LoadingDataCount;
+            Logger.Trace("Groups were updated");
         }
 
         public async Task UpdateTarifsAsync()
@@ -321,6 +319,7 @@ namespace WpfApp.ViewModel
                 return result;
             });
             --LoadingDataCount;
+            Logger.Trace("Tarifs were updated");
         }
 
         private void SetPersonFullName()
@@ -717,17 +716,6 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public double TablesFontSize
-        {
-            get { return _tablesFontSize; }
-            set
-            {
-                if (value.Equals(_tablesFontSize)) return;
-                _tablesFontSize = value;
-                OnPropertyChanged();
-            }
-        }
-
         public bool IsNotDataLoading => !IsDataLoading;
 
         
@@ -782,7 +770,6 @@ namespace WpfApp.ViewModel
         private Tarif _selectedTarifClone;
         private bool? _showGroupsFromArchive = false;
         private string _groupNameChildrenFilter;
-        private double _tablesFontSize;
 
         #endregion
     }

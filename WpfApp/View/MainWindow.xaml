@@ -44,13 +44,13 @@
 					<TextBlock Text="{Binding Path=Count}"
 					       DataContext="{Binding Path=Children, TargetNullValue={}}">
 					</TextBlock>
-					<TextBlock Text="{Binding Path=ChildNoArchivedCount, StringFormat=' из {0}'}"/>
+					<TextBlock Text="{Binding Path=ChildNoArchivedCount, StringFormat='. Вне архива - {0}'}"/>
 				</WrapPanel>
 			</StatusBarItem>
 			<StatusBarItem HorizontalAlignment="Right">
 				<StackPanel Orientation="Horizontal">
-					<Slider Value="{Binding TablesFontSize}" Minimum="4" Maximum="40" Width="100"/>
-					<TextBox Padding="0" Text="{Binding TablesFontSize, UpdateSourceTrigger=PropertyChanged}" FontSize="9" Width="50"/>
+					<Slider Name="SliderFontSizeTables" Value="{Binding '[font_size_tables, 12]'}" Minimum="4" Maximum="40" Width="100"/>
+					<TextBox Padding="0" Text="{Binding '[font_size_tables, 12]', UpdateSourceTrigger=PropertyChanged}" FontSize="9" Width="50"/>
 					<TextBlock Width="100" Margin="0 0 10 0" VerticalAlignment="Center" Tag="{Binding IsDataLoading}">
 						<TextBlock.Style>
 							<Style TargetType="TextBlock">
@@ -172,26 +172,26 @@
 											</DataTemplate>
 										</ListBox.ItemTemplate>
 									</ListBox>
-									<Button Margin="0 20" DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" Content="Подробнее о ребёнке..."/>
+									<Button Margin="0 20" DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Content="Подробнее о ребёнке..."/>
 								</StackPanel>
 							</StackPanel>
 						</StackPanel>
 					</ScrollViewer>
 
-					<Label FontSize="{Binding TablesFontSize}" DockPanel.Dock="Right" >
+					<Label FontSize="{Binding '[font_size_tables]'}" DockPanel.Dock="Right" >
 					<DataGrid AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
 							  AlternatingRowBackground="BlanchedAlmond" RowBackground="LightGray"
 							  SelectedItem="{Binding SelectedChild, Mode=TwoWay}"
 							  x:Name="DataGridChildren" ItemsSource="{Binding Children}">
 						<DataGrid.InputBindings>
-							<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ShowChildDetailsCommand}" Gesture="LeftDoubleClick" />
+							<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Gesture="LeftDoubleClick" />
 						</DataGrid.InputBindings>
 						<DataGrid.Resources>
 							<converter:ToNegateBoolConverter x:Key="BoolConverter" True="Да" False="Нет"/>
 						</DataGrid.Resources>
 						<DataGrid.Columns>
 							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
-							<DataGridTextColumn Width="*" Header="ФИО" SortMemberPath="Person.LastName">
+							<DataGridTextColumn Width="*" Header="ФИО" SortMemberPath="Person.FullName">
 								<!--SortMemberPath-->
 								<DataGridTextColumn.Binding>
 									<MultiBinding StringFormat="{}{0} {1} {2}">
@@ -268,7 +268,7 @@
 						<Button IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddGroupCommand}" Margin="0 20 0 0" Content="Добавление..."/>
 					</StackPanel>
 
-					<Label FontSize="{Binding TablesFontSize}">
+					<Label FontSize="{Binding '[font_size_tables]'}">
 						<!-- ReSharper disable once InconsistentNaming -->
 						<DataGrid AutoGenerateColumns="False" IsReadOnly="True" Background="BlueViolet" x:Name="UIGroupsTable" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}">
 							<DataGrid.Resources>
@@ -313,7 +313,7 @@
 							Command="{Binding ShowAddNewTarifCommand}"
 							Content="Добавление..."/>
 					</StackPanel>
-					<ScrollViewer DockPanel.Dock="Right" FontSize="{Binding TablesFontSize}">
+					<ScrollViewer DockPanel.Dock="Right" FontSize="{Binding '[font_size_tables]'}">
 						<DataGrid IsReadOnly="True"  SelectionMode="Single" AutoGenerateColumns="False" SelectedItem="{Binding SelectedTarif}" Background="Bisque" ItemsSource="{Binding Tarifs}">
 							<DataGrid.Columns>
 								<DataGridTextColumn Header="№" Binding="{Binding Id}"/>

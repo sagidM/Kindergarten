@@ -6,15 +6,18 @@
         xmlns:local="clr-namespace:WpfApp.View"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         xmlns:converter="clr-namespace:WpfApp.View.Converter"
+        xmlns:t="clr-namespace:WpfApp.View.TemplateSelector"
+        xmlns:system="clr-namespace:System;assembly=mscorlib"
         mc:Ignorable="d"
         Title="Ответственные за ребёнка" Height="583.775" Width="802.033" Name="ThisWindow">
 	<Window.Resources>
-		<m:Parent x:Key="Parent">
+		<m:Parent x:Key="Parent" PassportIssueDate="{x:Static system:DateTime.Now}">
 			<m:Parent.Person>
 				<m:Person/>
 			</m:Parent.Person>
 		</m:Parent>
 		<converter:PassportConverter x:Key="PassportConverter"/>
+		<converter:InactiveParentMultiConverter Common="common" Inactive="inactive" x:Key="InactiveParentConverter"/>
 	</Window.Resources>
 
 	<Grid>
@@ -55,11 +58,36 @@
 			<Button IsDefault="True" DockPanel.Dock="Bottom" Content="Выбрать" Command="{Binding ChooseParentCommand}"
 					CommandParameter="{Binding ElementName=ListBoxParents, Path=SelectedItem}"/>
 			<TextBox DockPanel.Dock="Top" Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchParentFilter, UpdateSourceTrigger=PropertyChanged}"/>
-			<ListBox Name="ListBoxParents" DockPanel.Dock="Top" ItemsSource="{Binding Parents}" HorizontalContentAlignment="Stretch">
+			<ListBox Tag="{Binding ExcludeIds}" Name="ListBoxParents" DockPanel.Dock="Top" ItemsSource="{Binding Parents}" HorizontalContentAlignment="Stretch">
 				<ListBox.ItemTemplate>
 					<DataTemplate>
-						<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Background="#F3F3F3" Tag="{Binding ElementName=ThisWindow, Path=DataContext}">
-							<StackPanel.ContextMenu>
+						<Label Name="Wrapper" BorderBrush="#AFAFAF">
+							<Label.Style>
+								<Style TargetType="Label">
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding ElementName=Wrapper, Path=Tag}" Value="common">
+											<Setter Property="IsEnabled" Value="True"/>
+											<Setter Property="Background" Value="#F3F3F3"/>
+											<Setter Property="BorderThickness" Value="1"/>
+										</DataTrigger>
+										<DataTrigger Binding="{Binding ElementName=Wrapper, Path=Tag}" Value="inactive">
+											<Setter Property="IsEnabled" Value="False"/>
+											<Setter Property="Background" Value="#FAFAFA"/>
+											<Setter Property="Foreground" Value="Gray"/>
+											<Setter Property="BorderThickness" Value="0"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</Label.Style>
+							<Label.Tag>
+								<MultiBinding Converter="{StaticResource InactiveParentConverter}">
+									<Binding RelativeSource="{RelativeSource Self}" Path="DataContext" />
+									<Binding ElementName="ThisWindow" Path="DataContext.ExcludeIds" />
+								</MultiBinding>
+							</Label.Tag>
+							<!-- Background="#F3F3F3"-->
+							<StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Tag="{Binding ElementName=ThisWindow, Path=DataContext}">
+								<StackPanel.ContextMenu>
 								<ContextMenu>
 									<MenuItem Command="{Binding Path=PlacementTarget.(StackPanel.Tag).ChooseParentCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}}"
 											  Header="Выбрать" CommandParameter="{Binding}"/>
@@ -69,10 +97,11 @@
 								<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ChooseParentCommand}"
 											  CommandParameter="{Binding}" Gesture="LeftDoubleClick"/>
 							</StackPanel.InputBindings>
-							<Label Content="{Binding Id}"/>
-							<Label Margin="20 0" Content="{Binding Person.FullName}"/>
-							<Label Content="{Binding PassportSeries, Converter={StaticResource PassportConverter}}"/>
+							<Label Foreground="{Binding ElementName=Wrapper, Path=Foreground}" Content="{Binding Id}"/>
+							<Label Foreground="{Binding ElementName=Wrapper, Path=Foreground}" Margin="20 0" Content="{Binding Person.FullName}"/>
+							<Label Foreground="{Binding ElementName=Wrapper, Path=Foreground}" Content="{Binding PassportSeries, Converter={StaticResource PassportConverter}}"/>
 						</StackPanel>
+						</Label>
 					</DataTemplate>
 				</ListBox.ItemTemplate>
 			</ListBox>

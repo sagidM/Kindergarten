@@ -85,6 +85,14 @@
       <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.3.7\lib\net45\NLog.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -120,8 +128,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Framework\Core\DirtyPropertyChangeNotifier.cs" />
+    <Compile Include="Framework\ISaverData.cs" />
     <Compile Include="Settings\AppFilePaths.cs" />
-    <Compile Include="Util\WindowStateSaver.cs" />
+    <Compile Include="Framework\WindowStateSaver.cs" />
     <Compile Include="ViewModel\AddParentViewModel.cs" />
     <Compile Include="ViewModel\AddTarifViewModel.cs" />
     <Compile Include="ViewModel\ChangeChildGroupViewModel.cs" />
@@ -140,6 +149,8 @@
       <DependentUpon>ChangeGroupGroupTypeWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\Converter\GroupTypeFinished.cs" />
+    <Compile Include="View\Converter\InactiveParentMultiConverter.cs" />
+    <Compile Include="View\Converter\MonthPaymentConverter.cs" />
     <Compile Include="View\Converter\NullConverter.cs" />
     <Compile Include="View\Converter\PassportConverter.cs" />
     <Compile Include="View\Converter\RangeDoubleConverter.cs" />
@@ -183,6 +194,19 @@
     <Compile Include="View\Converter\GroupsConverter.cs" />
     <Compile Include="View\Converter\ImageConverter.cs" />
     <Compile Include="View\Converter\SexConverter.cs" />
+    <Compile Include="View\UI\MonthlyPaymentsInYear.cs" />
+    <Page Include="Dictionaries\Fonts_HD2.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dictionaries\Fonts_HD.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Dictionaries\Fonts_FullHD.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dictionaries\Images.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -372,6 +396,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <Content Include="NLog.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <None Include="NLog.xsd">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="packages.config" />
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
@@ -412,6 +442,7 @@
   <ItemGroup>
     <None Include="resources\queries.sql" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

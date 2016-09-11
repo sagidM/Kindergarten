@@ -46,22 +46,7 @@ namespace WpfApp.Framework.Core
                 }
 
                 var newCount = _dirtyValues.Count;
-                if (oldCount == 0)
-                {
-                    if (newCount > 0)
-                    {
-                        BecomesDirty?.Invoke();
-                        ToggleDirty?.Invoke();
-                    }
-                }
-                else
-                {
-                    if (newCount == 0)
-                    {
-                        BecomesClean?.Invoke();
-                        ToggleDirty?.Invoke();
-                    }
-                }
+                if (oldCount != newCount) DirtyCountChanged?.Invoke();
             }
             else
             {
@@ -83,7 +68,7 @@ namespace WpfApp.Framework.Core
             _dirtyValues.Clear();
             if (hadDirty)
             {
-                ToggleDirty?.Invoke();
+                DirtyCountChanged?.Invoke();
             }
         }
 
@@ -99,9 +84,7 @@ namespace WpfApp.Framework.Core
 
         public event Action<string> AddedDirty;
         public event Action<string> RemovedDirty;
-        public event Action BecomesDirty;
-        public event Action BecomesClean;
-        public event Action ToggleDirty;
         public event PropertyChangedEventHandler PropertyChanged;
+        public event Action DirtyCountChanged;
     }
 }

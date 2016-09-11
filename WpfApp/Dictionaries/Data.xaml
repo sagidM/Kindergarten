@@ -26,7 +26,27 @@
 	</x:Array>
 
 	<DataTemplate x:Key="SexesDataTemplate">
-		<ContentPresenter Content="{Binding Converter={StaticResource SexConverter}}"/>
+		<StackPanel Orientation="Horizontal">
+			<Viewbox Height="13" Width="15" Margin="4">
+				<Path>
+					<Path.Style>
+						<Style TargetType="Path">
+							<Style.Triggers>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:Sex.Male}">
+									<Setter Property="Path.Data" Value="{StaticResource MaleData}"/>
+									<Setter Property="Path.Fill" Value="#2a5799"/>
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:Sex.Female}">
+									<Setter Property="Path.Data" Value="{StaticResource FemaleData}"/>
+									<Setter Property="Path.Fill" Value="#9B4444"/>
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+					</Path.Style>
+				</Path>
+			</Viewbox>
+			<ContentPresenter Content="{Binding Converter={StaticResource SexConverter}}"/>
+		</StackPanel>
 	</DataTemplate>
 
 
@@ -54,7 +74,7 @@
 					<Rectangle Width="10" Height="10" Fill="#007ACB" Margin="0 0 5 0"/>
 					<TextBlock>
 						<TextBlock.Text>
-							<MultiBinding StringFormat="{}{0} рублей в месяц + {1} в год">
+							<MultiBinding StringFormat="{}{0} в месяц + {1} в год">
 								<Binding Path="MonthlyPayment" />
 								<Binding Path="AnnualPayment" />
 								<!--<Binding Path="Note" />-->

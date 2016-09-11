@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DAL.Model;
@@ -25,27 +24,25 @@ namespace WpfApp.ViewModel
             {
                 var context = new KindergartenContext();
                 var child = context.Children.First(c => c.Id == _currentChild.Id);
-                var group = context.Groups.First(g => g.Id == SelectedGroup.Id);
-                child.Group = group;
+                child.GroupId = SelectedGroup.Id;
 
                 context.SaveChanges();
             });
 
             SaveCommand.NotifyCanExecute(true);
-            Pipe.SetParameter("group_result", SelectedGroup);
-            Pipe.SetParameter("saved_new_group", true);
+            Pipe.SetParameter("saved_group_result", SelectedGroup);
             Finish();
         }
 
         public override void OnLoaded()
         {
-            Groups = (ObservableCollection<Group>) Pipe.GetParameter("groups");
+            Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
             _currentChild = (Child) Pipe.GetParameter("child");
-            CurrentGroup = SelectedGroup = _currentChild.Group;
-            Pipe.SetParameter("saved_new_group", false);
+            SelectedGroup = CurrentGroup = Groups.First(g => g.Id == _currentChild.GroupId);
+            Pipe.SetParameter("saved_group_result", null);
         }
 
-        public ObservableCollection<Group> Groups
+        public IEnumerable<Group> Groups
         {
             get { return _groups; }
             set
@@ -81,7 +78,7 @@ namespace WpfApp.ViewModel
         public IRelayCommand SaveCommand { get; set; }
 
 
-        private ObservableCollection<Group> _groups;
+        private IEnumerable<Group> _groups;
         private Group _selectedGroup;
         private Child _currentChild;
         private Group _currentGroup;

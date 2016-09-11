@@ -207,7 +207,7 @@ namespace DAL.Model
 
     public class Child : DateTimeNowAsDefaultEntity
     {
-        public virtual Person Person { get; set; }
+        public Person Person { get; set; }
 
         public int GroupId { get; set; }
         public virtual Group Group { get; set; }
@@ -233,7 +233,7 @@ namespace DAL.Model
         public virtual Tarif Tarif { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
-        public virtual ICollection<Payment> Payments { get; set; }
+        public virtual ICollection<MonthlyPayment> Payments { get; set; }
 
         public virtual ICollection<EnterChild> EnterChildren { get; set; }
 
@@ -284,8 +284,8 @@ namespace DAL.Model
         [Key, Column(Order = 1)]
         public int ParentId { get; set; }
 
-        public virtual Child Child { get; set; }
-        public virtual Parent Parent { get; set; }
+        public /*virtual*/ Child Child { get; set; }
+        public /*virtual*/ Parent Parent { get; set; }
 
         public Parents ParentType { get; set; }
         [MaxLength(32)]
@@ -354,19 +354,10 @@ namespace DAL.Model
         }
     }
 
-    [Table("PaymentHistory")]
-    public class Payment : DateTimeNowAsDefaultEntity
+    public abstract class SimplePayment : DateTimeNowAsDefaultEntity
     {
-        public Payment() { }
-
-        public Payment(double contribution, double paidMoney)
-        {
-            Debit = contribution - paidMoney;
-            PaidMoney = paidMoney;
-        }
-
         public int ChildId { get; set; }
-        public virtual Child Child { get; set; }
+        public Child Child { get; set; }
 
         public DateTime PaymentDate
         {
@@ -375,7 +366,29 @@ namespace DAL.Model
         }
 
         public double PaidMoney { get; set; }
-        public double Debit { get; set; }     // Debit = родитель должен заплатить. -Debit = родителю должны заплатить
+
+        public double DebtAfterPaying { get; set; }
+        public double MoneyPaymentByTarif { get; set; }
+
+        [MaxLength(255)]
+        public string Description { get; set; }
+
+        public double Credit => Math.Max(DebtAfterPaying, 0);
+
+        public double Debit => Math.Max(-DebtAfterPaying, 0);
+    }
+
+    public class MonthlyPayment : SimplePayment
+    {
+        public int? PayDayCount { get; set; }
+        public int? MonthDayCount { get; set; }
+    }
+
+    // annual payment
+    public class RangePayment : SimplePayment
+    {
+        public DateTime PaymentFrom { get; set; }
+        public DateTime PaymentTo { get; set; }
     }
 
     [Table("EnterChildHistory")]
