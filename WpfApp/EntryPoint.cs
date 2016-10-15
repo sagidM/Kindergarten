@@ -15,15 +15,15 @@ namespace WpfApp
         public static void Main(string[] args)
         {
 #if DEBUG
+            Database.Load();
             EFlogger.EntityFramework6.EFloggerFor6.Initialize();
             AppFilePaths.CreateAllDirectories();
-            Database.Load();
             App.Main();
 #else
             try
             {
-                AppFilePaths.CreateAllDirectories();
                 Database.Load();
+                AppFilePaths.CreateAllDirectories();
                 App.Main();
             }
             catch (Exception e)

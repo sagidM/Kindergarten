@@ -49,6 +49,45 @@
 		</StackPanel>
 	</DataTemplate>
 
+	<x:Array x:Key="ExpenseTypes" Type="m:ExpenseType">
+		<m:ExpenseType>Salary</m:ExpenseType>
+		<m:ExpenseType>Foodstuff</m:ExpenseType>
+		<m:ExpenseType>Tax</m:ExpenseType>
+		<m:ExpenseType>Utilities</m:ExpenseType>
+		<m:ExpenseType>Private</m:ExpenseType>
+		<m:ExpenseType>Other</m:ExpenseType>
+	</x:Array>
+
+	<DataTemplate x:Key="ExpenseTypeDataTemplate">
+		<StackPanel Orientation="Horizontal">
+			<Viewbox Height="13" Width="15" Margin="4">
+				<Path>
+					<Path.Style>
+						<Style TargetType="Path">
+							<Style.Triggers>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Salary}">
+									<!--<Setter Property="Path.Data" Value="{StaticResource MaleData}"/>
+									<Setter Property="Path.Fill" Value="#2a5799"/>-->
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Private}">
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Utilities}">
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Foodstuff}">
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Tax}">
+								</DataTrigger>
+								<DataTrigger Binding="{Binding}" Value="{x:Static m:ExpenseType.Other}">
+								</DataTrigger>
+							</Style.Triggers>
+						</Style>
+					</Path.Style>
+				</Path>
+			</Viewbox>
+			<ContentPresenter Content="{Binding Converter={StaticResource ExpenseTypeConverter}}"/>
+		</StackPanel>
+	</DataTemplate>
+
 
 
 	<templateSelector:TarifComboBoxDataTemplateSelector x:Key="TarifComboBoxDataTemplateSelector">

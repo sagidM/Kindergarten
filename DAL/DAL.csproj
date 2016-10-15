@@ -45,6 +45,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Security" />
@@ -56,6 +57,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DatabaseConfig.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Migrations\201606190924213_Init.cs" />
     <Compile Include="Migrations\201606190924213_Init.Designer.cs">
@@ -104,6 +106,18 @@
     <Compile Include="Migrations\201609091519383_MoneyPaymentAndDebt.cs" />
     <Compile Include="Migrations\201609091519383_MoneyPaymentAndDebt.Designer.cs">
       <DependentUpon>201609091519383_MoneyPaymentAndDebt.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201610091848284_RemovePaidMoneyAndDebtFromAnnualPayment.cs" />
+    <Compile Include="Migrations\201610091848284_RemovePaidMoneyAndDebtFromAnnualPayment.Designer.cs">
+      <DependentUpon>201610091848284_RemovePaidMoneyAndDebtFromAnnualPayment.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201610111539583_AddExpenses.cs" />
+    <Compile Include="Migrations\201610111539583_AddExpenses.Designer.cs">
+      <DependentUpon>201610111539583_AddExpenses.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201610151059281_AddIncomes.cs" />
+    <Compile Include="Migrations\201610151059281_AddIncomes.Designer.cs">
+      <DependentUpon>201610151059281_AddIncomes.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Model\KindergartenContext.cs" />
@@ -158,6 +172,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Migrations\201609091519383_MoneyPaymentAndDebt.resx">
       <DependentUpon>201609091519383_MoneyPaymentAndDebt.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201610091848284_RemovePaidMoneyAndDebtFromAnnualPayment.resx">
+      <DependentUpon>201610091848284_RemovePaidMoneyAndDebtFromAnnualPayment.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201610111539583_AddExpenses.resx">
+      <DependentUpon>201610111539583_AddExpenses.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201610151059281_AddIncomes.resx">
+      <DependentUpon>201610151059281_AddIncomes.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -57,5 +57,7 @@ namespace DAL.Model
         public virtual DbSet<Tarif> Tarifs { get; set; }
         public virtual DbSet<ParentChild> ParentChildren { get; set; }
         public virtual DbSet<EnterChild> EnterChildren { get; set; }
+        public virtual DbSet<Expense> Expenses { get; set; }
+        public virtual DbSet<Income> Incomes { get; set; }
     }
 }

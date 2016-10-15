@@ -3,6 +3,7 @@
                     xmlns:converter="clr-namespace:WpfApp.View.Converter">
 
 	<converter:SexConverter x:Key="SexConverter"/>
+	<converter:ExpenseTypeConverter x:Key="ExpenseTypeConverter"/>
 	<converter:GroupsConverter x:Key="GroupsConverter"
 							   Nursery="Ясли" Junior="Младшая"
 							   Middle="Средняя" Older="Старшая" />

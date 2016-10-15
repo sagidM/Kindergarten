@@ -311,15 +311,17 @@ namespace DAL.Model
             {
                 case nameof(MonthlyPayment):
                     if (MonthlyPayment < 0)
-                        err = "Monthly payment cannot be less than zero";
+                        err = "Месячная оплата не может быть ниже нуля";
                     break;
                 case nameof(AnnualPayment):
                     if (AnnualPayment < 0)
-                        err = "Annual payment cannot be less than zero";
+                        err = "Годовая оплата не может быть ниже нуля";
                     break;
                 case nameof(Note):
                     if (string.IsNullOrWhiteSpace(Note))
-                        err = "Note cannot be null or spaces";
+                        err = "Примечание не должно быть пустой строкой или состоять из пробелов";
+                    else if (Note.Length < 3)
+                        err = "Минимум 3 символа";
                     break;
             }
             return err;
@@ -365,23 +367,22 @@ namespace DAL.Model
             set { Date = value; }
         }
 
-        public double PaidMoney { get; set; }
-
-        public double DebtAfterPaying { get; set; }
         public double MoneyPaymentByTarif { get; set; }
 
         [MaxLength(255)]
         public string Description { get; set; }
-
-        public double Credit => Math.Max(DebtAfterPaying, 0);
-
-        public double Debit => Math.Max(-DebtAfterPaying, 0);
     }
 
     public class MonthlyPayment : SimplePayment
     {
         public int? PayDayCount { get; set; }
         public int? MonthDayCount { get; set; }
+
+        public double PaidMoney { get; set; }
+        public double DebtAfterPaying { get; set; }
+
+        public double Credit => Math.Max(DebtAfterPaying, 0);
+        public double Debit => Math.Max(-DebtAfterPaying, 0);
     }
 
     // annual payment
@@ -415,6 +416,83 @@ namespace DAL.Model
                 $"{nameof(EnterDate)} = {EnterDate}, " +
                 $"{nameof(ExpulsionDate)} = {ExpulsionDate?.ToString() ?? "NULL"}";
         }
+    }
+
+    public class Expense : DateTimeNowAsDefaultEntity
+    {
+        public ExpenseType ExpenseType { get; set; }
+        public double Money { get; set; }
+
+        public DateTime ExpenseDate
+        {
+            get { return Date; }
+            set { Date = value; }
+        }
+
+        [MaxLength(255)]
+        public string Description { get; set; }
+    }
+
+    public class Income : DateTimeNowAsDefaultEntity, ICloneable
+    {
+        [NotMapped]
+        public string Prefix { get; set; }
+
+        [MaxLength(64)]
+        public string PersonName { get; set; }
+        public double Money { get; set; }
+        [MaxLength(255)]
+        public string Note { get; set; }
+
+        public DateTime IncomeDate
+        {
+            get { return Date; }
+            set { Date = value; }
+        }
+
+        public bool IsValid()
+        {
+            return
+                GetErrorInternal(nameof(PersonName)) == null &&
+                GetErrorInternal(nameof(Money)) == null &&
+                GetErrorInternal(nameof(Note)) == null;
+        }
+        protected override string GetErrorInternal(string columnName)
+        {
+            switch (columnName)
+            {
+                case nameof(PersonName):
+                    if (string.IsNullOrEmpty(PersonName))
+                        return "Имя не должно быть пустым";
+                    break;
+                case nameof(Money):
+                    if (Money < 0)
+                        return "Значение не должно быть ниже нуля";
+                    break;
+            }
+            return null;
+        }
+
+        object ICloneable.Clone()
+        {
+            return Clone();
+        }
+
+        public Income Clone()
+        {
+            return new Income
+            {
+                Money = Money,
+                IncomeDate = IncomeDate,
+                Note = Note,
+                PersonName = PersonName,
+            };
+        }
+    }
+
+    public enum ExpenseType
+    {
+        Salary, Tax, Foodstuff, Utilities, Private, Other,
     }
 
     public enum Sex : byte { Male = 0, Female = 1 }

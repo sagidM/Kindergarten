@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Configuration;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -38,10 +40,106 @@ namespace WpfApp.ViewModel
             SaveGroupCommand = new RelayCommand(SaveGroup);
             SaveTarifCommand = new RelayCommand<Tarif>(SaveTarif);
             GroupToggleArchiveCommand = new RelayCommand<Group>(GroupToggleArchive);
+            ShowAddExpenseCommand = new RelayCommand(ShowAddExpense);
+            RemoveExpenseCommand = new RelayCommand<Expense>(RemoveExpense);
+            ResetExpensesFilterCommand = new RelayCommand(ResetExpensesFilter);
+            AddIncomeCommand = new RelayCommand<FrameworkElement>(AddIncome);
+            ResetIncomesFilterCommand = new RelayCommand(ResetIncomesFilter);
+            RemoveSelectedIncomeCommand = new RelayCommand<IncomeDTO>(RemoveSelectedIncome);
 
             NamesCaseSensitiveChildrenFilter = false;
 
             Load();
+            IsShowedOnlyIncomesFilter = (bool) this[nameof(IsShowedOnlyIncomesFilter), true];
+            IsShowedMonthlyIncomesFilter = (bool) this[nameof(IsShowedMonthlyIncomesFilter), true];
+            IsShowedAnnualIncomesFilter = (bool) this[nameof(IsShowedAnnualIncomesFilter), true];
+        }
+
+        private async void RemoveSelectedIncome(IncomeDTO income)
+        {
+            if (income == null || income.Prefix != IncomePrefix)
+            {
+                Logger.Warn("Trying to remove other income");
+                return;
+            }
+
+            RemoveSelectedIncomeCommand.NotifyCanExecute(false);
+
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                context.Incomes.Remove(context.Incomes.First(i => i.Id == income.Id));
+                context.SaveChanges();
+            });
+            await UpdateIncomesAsync();
+
+            RemoveSelectedIncomeCommand.NotifyCanExecute(true);
+        }
+
+
+        private void ResetIncomesFilter()
+        {
+            SearchIncomesFilter = string.Empty;
+            FromDateIncomesFilter = TillDateIncomesFilter = null;
+            //IsShowedOnlyIncomesFilter = IsShowedMonthlyIncomesFilter = IsShowedAnnualIncomesFilter = true;
+        }
+
+        private async void AddIncome(FrameworkElement element)
+        {
+            var income = (Income) element.DataContext;
+            element.DataContext = null;
+
+            if (!income.IsValid()) return;
+
+            AddIncomeCommand.NotifyCanExecute(false);
+
+            var context = new KindergartenContext();
+            income.IncomeDate = DateTime.Now;
+            context.Incomes.Add(income.Clone());
+            context.SaveChanges();
+
+            await UpdateIncomesAsync();
+
+            income.PersonName = string.Empty;
+            income.Note = string.Empty;
+            income.Money = 0;
+            element.DataContext = income;
+
+            AddIncomeCommand.NotifyCanExecute(true);
+        }
+
+        private void ResetExpensesFilter()
+        {
+            SearchExpensesFilter = string.Empty;
+            FromDateExpensesFilter = _minFromDateExpenses;
+            TillDateExpensesFilter = null;
+            SelectedExpenseTypesExpensesFilter = null;
+        }
+
+        private async void RemoveExpense(Expense removingExpense)
+        {
+            RemoveExpenseCommand.NotifyCanExecute(false);
+
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                var expense = context.Expenses.First(e => e.Id == removingExpense.Id);
+                context.Expenses.Remove(expense);
+                context.SaveChanges();
+            });
+            Expenses.Remove(removingExpense);
+
+            RemoveExpenseCommand.NotifyCanExecute(true);
+        }
+
+        private async void ShowAddExpense()
+        {
+            var pipe = new Pipe(true);
+            StartViewModel<AddExpenseViewModel>(pipe);
+            var expense = (Expense)pipe.GetParameter("added_expense");
+            if (expense == null) return;
+
+            await UpdateExpensesAsync();
         }
 
         private void GroupToggleArchive(Group group)
@@ -236,10 +334,75 @@ namespace WpfApp.ViewModel
             await UpdateChildrenAsync();
             await UpdateGroupsAsync();
             await UpdateTarifsAsync();
+            await UpdateExpensesAsync();
+            await UpdateIncomesAsync();
 
             --LoadingDataCount;
             RefreshDataCommand.NotifyCanExecute(true);
             Logger.Debug("After updating MainViewModel");
+        }
+        private async Task UpdateIncomesAsync()
+        {
+            ++LoadingDataCount;
+
+            _incomesList = null;
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                _incomesList = context.Incomes
+                    .Select(inc => new IncomeDTO
+                    {
+                        Id = inc.Id,
+                        PersonName = inc.PersonName,
+                        IncomeDate = inc.IncomeDate,
+                        Money = inc.Money,
+                        Note = inc.Note,
+                        Prefix = IncomePrefix,
+                    })
+                    .Union(context.MonthlyPayments.Include("Child.Person")
+                    .Select(payment => new IncomeDTO
+                    {
+                        Id = payment.Id,
+                        PersonName = payment.Child.Person.FirstName + " " + payment.Child.Person.LastName + " " + payment.Child.Person.Patronymic,
+                        IncomeDate = payment.PaymentDate,
+                        Money = payment.PaidMoney,
+                        Note = payment.Description,
+                        Prefix = MonthlyPrefix,
+                    }))
+                    .Union(context.AnnualPayments.Include("Child.Person")
+                    .Select(payment => new IncomeDTO
+                    {
+                        Id = payment.Id,
+                        PersonName = payment.Child.Person.FirstName + " " + payment.Child.Person.LastName + " " + payment.Child.Person.Patronymic,
+                        IncomeDate = payment.PaymentDate,
+                        Money = payment.MoneyPaymentByTarif,
+                        Note = payment.Description,
+                        Prefix = AnnualPrefix,
+                    }))
+                    .ToList();
+            });
+            Incomes = new ListCollectionView(_incomesList);
+
+            --LoadingDataCount;
+        }
+
+        private async Task UpdateExpensesAsync()
+        {
+            ++LoadingDataCount;
+
+            ListCollectionView expenses = null;
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                var list = context.Expenses.ToList();
+                _minFromDateExpenses = list.Count > 0 ? (DateTime?) list.Min(e => e.ExpenseDate) : null;
+                expenses = new ListCollectionView(list);
+            });
+            Expenses = expenses;
+            if (_minFromDateExpenses != null) FromDateExpensesFilter = _minFromDateExpenses.Value;
+
+            --LoadingDataCount;
+            Logger.Trace("Expenses were updated");
         }
 
         private static readonly Random Random = new Random();
@@ -716,6 +879,260 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public ListCollectionView Expenses
+        {
+            get { return _expenses; }
+            set
+            {
+                if (Equals(value, _expenses)) return;
+                _expenses = value;
+                _expenses.Filter = o =>
+                {
+                    var expense = (Expense) o;
+
+                    if (!string.IsNullOrEmpty(SearchExpensesFilter) && expense.Description.IndexOf(SearchExpensesFilter, StringComparison.OrdinalIgnoreCase) < 0)
+                        return false;
+
+                    if (FromDateExpensesFilter.HasValue && expense.ExpenseDate < FromDateExpensesFilter.Value)
+                        return false;
+
+                    if (TillDateExpensesFilter.HasValue && expense.ExpenseDate < TillDateExpensesFilter.Value)
+                        return false;
+
+                    if (SelectedExpenseTypesExpensesFilter.HasValue && expense.ExpenseType != SelectedExpenseTypesExpensesFilter)
+                        return false;
+
+                    return true;
+                };
+                _expenses.CurrentChanged += (s, e) => SumOfSumOfExpensesFilter = _expenses.Cast<Expense>().Sum(ex => ex.Money);
+                OnPropertyChanged();
+            }
+        }
+
+        public string SearchExpensesFilter
+        {
+            get { return _searchExpensesFilter; }
+            set
+            {
+                if (value == _searchExpensesFilter) return;
+                _searchExpensesFilter = value;
+                Expenses.TryRefreshFilter();
+                OnPropertyChanged();
+            }
+        }
+
+        public DateTime? FromDateExpensesFilter
+        {
+            get { return _fromDateExpensesFilter; }
+            set
+            {
+                if (value.Equals(_fromDateExpensesFilter)) return;
+                _fromDateExpensesFilter = value;
+                Expenses.TryRefreshFilter();
+                OnPropertyChanged();
+            }
+        }
+
+        public DateTime? TillDateExpensesFilter
+        {
+            get { return _tillDateExpensesFilter; }
+            set
+            {
+                if (value.Equals(_tillDateExpensesFilter)) return;
+                _tillDateExpensesFilter = value;
+                Expenses.TryRefreshFilter();
+                OnPropertyChanged();
+            }
+        }
+
+        public double SumOfSumOfExpensesFilter
+        {
+            get { return _sumOfSumOfExpensesFilter; }
+            set
+            {
+                if (value.Equals(_sumOfSumOfExpensesFilter)) return;
+                _sumOfSumOfExpensesFilter = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ExpenseType? SelectedExpenseTypesExpensesFilter
+        {
+            get { return _selectedExpenseTypesExpensesFilter; }
+            set
+            {
+                if (value == _selectedExpenseTypesExpensesFilter) return;
+                _selectedExpenseTypesExpensesFilter = value;
+                Expenses.TryRefreshFilter();
+                OnPropertyChanged();
+            }
+        }
+
+        public string SearchIncomesFilter
+        {
+            get { return _searchIncomesFilter; }
+            set
+            {
+                if (value == _searchIncomesFilter) return;
+                _searchIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        public DateTime? FromDateIncomesFilter
+        {
+            get { return _fromDateIncomesFilter; }
+            set
+            {
+                if (value.Equals(_fromDateIncomesFilter)) return;
+                _fromDateIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        public DateTime? TillDateIncomesFilter
+        {
+            get { return _tillDateIncomesFilter; }
+            set
+            {
+                if (value.Equals(_tillDateIncomesFilter)) return;
+                _tillDateIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        public double SumOfSumOfIncomesFilter
+        {
+            get { return _sumOfSumOfIncomesFilter; }
+            set
+            {
+                if (value.Equals(_sumOfSumOfIncomesFilter)) return;
+                _sumOfSumOfIncomesFilter = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsShowedOnlyIncomesFilter
+        {
+            get { return _isShowedOnlyIncomesFilter; }
+            set
+            {
+                if (value == _isShowedOnlyIncomesFilter) return;
+                this[nameof(IsShowedOnlyIncomesFilter)] = _isShowedOnlyIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        public bool IsShowedMonthlyIncomesFilter
+        {
+            get { return _isShowedMonthlyIncomesFilter; }
+            set
+            {
+                if (value == _isShowedMonthlyIncomesFilter) return;
+                this[nameof(IsShowedMonthlyIncomesFilter)] = _isShowedMonthlyIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        public bool IsShowedAnnualIncomesFilter
+        {
+            get { return _isShowedAnnualIncomesFilter; }
+            set
+            {
+                if (value == _isShowedAnnualIncomesFilter) return;
+                this[nameof(IsShowedAnnualIncomesFilter)] = _isShowedAnnualIncomesFilter = value;
+                OnPropertyChanged();
+                Incomes.TryRefreshFilter();
+            }
+        }
+
+        [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local"), SuppressMessage("ReSharper", "InconsistentNaming")]
+        public class IncomeDTO
+        {
+            public int Id { get; set; }
+            public string PersonName { get; set; }
+            public DateTime IncomeDate { get; set; }
+            public double Money { get; set; }
+            public string Note { get; set; }
+            public string Prefix { get; set; }
+        }
+
+        public ListCollectionView Incomes
+        {
+            get { return _incomes; }
+            set
+            {
+                if (Equals(value, _incomes)) return;
+                _incomes = value;
+                _incomes.Filter = o =>
+                {
+                    var income = (IncomeDTO)o;
+                    if (!string.IsNullOrEmpty(SearchIncomesFilter) &&
+                        (income.PersonName == null ||
+                         income.PersonName.IndexOf(SearchIncomesFilter, StringComparison.OrdinalIgnoreCase) < 0))
+                        return false;
+
+                    if (FromDateIncomesFilter.HasValue && income.IncomeDate < FromDateIncomesFilter)
+                        return false;
+
+                    if (TillDateIncomesFilter.HasValue && income.IncomeDate > TillDateIncomesFilter)
+                        return false;
+
+                    switch (income.Prefix)
+                    {
+                        case IncomePrefix:
+                            if (!IsShowedOnlyIncomesFilter) return false;
+                            break;
+                        case MonthlyPrefix:
+                            if (!IsShowedMonthlyIncomesFilter) return false;
+                            break;
+                        case AnnualPrefix:
+                            if (!IsShowedAnnualIncomesFilter) return false;
+                            break;
+                    }
+
+                    return true;
+                };
+                EventHandler onCurrentChanged = (s, e) =>
+                    SumOfSumOfIncomesFilter = ((ListCollectionView)s)
+                        .Cast<object>()
+                        .Where(i => i is IncomeDTO)
+                        .Cast<IncomeDTO>()
+                        .Sum(i => i.Money);
+                _incomes.CurrentChanged += onCurrentChanged;
+                onCurrentChanged(value, EventArgs.Empty);
+                OnPropertyChanged();
+            }
+        }
+
+        public bool CanDeleteIncome
+        {
+            get { return _canDeleteIncome; }
+            set
+            {
+                if (value == _canDeleteIncome) return;
+                _canDeleteIncome = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public IncomeDTO SelectedIncome
+        {
+            get { return _selectedIncome; }
+            set
+            {
+                if (Equals(value, _selectedIncome)) return;
+                _selectedIncome = value;
+                OnPropertyChanged();
+                CanDeleteIncome = value != null && value.Prefix == IncomePrefix;
+            }
+        }
+
         public bool IsNotDataLoading => !IsDataLoading;
 
         
@@ -729,6 +1146,12 @@ namespace WpfApp.ViewModel
         public IRelayCommand SaveGroupCommand { get; }
         public IRelayCommand SaveTarifCommand { get; }
         public IRelayCommand GroupToggleArchiveCommand { get; }
+        public IRelayCommand ShowAddExpenseCommand { get; }
+        public IRelayCommand ResetExpensesFilterCommand { get; }
+        public IRelayCommand RemoveExpenseCommand { get; }
+        public IRelayCommand AddIncomeCommand { get; }
+        public IRelayCommand ResetIncomesFilterCommand { get; }
+        public IRelayCommand RemoveSelectedIncomeCommand { get; }
 
         private int LoadingDataCount
         {
@@ -770,6 +1193,29 @@ namespace WpfApp.ViewModel
         private Tarif _selectedTarifClone;
         private bool? _showGroupsFromArchive = false;
         private string _groupNameChildrenFilter;
+        private ListCollectionView _expenses;
+        private string _searchExpensesFilter;
+        private DateTime? _fromDateExpensesFilter;
+        private DateTime? _tillDateExpensesFilter;
+        private ExpenseType? _selectedExpenseTypesExpensesFilter;
+        private DateTime? _minFromDateExpenses;
+        private double _sumOfSumOfExpensesFilter;
+        private ListCollectionView _incomes;
+        private string _searchIncomesFilter;
+        private DateTime? _fromDateIncomesFilter;
+        private DateTime? _tillDateIncomesFilter;
+        private double _sumOfSumOfIncomesFilter;
+        private List<IncomeDTO> _incomesList;
+        private bool _isShowedOnlyIncomesFilter;
+        private bool _isShowedMonthlyIncomesFilter;
+        private bool _isShowedAnnualIncomesFilter;
+        private IncomeDTO _selectedIncome;
+        private bool _canDeleteIncome;
+
+        // prefixes at Incomes tab
+        private const string IncomePrefix = "Д-";
+        private const string MonthlyPrefix = "М-";
+        private const string AnnualPrefix = "Г-";
 
         #endregion
     }

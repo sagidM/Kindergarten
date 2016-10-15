@@ -5,10 +5,10 @@ using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Data;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
+using WpfApp.Util;
 using WpfApp.View.DialogService;
 using WpfApp.View.UI;
 
@@ -23,6 +23,8 @@ namespace WpfApp.ViewModel
         public IRelayCommand AttachParentCommand { get; }
         public IRelayCommand DetachParentCommand { get; }
         public IRelayCommand PayFeeCommand { get; }
+        public IRelayCommand PayForYearCommand { get; }
+        public IRelayCommand PayTillDateWithRecalculateCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -33,6 +35,8 @@ namespace WpfApp.ViewModel
             AttachParentCommand = new RelayCommand<Parents>(AttachParent);
             DetachParentCommand = new RelayCommand<Parents>(DetachParent);
             PayFeeCommand = new RelayCommand<string>(PayFee);
+            PayForYearCommand = new RelayCommand(PayForYear);
+            PayTillDateWithRecalculateCommand = new RelayCommand<DateTime>(PayTillDateWithRecalculate);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -50,9 +54,132 @@ namespace WpfApp.ViewModel
             _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
         }
 
+        private async void PayTillDateWithRecalculate(DateTime tillDate)
+        {
+            PayTillDateWithRecalculateCommand.NotifyCanExecute(false);
+
+            int res = await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                var payments = context.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id).ToList();
+
+                var fromDate = GetLastEnterDate(payments);
+                var endDate = RecalculationAnnualPaymentDate;
+
+                if (fromDate == endDate) return 0;  // till date already paid
+
+                var afterYear = fromDate.AddYears(1);
+                if (afterYear < endDate)
+                {
+                    var years = new DateTime((endDate - afterYear).Ticks).Year;
+                    if (years > 0) return years;
+                }
+
+                int i;
+                for (i = payments.Count - 1; i >= 0; i--)
+                {
+                    if (payments[i].PaymentFrom < endDate) break;
+                    context.AnnualPayments.Remove(payments[i]); // only pop
+                }
+
+                if (i < 0 || payments[i].PaymentTo < endDate)
+                {
+                    // add paying
+                    var payment = new RangePayment
+                    {
+                        PaymentFrom = fromDate,
+                        PaymentTo = endDate,
+                        MoneyPaymentByTarif = CurrentChildTarif.AnnualPayment,
+                        ChildId = CurrentChild.Id,
+                        Description = AnnualPaymentDescription,
+                        PaymentDate = DateTime.Now,
+                    };
+                    context.AnnualPayments.Add(payment);
+                }
+                else
+                {
+                    // truncate paying
+                    payments[i].PaymentTo = endDate;
+                }
+                context.SaveChanges();
+                return 0;
+            });
+
+            if (res > 0)
+            {
+                var yearWord = CommonHelper.GetRightRussianWord(res, "год", "года", "лет");
+                MessageBox.Show($"Вам необходимо доплатить за {res} {yearWord}", "Недопустимая оплата",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            else
+            {
+                await LoadPayments();
+                AnnualPaymentDescription = string.Empty;
+            }
+
+            PayTillDateWithRecalculateCommand.NotifyCanExecute(true);
+        }
+
+        private DateTime GetLastEnterDate(IList<RangePayment> payments)
+        {
+            return payments.Count > 0 &&
+                   payments[payments.Count - 1].PaymentTo > CurrentChild.LastEnterChild.EnterDate
+                ? payments[payments.Count - 1].PaymentTo
+                : CurrentChild.LastEnterChild.EnterDate;
+        }
+
+        private async void PayForYear()
+        {
+            if (Math.Abs(CurrentChildTarif.AnnualPayment) < 0.001)
+            {
+                MessageBox.Show("По текущему тарифу годовая оплата отсутствует!", "Пустой вызов");
+                return;
+            }
+
+            DateTime fromDate = GetLastEnterDate(PaymentsInYears);
+            DateTime tillDate = fromDate.AddYears(1);
+
+            MessageBoxResult mResult;
+            if (fromDate <= DateTime.Now)
+                mResult = MessageBox.Show("Вы уверены, что хотите оплатить за год?", "Годовая оплата", MessageBoxButton.YesNo);
+            else
+                mResult = MessageBox.Show("Текущий год оплачен!" +
+                    Environment.NewLine +
+                    "Вы уверены, что хотите произвести оплату за будущий год?",
+                    "Годовая оплата", MessageBoxButton.YesNo, MessageBoxImage.Information);
+
+            if (mResult != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            PayForYearCommand.NotifyCanExecute(false);
+
+            await Task.Run(() =>
+            {
+                var payment = new RangePayment
+                {
+                    PaymentFrom = fromDate,
+                    PaymentTo = tillDate,
+                    ChildId = CurrentChild.Id,
+                    MoneyPaymentByTarif = CurrentChildTarif.AnnualPayment,
+                    Description = AnnualPaymentDescription,
+                    PaymentDate = DateTime.Now,
+                };
+                var context = new KindergartenContext();
+                context.AnnualPayments.Add(payment);
+                context.SaveChanges();
+            });
+            await LoadPayments();
+            AnnualPaymentDescription = string.Empty;
+
+            PayForYearCommand.NotifyCanExecute(true);
+        }
+
         public override async void OnLoaded()
         {
-            int id = (int) Pipe.GetParameter("child_id");
+            int id = (int)Pipe.GetParameter("child_id");
 
             Child currentChild = null;
             Parent currentFather = null, currentMother = null, currentOther = null;
@@ -131,18 +258,22 @@ namespace WpfApp.ViewModel
 
         private async Task LoadPayments()
         {
-            MonthlyPaymentsInYearsResult paymentsResult = null;
+            MonthlyPaymentsInYearsResult monthlyResult = null;
+            ObservableCollection<RangePayment> annualResult = null;
             await Task.Run(() =>
             {
                 var id = CurrentChild.Id;
                 // MonthlyPayments
                 _paymentsContext = new KindergartenContext();
-                paymentsResult = MonthlyPaymentsInYear.ToYears(
+                monthlyResult = MonthlyPaymentsInYear.ToYears(
                     _paymentsContext.MonthlyPayments.Where(p => p.ChildId == id),
-                    _paymentsContext.EnterChildren.Where(p => p.ChildId == id));
+                    _paymentsContext.EnterChildren.Where(p => p.ChildId == id),
+                    CurrentChild.Tarif);
+                annualResult = new ObservableCollection<RangePayment>(_paymentsContext.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id));
             });
-            PaymentsInYears = paymentsResult.MonthlyPaymentsInYears;
-            LastMonthlyPayment = paymentsResult.LastPayment;
+            PaymentsInMonths = monthlyResult.MonthlyPaymentsInYears;
+            PaymentsInYears = annualResult;
+            LastMonthlyPayment = monthlyResult.LastPayment;
         }
 
         private void DetachParent(Parents parentType)
@@ -172,7 +303,7 @@ namespace WpfApp.ViewModel
                 var savingPipe = new Pipe(true);
                 savingPipe.SetParameter("parent_type", parentType);
                 StartViewModel<SaveOrRepealParentChangesViewModel>(savingPipe);
-                var savingResult = (SavingResult) savingPipe.GetParameter("saving_result");
+                var savingResult = (SavingResult)savingPipe.GetParameter("saving_result");
                 switch (savingResult)
                 {
                     case SavingResult.Save:
@@ -232,7 +363,7 @@ namespace WpfApp.ViewModel
             pipe.SetParameter("exclude_parent_ids", exclude.ToArray());
 
             StartViewModel<AddParentViewModel>(pipe);
-            var parent0 = (Parent) pipe.GetParameter("parent_result");
+            var parent0 = (Parent)pipe.GetParameter("parent_result");
             if (parent0 == null) return;
             var context = new KindergartenContext();
             var parent = context.Parents.First(p => p.Id == parent0.Id);
@@ -261,11 +392,10 @@ namespace WpfApp.ViewModel
         private async void PayFee(string moneyStr)
         {
             double money;
-            if (!double.TryParse(moneyStr, out money))
+            if (!double.TryParse(moneyStr, out money) || money <= 0)
             {
                 return;
             }
-            if (money <= 0) return;
 
             if (MessageBox.Show("Вы уверены, что хотите внести оплату в размере " + money + " рублей?",
                 "Подтверждение", MessageBoxButton.YesNo, MessageBoxImage.Information) != MessageBoxResult.Yes)
@@ -273,9 +403,14 @@ namespace WpfApp.ViewModel
                 return;
             }
 
-            var now = DateTime.Now;
-            var hadToPay = TotalChildUnpaidMoney;
-            var payment = new MonthlyPayment {ChildId = CurrentChild.Id, PaidMoney = money, DebtAfterPaying = hadToPay, Description = MonthlyPaymentDescription };
+            var payment = new MonthlyPayment
+            {
+                ChildId = CurrentChild.Id,
+                PaidMoney = money,
+                DebtAfterPaying =
+                GetTotalCredit() - money,
+                Description = MonthlyPaymentDescription
+            };
             _paymentsContext.MonthlyPayments.Add(payment);
             _paymentsContext.SaveChanges();
             await LoadPayments();
@@ -323,7 +458,7 @@ namespace WpfApp.ViewModel
                             // TODO: Here must be right update query
                             //old.ParentId = currentParent.Id;
                             context.ParentChildren.Remove(old);
-                            context.ParentChildren.Add(new ParentChild {ChildId=CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText});
+                            context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText });
                         }
                     }
                 };
@@ -385,7 +520,7 @@ namespace WpfApp.ViewModel
             }
 
             var context = new KindergartenContext();
-            context.EnterChildren.Add(CurrentChild.LastEnterChild = new EnterChild {EnterDate = DateTime.Now, ChildId = CurrentChild.Id});
+            context.EnterChildren.Add(CurrentChild.LastEnterChild = new EnterChild { EnterDate = DateTime.Now, ChildId = CurrentChild.Id });
             context.SaveChanges();
             OnPropertyChanged(nameof(CurrentChildIsArchived));
             OnPropertyChanged(nameof(CurrentChild));
@@ -397,7 +532,8 @@ namespace WpfApp.ViewModel
         {
             var parameters = new Dictionary<string, object>(3)
             {
-                ["child"] = CurrentChild, ["groups"] = Groups,
+                ["child"] = CurrentChild,
+                ["groups"] = Groups,
             };
             var pipe = new Pipe(parameters, true);
             StartViewModel<ChangeChildGroupViewModel>(pipe);
@@ -752,7 +888,9 @@ namespace WpfApp.ViewModel
 
         public string CurrentMotherPersonLastName
         {
-            get { return CurrentMother?.Person?.LastName;
+            get
+            {
+                return CurrentMother?.Person?.LastName;
             }
             set
             {
@@ -1029,6 +1167,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public string AnnualPaymentDescription
+        {
+            get { return _annualPaymentDescription; }
+            set
+            {
+                if (value == _annualPaymentDescription) return;
+                _annualPaymentDescription = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string OtherParentText
         {
             get { return _otherParentText; }
@@ -1076,7 +1225,41 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public ObservableCollection<MonthlyPaymentsInYear> PaymentsInYears
+        public DateTime StartDateOfNextAnnualPayment
+        {
+            get { return _startDateOfNextAnnualPayment; }
+            set
+            {
+                if (value.Equals(_startDateOfNextAnnualPayment)) return;
+                _startDateOfNextAnnualPayment = value;
+                EndDateOfNextAnnualPayment = value.AddYears(1);
+                OnPropertyChanged();
+            }
+        }
+
+        public DateTime EndDateOfNextAnnualPayment
+        {
+            get { return _endDateOfNextAnnualPayment; }
+            set
+            {
+                if (value.Equals(_endDateOfNextAnnualPayment)) return;
+                _endDateOfNextAnnualPayment = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<MonthlyPaymentsInYear> PaymentsInMonths
+        {
+            get { return _paymentsInMonths; }
+            set
+            {
+                if (Equals(value, _paymentsInMonths)) return;
+                _paymentsInMonths = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ObservableCollection<RangePayment> PaymentsInYears
         {
             get { return _paymentsInYears; }
             set
@@ -1084,8 +1267,11 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _paymentsInYears)) return;
                 _paymentsInYears = value;
                 OnPropertyChanged();
+                StartDateOfNextAnnualPayment = GetLastEnterDate(value);
             }
         }
+
+        public DateTime RecalculationAnnualPaymentDate { get; } = DateTime.Today.AddDays(1);
 
         public MonthlyPayment LastMonthlyPayment
         {
@@ -1095,7 +1281,6 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _lastMonthlyPayment)) return;
                 _lastMonthlyPayment = value;
 
-                _totalCreditBuffer = null;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(TotalChildUnpaidMonthCount));
                 OnPropertyChanged(nameof(TotalChildUnpaidMoney));
@@ -1114,35 +1299,14 @@ namespace WpfApp.ViewModel
             }
         }
 
-        private double? _totalCreditBuffer;
         private double GetTotalCredit()
         {
-            if (LastMonthlyPayment == null) return 0.0;
-            if (!_totalCreditBuffer.HasValue)
-            {
-                _totalCreditBuffer = TotalChildUnpaidMonthCount*CurrentChild.Tarif.MonthlyPayment +
-                                    LastMonthlyPayment.DebtAfterPaying - LastMonthlyPayment.PaidMoney;
-            }
-            return _totalCreditBuffer.Value;
+            if (LastMonthlyPayment == null) return 0d;
+            return LastMonthlyPayment.DebtAfterPaying;
         }
 
-        public double TotalChildUnpaidMoney
-        {
-            get
-            {
-                var credit = GetTotalCredit();
-                return credit > 0 ? credit : 0;
-            }
-        }
-
-        public double TotalChildDeposit
-        {
-            get
-            {
-                var credit = GetTotalCredit();
-                return credit < 0 ? -credit : 0;
-            }
-        }
+        public double TotalChildUnpaidMoney => Math.Max(GetTotalCredit(), 0);
+        public double TotalChildDeposit => Math.Max(-GetTotalCredit(), 0);
 
         private Child _currentChild;
         private MainViewModel _mainViewModel;
@@ -1161,9 +1325,13 @@ namespace WpfApp.ViewModel
         private KindergartenContext _motherContext;
         private KindergartenContext _otherContext;
         private Group _currentChildGroup;
-        private ObservableCollection<MonthlyPaymentsInYear> _paymentsInYears;
+        private ObservableCollection<MonthlyPaymentsInYear> _paymentsInMonths;
         private KindergartenContext _paymentsContext;
         private MonthlyPayment _lastMonthlyPayment;
         private string _monthlyPaymentDescription;
+        private ObservableCollection<RangePayment> _paymentsInYears;
+        private DateTime _endDateOfNextAnnualPayment;
+        private string _annualPaymentDescription;
+        private DateTime _startDateOfNextAnnualPayment;
     }
 }

@@ -131,11 +131,15 @@
     <Compile Include="Framework\ISaverData.cs" />
     <Compile Include="Settings\AppFilePaths.cs" />
     <Compile Include="Framework\WindowStateSaver.cs" />
+    <Compile Include="ViewModel\AddExpenseViewModel.cs" />
     <Compile Include="ViewModel\AddParentViewModel.cs" />
     <Compile Include="ViewModel\AddTarifViewModel.cs" />
     <Compile Include="ViewModel\ChangeChildGroupViewModel.cs" />
     <Compile Include="ViewModel\ChangeGroupGroupTypeViewModel.cs" />
     <Compile Include="ViewModel\SaveOrRepealParentChangesViewModel.cs" />
+    <Compile Include="View\AddExpenseWindow.xaml.cs">
+      <DependentUpon>AddExpenseWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\AddParentWindow.xaml.cs">
       <DependentUpon>AddParentWindow.xaml</DependentUpon>
     </Compile>
@@ -148,6 +152,9 @@
     <Compile Include="View\ChangeGroupGroupTypeWindow.xaml.cs">
       <DependentUpon>ChangeGroupGroupTypeWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="View\Converter\AddNumberConverter.cs" />
+    <Compile Include="View\Converter\ExpenseTypeConverter.cs" />
+    <Compile Include="View\Converter\FontSizePercentConverter.cs" />
     <Compile Include="View\Converter\GroupTypeFinished.cs" />
     <Compile Include="View\Converter\InactiveParentMultiConverter.cs" />
     <Compile Include="View\Converter\MonthPaymentConverter.cs" />
@@ -328,6 +335,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="View\AddChildWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\AddExpenseWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

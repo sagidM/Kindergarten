@@ -1,0 +1,15 @@
+﻿<Window x:Class="WpfApp.View.AddExpenseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp.View"
+        mc:Ignorable="d"
+        Title="AddExpenseWindow" Height="303.667" Width="439.667">
+	<StackPanel>
+		<ComboBox ItemsSource="{StaticResource ExpenseTypes}" SelectedItem="{Binding '[SelectedExpenseType]'}" ItemTemplate="{StaticResource ExpenseTypeDataTemplate}"></ComboBox>
+		<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Деньги..." Text="{Binding MoneyExpense}"/>
+		<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..." MaxLength="255" Text="{Binding DescriptionExpense}"/>
+		<Button Command="{Binding AddExpenseCommand}" Content="Добавить"/>
+	</StackPanel>
+</Window>

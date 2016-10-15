@@ -19,6 +19,7 @@
 						<framework:ViewViewModelPair View="View/ChangeChildGroupWindow.xaml" ViewModel="viewModel:ChangeChildGroupViewModel"/>
 						<framework:ViewViewModelPair View="View/ChangeGroupGroupTypeWindow.xaml" ViewModel="viewModel:ChangeGroupGroupTypeViewModel"/>
 						<framework:ViewViewModelPair View="View/SaveOrRepealParentChangesDialog.xaml" ViewModel="viewModel:SaveOrRepealParentChangesViewModel"/>
+						<framework:ViewViewModelPair View="View/AddExpenseWindow.xaml" ViewModel="viewModel:AddExpenseViewModel"/>
 					</x:Array>
 <!--				</framework:ViewViewModelPairs.Pairs>-->
 			</framework:ViewViewModelPairs>

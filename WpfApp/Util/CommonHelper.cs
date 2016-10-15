@@ -1,5 +1,4 @@
 ﻿using System;
-using WpfApp.View;
 
 namespace WpfApp.Util
 {
@@ -25,6 +24,17 @@ namespace WpfApp.Util
 
                 return now.ToString("yyyyMMdd-HHmmss.fffffff_") + _unique;
             }
+        }
+
+        public static string GetRightRussianWord(int num, string s1, string s2, string s5)
+        {
+            var n100 = num % 100;
+            if (n100 >= 10 && n100 <= 20) return s5;
+
+            var n10 = n100 % 10;
+            if (n10 == 1) return s1;
+            if (n10 > 1 && n10 < 5) return s2;
+            return s5;
         }
     }
 }

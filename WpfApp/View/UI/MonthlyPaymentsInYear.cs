@@ -13,7 +13,7 @@ namespace WpfApp.View.UI
         public int Year { get; set; }
         public IList<Month> Months { get; } = new List<Month>();
 
-        public static MonthlyPaymentsInYearsResult ToYears(IQueryable<MonthlyPayment> payments, IQueryable<EnterChild> enters)
+        public static MonthlyPaymentsInYearsResult ToYears(IQueryable<MonthlyPayment> payments, IQueryable<EnterChild> enters, Tarif tarif)
         {
             var paymentList = payments.OrderBy(p => p.PaymentDate).ToList();
             var enterList = enters.OrderBy(e => e.EnterDate).ToList();
@@ -77,11 +77,22 @@ namespace WpfApp.View.UI
                         if (monthPayment.Payments.Count == 0)
                         {
                             monthPayment.NotPaid = true;
-                            var monthlyPayment = new MonthlyPayment
+                            var monthlyPayment = new MonthlyPayment {PaymentDate = new DateTime(year, month, 1)};
+                            if (lastPaymentForLastMonth == null)
                             {
-                                DebtAfterPaying = lastPaymentForLastMonth.DebtAfterPaying + lastPaymentForLastMonth.MoneyPaymentByTarif,
-                                MoneyPaymentByTarif = lastPaymentForLastMonth.MoneyPaymentByTarif,
-                            };
+                                monthlyPayment.MoneyPaymentByTarif = tarif.MonthlyPayment;
+                                monthlyPayment.DebtAfterPaying = tarif.MonthlyPayment;
+                            }
+                            else
+                            {
+                                var lastp = lastPaymentForLastMonth;
+                                if (monthlyPayment.PaymentDate.Month == lastp.PaymentDate.Month)
+                                {
+                                    continue;
+                                }
+                                monthlyPayment.DebtAfterPaying = lastp.DebtAfterPaying + lastp.MoneyPaymentByTarif;
+                                monthlyPayment.MoneyPaymentByTarif = lastp.MoneyPaymentByTarif;
+                            }
                             monthPayment.Payments.Add(monthlyPayment);
                             lastPaymentForLastMonth = monthlyPayment;
                         }
@@ -93,13 +104,45 @@ namespace WpfApp.View.UI
                     }
                 }
             }
-            var lastPayment = paymentList.Count > 0 ? paymentList[0/*paymentList.Count - 1*/] : null;
+            Reverse(yearsResult);
+            var lastPayment = yearsResult[0].Months[0].Payments[0];
             return new MonthlyPaymentsInYearsResult(new ObservableCollection<MonthlyPaymentsInYear>(yearsResult), lastPayment);
         }
 
         public override string ToString()
         {
             return $"Year = {Year}, Months = {Months}";
+        }
+
+        public static void Reverse(List<MonthlyPaymentsInYear> list)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (i < list.Count / 2)
+                {
+                    var l = list[i];
+                    list[i] = list[list.Count - 1 - i];
+                    list[list.Count - 1 - i] = l;
+                }
+                var months = list[i].Months;
+                for (var j = 0; j < months.Count; j++)
+                {
+                    if (j < months.Count / 2)
+                    {
+                        var m = months[j];
+                        months[j] = months[months.Count - 1 - j];
+                        months[months.Count - 1 - j] = m;
+                    }
+                    var payments = months[j].Payments;
+                    if (payments == null) continue;
+                    for (int k = 0; k < payments.Count/2; k++)
+                    {
+                        var p = payments[i];
+                        payments[i] = payments[payments.Count - 1 - k];
+                        payments[payments.Count - 1 - k] = p;
+                    }
+                }
+            }
         }
     }
 
