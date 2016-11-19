@@ -194,7 +194,12 @@ namespace WpfApp.ViewModel
         {
             if (!child.IsValid())
             {
-                MessageBox.Show("Не все поля заполнены/пункты выбраны");
+                MessageBox.Show("Не все поля заполнены/пункты выбраны", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            if (child.BirthDate > ChildAdditionDate)
+            {
+                MessageBox.Show("Дата рождения должна быть меньше даты рождения", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (SelectedOther == null && SelectedMother == null && SelectedFather == null)
@@ -220,18 +225,42 @@ namespace WpfApp.ViewModel
                     child.GroupId = child.Group.Id;
                     child.Group = null;
                     child.TarifId = child.Tarif.Id;
-                    child.Tarif = null;
-                    var enterChild = new EnterChild {Child = child, EnterDate = ChildAddedDate };
+                    var enterChild = new EnterChild { Child = child, EnterDate = ChildAdditionDate };
+                    child.LastEnterChild = enterChild;
 
                     var context = new KindergartenContext();
+
+                    if (StartedToPayFromAdditionDate)
+                    {
+                        // to no debt range add
+
+                        // 1) the first fictitious payment for start range
+                        context.MonthlyPayments.Add(new MonthlyPayment
+                        {
+                            ChildId = child.Id,
+                            PaymentDate = ChildAdditionDate,
+                            MoneyPaymentByTarif = 0, // 0 - because to make no debt
+                        });
+
+                        // 2) the second fictitious payment for end range
+                        context.MonthlyPayments.Add(new MonthlyPayment
+                        {
+                            ChildId = child.Id,
+                            PaymentDate = DateTime.Now,
+                            MoneyPaymentByTarif = child.Tarif.MonthlyPayment,
+                            DebtAfterPaying = child.Tarif.MonthlyPayment,
+                        });
+                    }
+                    child.Tarif = null;
+
                     context.EnterChildren.Add(enterChild);
 
                     if (SelectedFather != null)
-                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedFather.Id, ParentType = Parents.Father});
+                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedFather.Id, ParentType = Parents.Father});
                     if (SelectedMother != null)
-                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedMother.Id, ParentType = Parents.Mother});
+                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedMother.Id, ParentType = Parents.Mother});
                     if (SelectedOther != null)
-                        context.ParentChildren.Add(new ParentChild {Child = child, ParentId = SelectedOther.Id, ParentType = Parents.Other, ParentTypeText = OtherParentText});
+                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedOther.Id, ParentType = Parents.Other, ParentTypeText = OtherParentText });
                     context.SaveChanges();
                 }
                 catch
@@ -244,17 +273,6 @@ namespace WpfApp.ViewModel
             Pipe.SetParameter("saved_child_result", child);
             AddChildCommand.NotifyCanExecute(true);
             Finish();
-        }
-
-        public DateTime ChildAddedDate
-        {
-            get { return _childAddedDate; }
-            set
-            {
-                if (value.Equals(_childAddedDate)) return;
-                _childAddedDate = value;
-                OnPropertyChanged();
-            }
         }
 
         public ImageSource ChildImageSource
@@ -275,6 +293,28 @@ namespace WpfApp.ViewModel
             {
                 if (value == _otherParentText) return;
                 _otherParentText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool StartedToPayFromAdditionDate
+        {
+            get { return _startedToPayFromAdditionDate; }
+            set
+            {
+                if (value == _startedToPayFromAdditionDate) return;
+                _startedToPayFromAdditionDate = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public DateTime ChildAdditionDate
+        {
+            get { return _childAdditionDate; }
+            set
+            {
+                if (value.Equals(_childAdditionDate)) return;
+                _childAdditionDate = value;
                 OnPropertyChanged();
             }
         }
@@ -319,5 +359,7 @@ namespace WpfApp.ViewModel
         private Sex _otherSex;
         private string _otherParentText;
         private DateTime _childAddedDate = DateTime.Now;
+        private bool _startedToPayFromAdditionDate;
+        private DateTime _childAdditionDate = DateTime.Now;
     }
 }

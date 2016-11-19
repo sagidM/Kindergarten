@@ -26,6 +26,7 @@
 		<!--<ResourceDictionary Source="../Themes/Office2013/Office2013.MSControls.Core.Implicit.xaml" />
 		<ResourceDictionary Source="../Themes/Office2013/Office2013.MSControls.Toolkit.Implicit.xaml" />-->
 
+<!--		<ResourceDictionary Source="Fonts_FullHD.xaml"/>-->
 		<ResourceDictionary Source="TabItem.xaml"/>
 	</ResourceDictionary.MergedDictionaries>
 
@@ -129,9 +130,9 @@
 
 	<Style x:Key="ReloadButton" TargetType="Button">
 		<Style.Resources>
-			<Color x:Key="HoverColor">#1093CB</Color>
+			<Color x:Key="HoverColor">White</Color><!--#1093CB-->
 			<Color x:Key="LoadingColor">Red</Color>
-			<Color x:Key="DoneColor">#29AB29</Color>
+			<Color x:Key="DoneColor">LightGreen</Color><!--#29AB29-->
 		</Style.Resources>
 		<Setter Property="RenderTransformOrigin" Value="0.5 0.5"/>
 		<Setter Property="RenderTransform">

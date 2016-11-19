@@ -11,20 +11,20 @@
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         xmlns:converter="clr-namespace:WpfApp.View.Converter"
         mc:Ignorable="d"
-        Title="{Binding Title}" Height="761.007" Width="923.755"
+        Title="{Binding Title}" Height="761.007" Width="923.755" Icon="../resources/icon64.png"
 		Name="ThisWindow" Background="{StaticResource ItemBackgroundBrush}">
 	<Window.TaskbarItemInfo>
 		<TaskbarItemInfo ProgressValue="5">
 			<TaskbarItemInfo.ThumbButtonInfos>
-				<ThumbButtonInfo Description="Добавить ребёнка" Command="{Binding ShowAddChildCommand}"></ThumbButtonInfo>
-				<ThumbButtonInfo Description="Добавить группу" Command="{Binding ShowAddGroupCommand}"></ThumbButtonInfo>
-				<ThumbButtonInfo Description="Добавить тариф" Command="{Binding ShowAddNewTarifCommand}"></ThumbButtonInfo>
-				<ThumbButtonInfo Description="Обновить" Command="{Binding RefreshDataCommand}"></ThumbButtonInfo>
+				<ThumbButtonInfo Description="Добавить ребёнка" Command="{Binding ShowAddChildCommand}"/>
+				<ThumbButtonInfo Description="Добавить группу" Command="{Binding ShowAddGroupCommand}"/>
+				<ThumbButtonInfo Description="Добавить тариф" Command="{Binding ShowAddNewTarifCommand}"/>
+				<ThumbButtonInfo Description="Обновить" Command="{Binding RefreshDataCommand}"/>
 			</TaskbarItemInfo.ThumbButtonInfos>
 		</TaskbarItemInfo>
 	</Window.TaskbarItemInfo>
 	<Window.Resources>
-		<vm:MainViewModel x:Key="ViewModel" Title="App"/>
+		<vm:MainViewModel x:Key="ViewModel" Title="Учёт в детском саду"/>
 		<util:BoolTextConverter x:Key="DataLoadingConverter" No="Обновить все данные" Yes="Данные обновляются..."/>
 		<util:BoolTextConverter x:Key="NobodyConverter" No="Нет" Yes="Да"/>
 		<system:Double x:Key="LeftPanelWidth">270</system:Double>
@@ -40,21 +40,24 @@
 					<WrapPanel.ToolTip>
 						<TextBlock Text="{Binding Path=ChildTotalCount, StringFormat='Общее число детей: {0:### ### ##0}'}"/>
 					</WrapPanel.ToolTip>
-					<TextBlock Text="Количество детей: "/>
-					<TextBlock Text="{Binding Path=Count}"
+					<TextBlock FontSize="11" Text="Количество детей: "/>
+					<TextBlock FontSize="11" Text="{Binding Path=Count}"
 					       DataContext="{Binding Path=Children, TargetNullValue={}}">
 					</TextBlock>
-					<TextBlock Text="{Binding Path=ChildNoArchivedCount, StringFormat='. Вне архива - {0}'}"/>
+					<TextBlock FontSize="11" Text="{Binding Path=ChildNoArchivedCount, StringFormat='. Вне архива - {0}'}"/>
 				</WrapPanel>
 			</StatusBarItem>
 			<StatusBarItem HorizontalAlignment="Right">
 				<StackPanel Orientation="Horizontal">
 					<StackPanel.Resources>
-						<converter:FontSizePercentConverter x:Key="FontSizePercentConverter" DefaultFontSize="12"/>
+						<converter:FontSizePercentConverter x:Key="FontSizePercentConverter" DefaultFontSize="12" Minimum="3" Maximum="36"/>
 					</StackPanel.Resources>
-					<Slider Name="SliderFontSizeTables" Value="{Binding '[font_size_tables, 12]'}" Maximum="48" Minimum="3" Width="100"/>
-					<TextBox Text="{Binding ElementName=SliderFontSizeTables, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FontSizePercentConverter}}" FontSize="9" Width="50" Padding="0"/>
-					<TextBlock Width="100" Margin="0 0 10 0" VerticalAlignment="Center" Tag="{Binding IsDataLoading}">
+					<Slider Name="SliderFontSizeTables" Value="{Binding '[font_size_tables, 12]'}" AutoToolTipPlacement="BottomRight"
+					        IsMoveToPointEnabled="False" Minimum="3" Maximum="36" Width="100" Delay="300" LargeChange="3">
+					</Slider>
+					<TextBox Text="{Binding ElementName=SliderFontSizeTables, Path=Value, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource FontSizePercentConverter}}" FontSize="9" Width="30" TextAlignment="Center" Padding="0"/>
+					<TextBlock FontSize="9" Text="%"/>
+					<TextBlock Width="100" Margin="0 0 10 0" VerticalAlignment="Center" TextAlignment="Right" Tag="{Binding IsDataLoading}">
 						<TextBlock.Style>
 							<Style TargetType="TextBlock">
 								<Style.Triggers>
@@ -68,20 +71,30 @@
 							</Style>
 						</TextBlock.Style>
 					</TextBlock>
-					<Button Margin="0 0 5 0" Command="{Binding RefreshDataCommand}" Style="{StaticResource ReloadButton}" Background="Gray"
+					<Button Margin="0 0 5 0" Command="{Binding RefreshDataCommand}" Style="{StaticResource ReloadButton}" Background="LightGray"
 							Tag="{Binding IsDataLoading}" ToolTip="{Binding IsDataLoading, Converter={StaticResource DataLoadingConverter}}"/>
 				</StackPanel>
 			</StatusBarItem>
 		</StatusBar>
 		<TabControl>
+			<TabControl.Resources>
+				<Style x:Key="DataTableStyle" BasedOn="{StaticResource {x:Type DataGrid}}" TargetType="DataGrid">
+					<Setter Property="AutoGenerateColumns" Value="False"/>
+					<Setter Property="AlternatingRowBackground" Value="BlanchedAlmond"/>
+					<Setter Property="RowBackground" Value="#E4E4E4"/>
+					<Setter Property="Background" Value="#F7F7F7"/>
+				</Style>
+				<Thickness x:Key="DockPanelThickness">10 10 0 0</Thickness>
+				<Thickness x:Key="DockPanelChildThickness">0 0 10 10</Thickness>
+			</TabControl.Resources>
 			<TabItem Header="Дети">
-				<DockPanel>
+				<DockPanel Margin="{StaticResource DockPanelThickness}">
 					<ScrollViewer VerticalScrollBarVisibility="Auto">
-						<StackPanel Margin="10" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
+						<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
 							<StackPanel>
 								<StackPanel>
 									<DockPanel>
-										<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" FontSize="14" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
+										<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
 									</DockPanel>
 									<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 20">
 										<StackPanel>
@@ -107,9 +120,9 @@
 										<DatePicker VerticalContentAlignment="Center" SelectedDate="{Binding TillEnterDateChildrenFilter, UpdateSourceTrigger=PropertyChanged}" DisplayDateStart="{Binding FromEnterDateChildrenFilter}" Grid.Column="3" />
 									</Grid>
 
-									<CheckBox IsChecked="{Binding ArchivedChildrenFilter}" IsThreeState="True" Content="Архив" />
+									<CheckBox Margin="0 10 0 0" IsChecked="{Binding ArchivedChildrenFilter}" IsThreeState="True" Content="Архив" />
 									<CheckBox IsChecked="{Binding OnlyDebtorsChildrenFilter}" Content="Показать только должников"/>
-									<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
+									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
 								</StackPanel>
 
 								<Separator Margin="20" Height="20"/>
@@ -181,55 +194,54 @@
 						</StackPanel>
 					</ScrollViewer>
 
-					<Label FontSize="{Binding '[font_size_tables]'}" DockPanel.Dock="Right" >
-						<DataGrid AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
-							  AlternatingRowBackground="BlanchedAlmond" RowBackground="LightGray"
-							  SelectedItem="{Binding SelectedChild, Mode=TwoWay}"
-							  x:Name="DataGridChildren" ItemsSource="{Binding Children}">
-							<DataGrid.InputBindings>
-								<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Gesture="LeftDoubleClick" />
-							</DataGrid.InputBindings>
-							<DataGrid.Resources>
-								<converter:ToNegateBoolConverter x:Key="BoolConverter" True="Да" False="Нет"/>
-							</DataGrid.Resources>
-							<DataGrid.Columns>
-								<DataGridTextColumn Binding="{Binding Id}" Header="№" />
-								<DataGridTextColumn Width="*" Header="ФИО" SortMemberPath="Person.FullName">
-									<!--SortMemberPath-->
-									<DataGridTextColumn.Binding>
-										<MultiBinding StringFormat="{}{0} {1} {2}">
-											<Binding Path="Person.LastName" />
-											<Binding Path="Person.FirstName" />
-											<Binding Path="Person.Patronymic" />
-										</MultiBinding>
-									</DataGridTextColumn.Binding>
-								</DataGridTextColumn>
-								<DataGridTextColumn Binding="{Binding Path=Group.Name}" Header="Группа" />
-								<DataGridTextColumn Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
-								<DataGridTextColumn Width="*" Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
-								<DataGridTextColumn Width="*" Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
-								<DataGridTextColumn Width="*" Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
-								<DataGridTextColumn Width="0.5*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
-								<DataGridTextColumn Binding="{Binding Path=LastEnterChild.ExpulsionDate, Converter={StaticResource BoolConverter}, ConverterParameter={x:Null}}" Header="В архиве"/>
-							</DataGrid.Columns>
-						</DataGrid>
-					</Label>
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" DockPanel.Dock="Right" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+					          Style="{StaticResource DataTableStyle}"
+					          SelectedItem="{Binding SelectedChild, Mode=TwoWay}"
+					          x:Name="DataGridChildren" ItemsSource="{Binding Children}">
+						<DataGrid.InputBindings>
+							<MouseBinding Command="{Binding ElementName=ThisWindow, Path=DataContext.ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Gesture="LeftDoubleClick" />
+						</DataGrid.InputBindings>
+						<DataGrid.Resources>
+							<converter:ToNegateBoolConverter x:Key="BoolConverter" True="Да" False="Нет"/>
+						</DataGrid.Resources>
+						<DataGrid.Columns>
+							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
+							<DataGridTextColumn Width="*" Header="ФИО" SortMemberPath="Person.FullName">
+								<!--SortMemberPath-->
+								<DataGridTextColumn.Binding>
+									<MultiBinding StringFormat="{}{0} {1} {2}">
+										<Binding Path="Person.LastName" />
+										<Binding Path="Person.FirstName" />
+										<Binding Path="Person.Patronymic" />
+									</MultiBinding>
+								</DataGridTextColumn.Binding>
+							</DataGridTextColumn>
+							<DataGridTextColumn Binding="{Binding Path=Group.Name}" Header="Группа" />
+							<DataGridTextColumn Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
+							<DataGridTextColumn Width="*" Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
+							<DataGridTextColumn Width="0.5*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
+							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.ExpulsionDate, Converter={StaticResource BoolConverter}, ConverterParameter={x:Null}}" Header="В архиве"/>
+						</DataGrid.Columns>
+					</DataGrid>
+
 				</DockPanel>
 			</TabItem>
 			<TabItem Header="Группы">
-				<DockPanel>
-					<StackPanel DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
+				<DockPanel Margin="{StaticResource DockPanelThickness}">
+					<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
 						<StackPanel DataContext="{Binding ElementName=UIGroupsTable, Path=SelectedItem}"
 						            IsEnabled="{Binding ElementName=UIGroupsTable, Path=SelectedItem, Converter={StaticResource ToNegateBoolConverter}, ConverterParameter={x:Null}}">
 							<TextBlock Text="Измененить имя"/>
-							<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Новое имя для группы..." Margin="0 2 0 10" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+							<TextBox Padding="4" Style="{StaticResource PlaceHolderTextBox}" Tag="Новое имя для группы..." Margin="0 2 0 10" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
 							<TextBlock Text="Изменить дату создания"/>
 							<DatePicker Margin="0 2 0 10" SelectedDateFormat="Long" SelectedDate="{Binding CreatedDate}" />
-							<Button Content="Изменить тип группы (и детей в ней)..." DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+							<Button Padding="4" Margin="20 5" Content="Изменить тип группы (и детей в ней)..." DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 							        Command="{Binding ChangeGroupGroupTypeCommand}" CommandParameter="{Binding ElementName=UIGroupsTable, Path=SelectedItem}"/>
-							<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Margin="0 10"
+							<Button Padding="4" Margin="20 5" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 							        Content="Применить изменения" Command="{Binding SaveGroupCommand}"/>
-							<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Content="Отправить в архив" Command="{Binding GroupToggleArchiveCommand}" CommandParameter="{Binding SelectedGroup}">
+							<Button Padding="4" Margin="20 5" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Content="Отправить в архив" Command="{Binding GroupToggleArchiveCommand}" CommandParameter="{Binding SelectedGroup}">
 								<Button.Resources>
 									<converter:GroupTypeFinished x:Key="GroupFinishedConverter">
 										<converter:GroupTypeFinished.FinishedType>
@@ -247,7 +259,7 @@
 									<Binding Path="SelectedGroup" Converter="{StaticResource GroupFinishedConverter}"/>
 								</Button.Visibility>
 							</Button>
-							<Button DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Content="Убрать из архива" Command="{Binding GroupToggleArchiveCommand}" CommandParameter="{Binding SelectedGroup}">
+							<Button Padding="4" Margin="20 5" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" Content="Убрать из архива" Command="{Binding GroupToggleArchiveCommand}" CommandParameter="{Binding SelectedGroup}">
 								<Button.Resources>
 									<converter:GroupTypeFinished x:Key="GroupFinishedConverter">
 										<converter:GroupTypeFinished.FinishedType>
@@ -268,30 +280,31 @@
 						</StackPanel>
 						<CheckBox DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" IsChecked="{Binding ShowGroupsFromArchive}" Content="Архив" IsThreeState="True"/>
 
-						<Button IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddGroupCommand}" Margin="0 20 0 0" Content="Добавление..."/>
+						<Button Padding="4" Margin="50 20 50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddGroupCommand}" Content="Добавление..."/>
 					</StackPanel>
 
-					<Label FontSize="{Binding '[font_size_tables]'}">
-						<!-- ReSharper disable once InconsistentNaming -->
-						<DataGrid AutoGenerateColumns="False" IsReadOnly="True" Background="BlueViolet" x:Name="UIGroupsTable" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}">
-							<DataGrid.Resources>
-								<converter:GroupsFinishedConverter x:Key="GroupsFinishedConverter" Finished="Да" NonFinished="Нет"/>
-							</DataGrid.Resources>
-							<DataGrid.Columns>
-								<DataGridTextColumn Binding="{Binding Id}" Header="№" />
-								<DataGridTextColumn Binding="{Binding Name}" Header="Название"/>
-								<DataGridTextColumn Binding="{Binding CreatedDate}" Header="Группа" />
-								<DataGridTextColumn Binding="{Binding GroupType, Converter={StaticResource GroupsConverter}}" Header="Тип группы" />
-								<DataGridTextColumn Binding="{Binding GroupType, Converter={StaticResource GroupsFinishedConverter}}" Header="Заархивирована" />
-							</DataGrid.Columns>
-						</DataGrid>
-					</Label>
+					<!-- ReSharper disable once InconsistentNaming -->
+					<DataGrid DockPanel.Dock="Right" FontSize="{Binding '[font_size_tables]'}" IsReadOnly="True"
+					          Style="{StaticResource DataTableStyle}" x:Name="UIGroupsTable" ItemsSource="{Binding Groups}" SelectedItem="{Binding SelectedGroup}">
+						<DataGrid.Resources>
+							<converter:GroupsFinishedConverter x:Key="GroupsFinishedConverter" Finished="В архиве" NonFinished="Активна"/>
+						</DataGrid.Resources>
+						<DataGrid.Columns>
+							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
+							<DataGridTextColumn Binding="{Binding Name}" Header="Название"/>
+							<DataGridTextColumn Binding="{Binding CreatedDate, Converter={StaticResource DateConverter}}" Header="Дата создания" />
+							<DataGridTextColumn Binding="{Binding GroupType, Converter={StaticResource GroupsConverter}}" Header="Тип группы" />
+							<DataGridTextColumn Binding="{Binding ChildCount}" Header="Кол-во детей" />
+							<DataGridTextColumn Binding="{Binding GroupType, Converter={StaticResource GroupsFinishedConverter}}" Header="Статус" />
+						</DataGrid.Columns>
+					</DataGrid>
+
 
 				</DockPanel>
 			</TabItem>
 			<TabItem Header="Тарифы">
-				<DockPanel>
-					<StackPanel Width="{StaticResource LeftPanelWidth}" DockPanel.Dock="Left">
+				<DockPanel Margin="{StaticResource DockPanelThickness}">
+					<StackPanel Margin="{StaticResource DockPanelChildThickness}" Width="{StaticResource LeftPanelWidth}" DockPanel.Dock="Left">
 						<StackPanel DataContext="{Binding SelectedTarifClone}">
 							<StackPanel.Style>
 								<Style TargetType="FrameworkElement">
@@ -303,39 +316,37 @@
 								</Style>
 							</StackPanel.Style>
 							<Label Content="Оплата в месяц"/>
-							<TextBox Margin="0 0 0 10" Text="{Binding MonthlyPayment, UpdateSourceTrigger=PropertyChanged}"/>
+							<TextBox Padding="4" Margin="0 0 0 10" Text="{Binding MonthlyPayment, UpdateSourceTrigger=PropertyChanged}"/>
 							<Label Content="Оплата в год"/>
-							<TextBox Margin="0 0 0 10" Text="{Binding AnnualPayment, UpdateSourceTrigger=PropertyChanged}"/>
+							<TextBox Padding="4" Margin="0 0 0 10" Text="{Binding AnnualPayment, UpdateSourceTrigger=PropertyChanged}"/>
 							<Label Content="Примечание"/>
-							<TextBox Tag="Примечание к оплате..." Margin="0 0 0 10" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
-							<Button Command="{Binding SaveTarifCommand}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" CommandParameter="{Binding SelectedTarifClone}" Content="Сохранить"/>
-							<Button DataContext="{Binding DataContext, ElementName=ThisWindow}"
+							<TextBox Padding="4" Tag="Примечание к оплате..." Margin="0 0 0 5" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+							<Button Padding="4" Margin="20 5" Command="{Binding SaveTarifCommand}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}" CommandParameter="{Binding SelectedTarifClone}" Content="Сохранить"/>
+							<Button Padding="4" Margin="20 0" DataContext="{Binding DataContext, ElementName=ThisWindow}"
 								Command="{Binding DeleteSelectedTarifCommand}" Content="Удалить выбранный тариф"/>
 						</StackPanel>
-						<Button IsEnabled="{Binding IsNotDataLoading}" Margin="0 50 0 0" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
+						<Button Padding="4" Margin="50 50 50 0" IsEnabled="{Binding IsNotDataLoading}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 							Command="{Binding ShowAddNewTarifCommand}"
 							Content="Добавление..."/>
 					</StackPanel>
-					<ScrollViewer DockPanel.Dock="Right" FontSize="{Binding '[font_size_tables]'}">
-						<DataGrid IsReadOnly="True"  SelectionMode="Single" AutoGenerateColumns="False" SelectedItem="{Binding SelectedTarif}" Background="Bisque" ItemsSource="{Binding Tarifs}">
-							<DataGrid.Columns>
-								<DataGridTextColumn Header="№" Binding="{Binding Id}"/>
-								<DataGridTextColumn Header="Месячная оплата" Binding="{Binding MonthlyPayment}"/>
-								<DataGridTextColumn Header="Годовая оплата" Binding="{Binding AnnualPayment}"/>
-								<DataGridTextColumn Header="Примечание" Binding="{Binding Note}"/>
-								<DataGridTextColumn Header="Количество детей с таким тарифом" Binding="{Binding ChildCount}"/>
-							</DataGrid.Columns>
-						</DataGrid>
-					</ScrollViewer>
+					<DataGrid DockPanel.Dock="Right" FontSize="{Binding '[font_size_tables]'}" IsReadOnly="True"  SelectionMode="Single" Style="{StaticResource DataTableStyle}" SelectedItem="{Binding SelectedTarif}" ItemsSource="{Binding Tarifs}">
+						<DataGrid.Columns>
+							<DataGridTextColumn Header="№" Binding="{Binding Id}"/>
+							<DataGridTextColumn Header="Месячная оплата" Binding="{Binding MonthlyPayment}"/>
+							<DataGridTextColumn Header="Годовая оплата" Binding="{Binding AnnualPayment}"/>
+							<DataGridTextColumn Header="Примечание" Binding="{Binding Note}"/>
+							<DataGridTextColumn Header="Количество детей с таким тарифом" Binding="{Binding ChildCount}"/>
+						</DataGrid.Columns>
+					</DataGrid>
 				</DockPanel>
 			</TabItem>
 			<TabItem Header="Доходы">
 				<TabItem.Resources>
 					<m:Income x:Key="AdditingIncome"/>
 				</TabItem.Resources>
-				<DockPanel>
-					<StackPanel Margin="10" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
-						<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchIncomesFilter, UpdateSourceTrigger=PropertyChanged}"/>
+				<DockPanel Margin="{StaticResource DockPanelThickness}">
+					<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
+						<TextBox Padding="4" Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchIncomesFilter, UpdateSourceTrigger=PropertyChanged}"/>
 						<Label Content="Дата доходов"/>
 						<Grid>
 							<Grid.ColumnDefinitions>
@@ -350,8 +361,8 @@
 							<DatePicker VerticalContentAlignment="Center" SelectedDate="{Binding TillDateIncomesFilter, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" />
 						</Grid>
 						<TextBlock Margin="15" TextAlignment="Center" Text="{Binding SumOfSumOfIncomesFilter, StringFormat='Доходы за выбранный период: {0}'}"/>
-						<Button Command="{Binding ResetIncomesFilterCommand}" Content="Сбросить"/>
-						<Button Command="{Binding RemoveSelectedIncomeCommand}" IsEnabled="{Binding CanDeleteIncome}"
+						<Button Padding="4" Margin="20 0" Command="{Binding ResetIncomesFilterCommand}" Content="Сбросить"/>
+						<Button Padding="4" Margin="20 5" Command="{Binding RemoveSelectedIncomeCommand}" IsEnabled="{Binding CanDeleteIncome}"
 								CommandParameter="{Binding ElementName=IncomesDataGrid, Path=SelectedItem}" Content="Удалить"/>
 						<StackPanel>
 							<TextBlock Text="Показывать:"/>
@@ -363,14 +374,14 @@
 						<StackPanel Name="AdditingIncomeStackPanel" DataContext="{StaticResource AdditingIncome}">
 							<TextBlock Margin="5" TextAlignment="Center" Text="Добавление"/>
 							<TextBlock Text="ФИО"/>
-							<TextBox Tag="ФИО..." MaxLength="64" Text="{Binding PersonName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
-							<TextBox Tag="Сумма оплаты..." Text="{Binding Money, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
-							<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..." MaxLength="255" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"/>
+							<TextBox Padding="4" Tag="ФИО..." MaxLength="64" Text="{Binding PersonName, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+							<TextBox Padding="4" Tag="Сумма оплаты..." Text="{Binding Money, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+							<TextBox Padding="4" Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..." MaxLength="255" Text="{Binding Note, UpdateSourceTrigger=PropertyChanged}"/>
 						</StackPanel>
-						<Button Command="{Binding AddIncomeCommand}" CommandParameter="{Binding ElementName=AdditingIncomeStackPanel}" Content="Добавить"/>
+						<Button Padding="4" Margin="50 5" Command="{Binding AddIncomeCommand}" CommandParameter="{Binding ElementName=AdditingIncomeStackPanel}" Content="Добавить"/>
 					</StackPanel>
 
-					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="IncomesDataGrid" ItemsSource="{Binding Incomes}" SelectedItem="{Binding SelectedIncome}" AutoGenerateColumns="False">
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="IncomesDataGrid" ItemsSource="{Binding Incomes}" SelectedItem="{Binding SelectedIncome}" Style="{StaticResource DataTableStyle}">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="№">
 								<DataGridTextColumn.Binding>
@@ -396,10 +407,10 @@
 				</DockPanel>
 			</TabItem>
 			<TabItem Header="Расходы">
-				<DockPanel>
-					<StackPanel Margin="10" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
-						<TextBox Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchExpensesFilter, UpdateSourceTrigger=PropertyChanged}"/>
-						<ComboBox ItemsSource="{StaticResource ExpenseTypes}" SelectedItem="{Binding SelectedExpenseTypesExpensesFilter}" ItemTemplate="{StaticResource ExpenseTypeDataTemplate}"></ComboBox>
+				<DockPanel Margin="{StaticResource DockPanelThickness}">
+					<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
+						<TextBox Padding="4" Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchExpensesFilter, UpdateSourceTrigger=PropertyChanged}"/>
+						<ComboBox Margin="0 5" ItemsSource="{StaticResource ExpenseTypes}" SelectedItem="{Binding SelectedExpenseTypesExpensesFilter}" ItemTemplate="{StaticResource ExpenseTypeDataTemplate}"></ComboBox>
 						<Label Content="Дата расходов"/>
 						<Grid>
 							<Grid.ColumnDefinitions>
@@ -414,12 +425,13 @@
 							<DatePicker VerticalContentAlignment="Center" SelectedDate="{Binding TillDateExpensesFilter, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" />
 						</Grid>
 						<TextBlock Margin="15" TextAlignment="Center" Text="{Binding SumOfSumOfExpensesFilter, StringFormat='Затраты за выбранный период: {0}'}"/>
-						<Button Command="{Binding ResetExpensesFilterCommand}" Content="Сбросить"/>
-						<Button Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding}" Content="Удалить"
+						<Button Padding="4" Margin="20 5" Command="{Binding ResetExpensesFilterCommand}" Content="Сбросить"/>
+						<Button Padding="4" Margin="20 0" Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding}" Content="Удалить"
 								IsEnabled="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem, Converter={StaticResource ToNegateBoolConverter}, ConverterParameter={x:Null}}"/>
-						<Button Command="{Binding ShowAddExpenseCommand}" Content="Добавить..."/>
+						<Separator Height="10" Margin="20 10"/>
+						<Button Padding="4" Margin="50 0" Command="{Binding ShowAddExpenseCommand}" Content="Добавить..."/>
 					</StackPanel>
-					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="ExpensesDataGrid" ItemsSource="{Binding Expenses}" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single">
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="ExpensesDataGrid" ItemsSource="{Binding Expenses}" Style="{StaticResource DataTableStyle}" IsReadOnly="True" SelectionMode="Single">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="Номер" Binding="{Binding Id}"/>
 							<DataGridTextColumn Header="Тип" Binding="{Binding ExpenseType, Converter={StaticResource ExpenseTypeConverter}}"/>

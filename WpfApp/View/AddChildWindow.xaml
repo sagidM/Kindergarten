@@ -9,7 +9,7 @@
 		xmlns:util="clr-namespace:WpfApp.Util"
 		xmlns:converter="clr-namespace:WpfApp.View.Converter"
 		mc:Ignorable="d"
-        Title="Добавление ребёнка" Height="551.333" Width="1058.417"
+        Title="Добавление ребёнка" Height="551.333" Width="1317.417"
 		Name="ThisWindow">
 	<Window.Resources>
 		<Style TargetType="TextBox">
@@ -184,6 +184,10 @@
 						<Label Content="Дата рождения"/>
 						<DatePicker Style="{StaticResource NeighborElement}" x:Name="DatePickerBirthDate" SelectedDate="{Binding BirthDate}"/>
 					</Grid>
+
+					<Grid Style="{StaticResource DataCellGrid}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+						<CheckBox IsChecked="{Binding StartedToPayFromAdditionDate}" VerticalContentAlignment="Center" Content="Начать оплату с даты добавления"/>
+					</Grid>
 				</StackPanel>
 				<!---->
 				<!--Right block-->
@@ -267,15 +271,23 @@
 						          SelectedItem="{Binding Source={StaticResource AdditionalChild}, Path=Group, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
 						          ItemsSource="{Binding Path=Groups}" DisplayMemberPath="Name"/>
 					</Grid>
+					
+					<Grid Name="AddPaymentDateGrid" Style="{StaticResource DataCellGrid}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+						<Grid.RowDefinitions>
+							<RowDefinition/>
+							<RowDefinition/>
+						</Grid.RowDefinitions>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition/>
+							<ColumnDefinition/>
+						</Grid.ColumnDefinitions>
+						<Label Content="Дата добавления"/>
+						<DatePicker IsEnabled="{Binding StartedToPayFromAdditionDate}" Style="{StaticResource NeighborElement}" SelectedDate="{Binding ChildAdditionDate}"/>
+					</Grid>
 					<!-- ReSharper restore Xaml.MissingGridIndex -->
 				</StackPanel>
 
 			</Grid>
-
-			<WrapPanel DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
-				<Label Content="Дата добавления"/>
-				<DatePicker SelectedDate="{Binding ChildAddedDate}"/>
-			</WrapPanel>
 
 			<Grid Margin="0 50" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
 				<Grid.Resources>

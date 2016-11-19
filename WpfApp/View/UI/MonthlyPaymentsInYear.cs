@@ -7,7 +7,7 @@ using DAL.Model;
 
 namespace WpfApp.View.UI
 {
-    // оплата за год. имеет массив месяцев (12), в каждом массив оплат
+    // оплата за год содержит массив месяцев (months <= 12), в каждом массив оплат
     public class MonthlyPaymentsInYear
     {
         public int Year { get; set; }
@@ -99,6 +99,8 @@ namespace WpfApp.View.UI
                         else
                         {
                             lastPaymentForLastMonth = monthPayment.Payments[monthPayment.Payments.Count-1];
+                            if (lastPaymentForLastMonth.PaidMoney == 0)
+                                monthPayment.NotPaid = true;
                         }
                         months.Add(monthPayment);
                     }

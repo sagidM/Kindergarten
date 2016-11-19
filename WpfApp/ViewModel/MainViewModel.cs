@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Configuration;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -53,6 +52,7 @@ namespace WpfApp.ViewModel
             IsShowedOnlyIncomesFilter = (bool) this[nameof(IsShowedOnlyIncomesFilter), true];
             IsShowedMonthlyIncomesFilter = (bool) this[nameof(IsShowedMonthlyIncomesFilter), true];
             IsShowedAnnualIncomesFilter = (bool) this[nameof(IsShowedAnnualIncomesFilter), true];
+            ShowGroupsFromArchive = (bool?) this[nameof(ShowGroupsFromArchive), null];
         }
 
         private async void RemoveSelectedIncome(IncomeDTO income)
@@ -304,6 +304,8 @@ namespace WpfApp.ViewModel
             var addedChild = (Child)pipe.GetParameter("saved_child_result");
             if (addedChild != null)
             {
+                var enterDate = addedChild.LastEnterChild.EnterDate;
+                if (enterDate < FromEnterDateChildrenFilter) FromEnterDateChildrenFilter = enterDate;
                 var mResult = MessageBox.Show("Ребёнок добавлен.\r\nОткрыть портфолио?", "Что дальше?", MessageBoxButton.YesNo);
                 if (mResult == MessageBoxResult.Yes)
                 {
@@ -405,8 +407,6 @@ namespace WpfApp.ViewModel
             Logger.Trace("Expenses were updated");
         }
 
-        private static readonly Random Random = new Random();
-
         public async Task UpdateChildrenAsync()
         {
             ++LoadingDataCount;
@@ -462,7 +462,30 @@ namespace WpfApp.ViewModel
         public async Task UpdateGroupsAsync()
         {
             ++LoadingDataCount;
-            Groups = await Task.Run(() => new ListCollectionView(new KindergartenContext().Groups.ToList()));
+            Groups = await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+
+                var innerGroupIdAndCount = context
+                    .Children
+                    .Join(context.EnterChildren.Where(e => e.ExpulsionDate == null), c => c.Id, e => e.ChildId, (c, e) => new {c, e})
+                    .GroupBy(g => g.c.GroupId)
+                    .Select(group => new { groupId=group.Key, count=group.Count()});
+
+                var queryable =
+                    from g in context.Groups
+                    join gc in innerGroupIdAndCount on g.Id equals gc.groupId into gc2
+                    from sub in gc2.DefaultIfEmpty()
+                    select new { @group=g, count = sub == null ? 0 : sub.count };
+
+                var groups = new List<Group>(8);
+                foreach (var g in queryable)
+                {
+                    g.group.ChildCount = g.count;
+                    groups.Add(g.group);
+                }
+                return new ListCollectionView(groups);
+            });
             --LoadingDataCount;
             Logger.Trace("Groups were updated");
         }
@@ -762,7 +785,7 @@ namespace WpfApp.ViewModel
             set
             {
                 if (value == _showGroupsFromArchive) return;
-                _showGroupsFromArchive = value;
+                this[nameof(ShowGroupsFromArchive)] = _showGroupsFromArchive = value;
                 OnPropertyChanged();
                 _groups.TryRefreshFilter();
             }

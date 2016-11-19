@@ -26,11 +26,31 @@ namespace DAL.Model
 
         [NotMapped]
         public string Error { get; protected set; }
+
+#if DEBUG
+        // ReSharper disable once StaticMemberInGenericType
+        /// <summary>Uniqueness keeper (for debug)</summary>
+        public static int UidKeeper = 0;
+        /// <summary>Unique identifier of entity (for debug)</summary>
+        public int Uid { get; } = ++UidKeeper;
+#endif
     }
 
     public abstract class DateTimeNowAsDefaultEntity : BaseEntity<int>
     {
         private DateTime? _dateTime;
+        /// <summary>Provides lazy DateTime.Now</summary>
+        /// <example>
+        /*
+         to use:
+         
+        {
+            get { return Date; }
+            set { Date = value; }
+        }
+
+         */
+        /// </example>
         protected DateTime Date
         {
             get
@@ -47,19 +67,13 @@ namespace DAL.Model
             }
         }
 
-        /*
-         to use:
-         
-        {
-            get { return Date; }
-            set { Date = value; }
-        }
-
-         */
     }
 
     public class Group : DateTimeNowAsDefaultEntity
     {
+        [NotMapped]
+        public int ChildCount { get; set; }
+
         [Required, MaxLength(64)]
         public string Name { get; set; }
 
@@ -105,9 +119,11 @@ namespace DAL.Model
 
         // pair with Finished
         Nursery = 2,
-        Junior = 4,
-        Middle = 6,
-        Older = 8,
+        Junior1 = 4,
+        Junior2 = 6,
+        Middle = 8,
+        Older = 10,
+        Preparatory = 12,
     }
 
     public class Person : BaseEntity<int>
@@ -216,6 +232,7 @@ namespace DAL.Model
         public string LocationAddress { get; set; }
 
         private DateTime _birthDate;
+
         public DateTime BirthDate
         {
             get { return _birthDate; }
@@ -230,6 +247,7 @@ namespace DAL.Model
         public bool IsNobody { get; set; }
 
         public int TarifId { get; set; }
+
         public virtual Tarif Tarif { get; set; }
 
         public virtual ICollection<ParentChild> ParentsChildren { get; set; }
@@ -342,17 +360,19 @@ namespace DAL.Model
 
         object ICloneable.Clone() => Clone();
 
-        public Tarif Clone()
+        // ReSharper disable once MethodOverloadWithOptionalParameter
+        public Tarif Clone(bool full = false)
         {
-            return new Tarif
+            var clone = new Tarif
             {
                 Id = Id,
-                Children = Children,
                 AnnualPayment = AnnualPayment,
                 ChildCount = ChildCount,
                 MonthlyPayment = MonthlyPayment,
                 Note = Note,
             };
+            if (full) clone.ChildCount = ChildCount;
+            return clone;
         }
     }
 
@@ -381,6 +401,8 @@ namespace DAL.Model
         public double PaidMoney { get; set; }
         public double DebtAfterPaying { get; set; }
 
+
+        // for the views
         public double Credit => Math.Max(DebtAfterPaying, 0);
         public double Debit => Math.Max(-DebtAfterPaying, 0);
     }

@@ -2,13 +2,28 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=mscorlib">
 
-	<Style TargetType="TextBlock" BasedOn="{StaticResource TextBlockStyle}">
-		<Setter Property="FontSize" Value="14"/>
+	<system:Double x:Key="FontSizeValue">15</system:Double>
+	
+	<Style BasedOn="{StaticResource LabelStyle}" TargetType="{x:Type Label}">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
 	</Style>
-	<Style TargetType="TextBox" BasedOn="{StaticResource TextBoxStyle}">
-		<Setter Property="FontSize" Value="14.667"/>
+	<Style BasedOn="{StaticResource ButtonStyle}" TargetType="{x:Type Button}">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
 	</Style>
-	<Style TargetType="Label" BasedOn="{StaticResource LabelStyle}">
-		<Setter Property="FontSize" Value="14.667"/>
+	<Style BasedOn="{StaticResource ComboBoxStyle}" TargetType="{x:Type ComboBox}">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
+	</Style>
+	<Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
+	</Style>
+	<Style BasedOn="{StaticResource {x:Type DatePicker}}" TargetType="DatePicker">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
+	</Style>
+
+	<Style BasedOn="{StaticResource {x:Type TextBox}}" TargetType="TextBox">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
+	</Style>
+	<Style x:Key="PlaceHolderTextBox" TargetType="TextBox" BasedOn="{StaticResource PlaceHolderTextBox}">
+		<Setter Property="FontSize" Value="{StaticResource FontSizeValue}"/>
 	</Style>
 </ResourceDictionary>

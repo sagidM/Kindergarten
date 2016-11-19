@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -10,6 +11,7 @@ namespace Camera
 {
     public class Webcam
     {
+        public Size ImageSize { get; private set; }
         public ImageFormat Format { get; set; }
 
         public Webcam(ImageFormat format)
@@ -96,6 +98,9 @@ namespace Camera
             {
                 _currentFrame = (Bitmap) e.Frame.Clone();
                 _currentFrame.RotateFlip(RotateFlipType);
+                if (ImageSize.Width != _currentFrame.Width || ImageSize.Height != _currentFrame.Height)
+                    ImageSize = new Size(_currentFrame.Width, _currentFrame.Height);
+
                 try
                 {
                     _currentFrame.Save(ms, Format);
@@ -124,10 +129,11 @@ namespace Camera
         {
             CaptureCurrentFrame(fileName, Format);
         }
-        public void CaptureCurrentFrame(string fileName, ImageFormat format, float angle = 0)
+
+        [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
+        public void CaptureCurrentFrame(string fileName, ImageFormat format, float angle = 0, Rectangle? newImageRectangle = null)
         {
-            // ReSharper disable once CompareOfFloatsByEqualityOperator
-            if (angle == 0)
+            if (angle == 0 && newImageRectangle == null)
             {
                 lock (_currentFrameLock)
                     _currentFrame.Save(fileName, format);
@@ -141,20 +147,30 @@ namespace Camera
                 w = _currentFrame.Width;
                 h = _currentFrame.Height;
             }
+            if (newImageRectangle == null)
+            {
+                newImageRectangle = new Rectangle(0, 0, w, h);
+            }
             
-            using (Bitmap b = new Bitmap(w, h))
+            using (var b = new Bitmap(newImageRectangle.Value.Width, newImageRectangle.Value.Height))
             {
                 using (var g = Graphics.FromImage(b))
                 {
-                    float trw = w/2f;
-                    float trh = h/2f;
-                    g.TranslateTransform(trw, trh);
-                    g.RotateTransform(angle);
-                    g.TranslateTransform(-trw, -trh);
+                    if (angle != 0)
+                    {
+                        float trw = w/2f;
+                        float trh = h/2f;
+                        g.TranslateTransform(trw, trh);
+                        g.RotateTransform(angle);
+                        g.TranslateTransform(-trw, -trh);
+                    }
+
+                    var rectangle = new Rectangle(0, 0, b.Width, b.Height);
 
                     g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+
                     lock (_currentFrameLock)
-                        g.DrawImage(_currentFrame, 0, 0, w, h);
+                        g.DrawImage(_currentFrame, rectangle, newImageRectangle.Value, GraphicsUnit.Pixel);
                 }
                 b.Save(fileName, format);
             }

@@ -5,8 +5,8 @@
 	<converter:SexConverter x:Key="SexConverter"/>
 	<converter:ExpenseTypeConverter x:Key="ExpenseTypeConverter"/>
 	<converter:GroupsConverter x:Key="GroupsConverter"
-							   Nursery="Ясли" Junior="Младшая"
-							   Middle="Средняя" Older="Старшая" />
+							   Nursery="Начинающая" Junior1="I младшая" Junior2="II младшая"
+							   Middle="Средняя" Older="Старшая" Preparatory="Подготовительная" />
 	
 	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
 	<converter:DateTimeConverter x:Key="DateConverter" Format="dd.MM.yyyy"/>

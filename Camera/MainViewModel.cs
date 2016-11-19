@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using AForge.Video.DirectShow;
+using Size = System.Windows.Size;
 
 // ReSharper disable BitwiseOperatorOnEnumWithoutFlags
 
@@ -79,17 +81,89 @@ namespace Camera
         }
 
         public static readonly DependencyProperty IsRunningProperty = DependencyProperty.Register(
-            "IsRunning", typeof (bool), typeof (MainViewModel), new PropertyMetadata(default(bool)));
+            nameof(IsRunning), typeof (bool), typeof (MainViewModel), new PropertyMetadata(default(bool)));
 
         public bool IsRunning
         {
             get { return (bool) GetValue(IsRunningProperty); }
             set { SetValue(IsRunningProperty, value); }
         }
-        
+
+        public static readonly DependencyProperty RealPictureRectProperty = DependencyProperty.Register(
+                nameof(RealPictureRect), typeof(Rect), typeof(MainViewModel),
+                new PropertyMetadata(new Rect(0, 0, 1, 1)));
+
+        public static readonly DependencyProperty ProportionModeSelectedIndexProperty = DependencyProperty.Register(
+            nameof(ProportionModeSelectedIndex), typeof (int), typeof (MainViewModel), new PropertyMetadata(default(int)));
+
+        public int ProportionModeSelectedIndex
+        {
+            get { return (int) GetValue(ProportionModeSelectedIndexProperty); }
+            set { SetValue(ProportionModeSelectedIndexProperty, value); }
+        }
+
+        public Rect RealPictureRect
+        {
+            get { return (Rect) GetValue(RealPictureRectProperty); }
+            set { SetValue(RealPictureRectProperty, value); }
+        }
+
+        internal static readonly DependencyProperty CameraProportionSelectedModeProperty = DependencyProperty.Register(
+                nameof(CameraProportionSelectedMode), typeof(CameraProportion), typeof(MainViewModel),
+                new PropertyMetadata(CameraProportion.Default, (o, args) =>
+                {
+                    var self = (MainViewModel)o;
+                    double imageW = self._webcam.ImageSize.Width;
+                    double imageH = self._webcam.ImageSize.Height;
+                    var size = GetSizeByMode(self.CameraProportionSelectedMode, imageW, imageH);
+                    double width = size.Width, height = size.Height;
+                    self._imageSizeRectangle = new Rectangle((int)(imageW - width) / 2, (int)(imageH - height) / 2, (int)width, (int)height);
+                    self.RealPictureRect = new Rect(0.5 - width / imageW / 2, 0.5 - height / imageH / 2, width / imageW, height / imageH);
+                }));
+
+        private static Size GetSizeByMode(CameraProportion prop, double imageW, double imageH)
+        {
+            double width, height;
+            switch (prop)
+            {
+                case CameraProportion.Default:
+                    width = imageW;
+                    height = imageH;
+                    break;
+                case CameraProportion.Common_3X4:
+                    width = 3;
+                    height = 4;
+                    break;
+                case CameraProportion.Passport_3_5X4_5:
+                    width = 3.5;
+                    height = 4.5;
+                    break;
+                case CameraProportion.HighHD_7X12:
+                    width = 7;
+                    height = 12;
+                    break;
+                case CameraProportion.WidthHD_12X7:
+                    width = 12;
+                    height = 7;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            double min = Math.Min(imageW / width, imageH / height);
+            width *= min;
+            height *= min;
+            return new Size(width, height);
+        }
+
+        internal CameraProportion CameraProportionSelectedMode
+        {
+            get { return (CameraProportion) GetValue(CameraProportionSelectedModeProperty); }
+            set { SetValue(CameraProportionSelectedModeProperty, value); }
+        }
+
         private static void OnFlipPropertyChanged(DependencyObject sender, DependencyPropertyChangedEventArgs e)
         {
-            var self = (MainViewModel)sender;
+            var self = (MainViewModel) sender;
             RotateFlipType type = self._rotateType;
             if (self.IsFlipX) type |= RotateFlipType.RotateNoneFlipX;
             self._webcam.RotateFlipType = type;
@@ -113,10 +187,7 @@ namespace Camera
             TurnRightCommand = new RelayCommand<object>(OnTurnRight);
             UpdateCamerasCommand = new RelayCommand<object>(OnUpdateCameras);
             RefreshCameraCommand = new RelayCommand<object>(OnRefreshCamera);
-            _setImage = new Action<ImageSource>(b =>
-            {
-                ImageSource = b;
-            });
+            _setImage = new Action<ImageSource>(b => ImageSource = b);
 
             _webcam = new Webcam(ImageFormat.Bmp);
             _webcam.NewWpfFrame += _webcam_NewWpfFrame;
@@ -124,9 +195,16 @@ namespace Camera
             _webcam.SelectedIndexChanged += _webcam_SelectedIndexChanged;
 
             OnRefreshCamera(null);
+
+            int mode;
+            if (File.Exists(CameraProportionModeSettingFile))
+                int.TryParse(File.ReadAllText(CameraProportionModeSettingFile), out mode);
+            else
+                mode = 0;
+            _savedCameraProportionMode = (CameraProportion) mode;
         }
 
-        private void OnRefreshCamera(object o)
+        private void OnRefreshCamera(object _)
         {
             IsRunning = false;
 
@@ -160,9 +238,10 @@ namespace Camera
         }
 
         private RotateFlipType _rotateType = RotateFlipType.RotateNoneFlipNone;
+
         private void OnTurnRight(object obj)
         {
-            _rotateType = (RotateFlipType) (((int)_rotateType+1) % 4);
+            _rotateType = (RotateFlipType) (((int) _rotateType + 1)%4);
             OnFlipPropertyChanged(this, EmptyEventArgs);
         }
 
@@ -175,14 +254,24 @@ namespace Camera
         {
             // ToString returns capitalize string format
             string fileName = Path.GetFullPath(Util.NewImageFileName(ImageFormat.ToString().ToLowerInvariant()));
-            _webcam.CaptureCurrentFrame(fileName, ImageFormat, ImageAngle);
+            _webcam.CaptureCurrentFrame(fileName, ImageFormat, ImageAngle, _imageSizeRectangle);
             Console.WriteLine(fileName);
             if (!Util.OneMorePhotoLeft())
                 CloseRequire?.Invoke(this, EventArgs.Empty);
         }
 
+        private bool _noFrameYet = true;
         private void _webcam_NewWpfFrame(object sender, NewStreamFrameEventArgs e)
         {
+            if (_noFrameYet)
+            {
+                _dispatcher.BeginInvoke((Action) (() =>
+                {
+                    CameraProportionSelectedMode = _savedCameraProportionMode;
+                    ProportionModeSelectedIndex = (int) _savedCameraProportionMode;
+                }));
+                _noFrameYet = false;
+            }
             var image = new BitmapImage();
             image.BeginInit();
             image.StreamSource = e.Stream;
@@ -196,6 +285,7 @@ namespace Camera
         public void OnClosed()
         {
             if (_webcam.IsRunning) _webcam.StopSignal();
+            File.WriteAllText(CameraProportionModeSettingFile, ((int)CameraProportionSelectedMode).ToString());
         }
 
         public event EventHandler CloseRequire;
@@ -204,6 +294,21 @@ namespace Camera
         private readonly Delegate _setImage;
         private DispatcherOperation _lastInvoke;
         private static readonly DependencyPropertyChangedEventArgs EmptyEventArgs = new DependencyPropertyChangedEventArgs();
+        private Rectangle? _imageSizeRectangle;
+        private const string CameraProportionModeSettingFile = "CameraProportionModeSetting.txt";
+        private CameraProportion _savedCameraProportionMode;
+    }
+
+    internal struct PictureProportion
+    {
+        public int Width { get; set; }
+        public int Height { get; set; }
+
+        public PictureProportion(int width, int height)
+        {
+            Width = width;
+            Height = height;
+        }
     }
 
     internal static class Util
@@ -246,7 +351,7 @@ namespace Camera
         {
             return _getNewFileName(format);
         }
-        
+
         private static int _photoCountDecrement;
         private static readonly bool IsInfinityPhotoCount = true;
 
@@ -256,7 +361,17 @@ namespace Camera
             if (_photoCountDecrement <= 1)
                 return false;
             --_photoCountDecrement;
-            return  true;
+            return true;
         }
+    }
+
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
+    internal enum CameraProportion
+    {
+        Default,
+        Common_3X4,
+        Passport_3_5X4_5, // new passport has 3.5x4.5
+        WidthHD_12X7,
+        HighHD_7X12,
     }
 }

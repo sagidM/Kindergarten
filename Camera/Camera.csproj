@@ -93,10 +93,10 @@
     </ApplicationDefinition>
     <Compile Include="Converter\BoolConverter.cs" />
     <Compile Include="Converter\ImageAngleConverter.cs" />
+    <Compile Include="Converter\ProportionModeConverter.cs" />
     <Compile Include="IViewModel.cs" />
     <Compile Include="MainViewModel.cs" />
     <Compile Include="RelayCommand.cs" />
-    <Compile Include="Settings.cs" />
     <Compile Include="Webcam.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

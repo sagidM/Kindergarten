@@ -190,7 +190,10 @@ namespace WpfApp.ViewModel
             await Task.Run(() =>
             {
                 _childContext = new KindergartenContext();
-                var enters = _childContext.EnterChildren.Include("Child.Person").Include("Child.Group").Where(e => e.ChildId == id).ToList();
+                var enters = _childContext.EnterChildren
+                    .Include("Child.Person").Include("Child.Tarif").Include("Child.Group")
+                    .Where(e => e.ChildId == id)
+                    .ToList();
                 var context = new KindergartenContext();
                 currentFather = context.ParentChildren
                     .Where(pc => pc.ChildId == id && pc.ParentType == Parents.Father)
@@ -260,6 +263,7 @@ namespace WpfApp.ViewModel
         {
             MonthlyPaymentsInYearsResult monthlyResult = null;
             ObservableCollection<RangePayment> annualResult = null;
+            double totalAnnual = 0;
             await Task.Run(() =>
             {
                 var id = CurrentChild.Id;
@@ -270,10 +274,16 @@ namespace WpfApp.ViewModel
                     _paymentsContext.EnterChildren.Where(p => p.ChildId == id),
                     CurrentChild.Tarif);
                 annualResult = new ObservableCollection<RangePayment>(_paymentsContext.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id));
+                var from = GetLastEnterDate(annualResult);
+                var now = DateTime.Now;
+                totalAnnual = @from >= now
+                    ? 0
+                    : new DateTime((now - @from).Ticks).Year*CurrentChildTarif.MonthlyPayment;
             });
             PaymentsInMonths = monthlyResult.MonthlyPaymentsInYears;
             PaymentsInYears = annualResult;
             LastMonthlyPayment = monthlyResult.LastPayment;
+            TotalAnnualUnpaidMoney = totalAnnual;
         }
 
         private void DetachParent(Parents parentType)
@@ -403,17 +413,34 @@ namespace WpfApp.ViewModel
                 return;
             }
 
-            var payment = new MonthlyPayment
+            PayFeeCommand.NotifyCanExecute(false);
+            await Task.Run(() =>
             {
-                ChildId = CurrentChild.Id,
-                PaidMoney = money,
-                DebtAfterPaying =
-                GetTotalCredit() - money,
-                Description = MonthlyPaymentDescription
-            };
-            _paymentsContext.MonthlyPayments.Add(payment);
-            _paymentsContext.SaveChanges();
+                MonthlyPayment lastPayment;
+                if (LastMonthlyPayment.Id != 0 && Math.Abs(LastMonthlyPayment.PaidMoney) < 0.001)
+                {
+                    // last payment is not fictitious, change it
+                    lastPayment = LastMonthlyPayment;
+                }
+                else
+                {
+                    // add new payment
+                    lastPayment = new MonthlyPayment {ChildId = CurrentChild.Id,};
+                    _paymentsContext.MonthlyPayments.Add(lastPayment);
+                }
+                lastPayment.PaidMoney = money;
+                lastPayment.Description = MonthlyPaymentDescription;
+                lastPayment.MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment;
+                lastPayment.DebtAfterPaying = LastMonthlyPayment.DebtAfterPaying - money;
+
+                _paymentsContext.SaveChanges();
+            });
             await LoadPayments();
+
+            MonthlyPaymentMoney = string.Empty;
+            MonthlyPaymentDescription = string.Empty;
+
+            PayFeeCommand.NotifyCanExecute(true);
         }
 
         private async void SaveChanges()
@@ -455,8 +482,9 @@ namespace WpfApp.ViewModel
                         }
                         else if (old.ParentId != currentParent.Id)
                         {
-                            // TODO: Here must be right update query
-                            //old.ParentId = currentParent.Id;
+                            // TODO: Here must be right update query like this
+                            // old.ParentId = currentParent.Id;
+                            // but it don't work (maybe Entity thinks "Id" is auto increment)
                             context.ParentChildren.Remove(old);
                             context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText });
                         }
@@ -465,6 +493,20 @@ namespace WpfApp.ViewModel
                 changeParent(father, CurrentFather, Parents.Father);
                 changeParent(mother, CurrentMother, Parents.Mother);
                 changeParent(other, CurrentOther, Parents.Other);
+
+                // CurrentChild.TarifId is selected now; the other was selected before.
+                // CurrentChild.Tarif can be null because "Tarifs" always has the same entities,
+                // but "SaveChanges" set to null
+                if (CurrentChild.Tarif == null || CurrentChild.Tarif.Id != CurrentChild.TarifId)
+                {
+                    // add fictitious payment to change debt increase after this moment
+                    CurrentChild.Payments.Add(new MonthlyPayment
+                    {
+                        Child = CurrentChild,
+                        MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment,
+                        PaidMoney = 0,
+                    });
+                }
                 try
                 {
                     context.SaveChanges();
@@ -476,8 +518,8 @@ namespace WpfApp.ViewModel
                 catch (Exception e)
                 {
                     MessageBox.Show(e.Message, "Error");
+                    App.Logger.Error(e, "On save child details changes");
                 }
-
 
                 _childNotifier.ClearDirties();
                 _fatherNotifier.ClearDirties();
@@ -690,7 +732,7 @@ namespace WpfApp.ViewModel
 
         public Tarif CurrentChildTarif
         {
-            get { return Tarifs.First(t => t.Id == CurrentChild.TarifId); }
+            get { return Tarifs?.First(t => t.Id == CurrentChild.TarifId); }
             set
             {
                 if (CurrentChild.TarifId == value.Id) return;
@@ -1200,6 +1242,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public string MonthlyPaymentMoney
+        {
+            get { return _monthlyPaymentMoney; }
+            set
+            {
+                if (value == _monthlyPaymentMoney) return;
+                _monthlyPaymentMoney = value;
+                OnPropertyChanged();
+            }
+        }
+
         public DateTime? ExpulsionDateLastEnterChild => CurrentChild.LastEnterChild.ExpulsionDate;
         public string ExpulsionNoteLastEnterChild => CurrentChild.LastEnterChild.ExpulsionNote;
 
@@ -1299,6 +1352,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public double TotalAnnualUnpaidMoney
+        {
+            get { return _totalAnnualUnpaidMoney; }
+            set
+            {
+                if (value.Equals(_totalAnnualUnpaidMoney)) return;
+                _totalAnnualUnpaidMoney = value;
+                OnPropertyChanged();
+            }
+        }
+
         private double GetTotalCredit()
         {
             if (LastMonthlyPayment == null) return 0d;
@@ -1333,5 +1397,7 @@ namespace WpfApp.ViewModel
         private DateTime _endDateOfNextAnnualPayment;
         private string _annualPaymentDescription;
         private DateTime _startDateOfNextAnnualPayment;
+        private double _totalAnnualUnpaidMoney;
+        private string _monthlyPaymentMoney;
     }
 }

@@ -6,9 +6,11 @@
 
 	<x:Array x:Key="Groups" Type="m:Groups">
 		<m:Groups>Nursery</m:Groups>
-		<m:Groups>Junior</m:Groups>
+		<m:Groups>Junior1</m:Groups>
+		<m:Groups>Junior2</m:Groups>
 		<m:Groups>Middle</m:Groups>
 		<m:Groups>Older</m:Groups>
+		<m:Groups>Preparatory</m:Groups>
 	</x:Array>
 	
 	<DataTemplate x:Key="GroupsDataTemplate">

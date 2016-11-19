@@ -69,8 +69,12 @@
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
   </PropertyGroup>
+  <PropertyGroup />
   <PropertyGroup>
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>resources\icon256.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EFlogger.EntityFramework6, Version=0.4.1.0, Culture=neutral, processorArchitecture=MSIL">
@@ -403,6 +407,11 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Resource Include="resources\icon256.ico" />
+    <Resource Include="resources\icon256.png" />
+    <Resource Include="resources\icon128.png" />
+    <Resource Include="resources\icon32.png" />
+    <Resource Include="resources\icon64.png" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

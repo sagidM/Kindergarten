@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Windows;
-using WpfApp.Framework.Core;
-using WpfApp.ViewModel;
 
 namespace WpfApp.View
 {
@@ -10,7 +8,7 @@ namespace WpfApp.View
     /// </summary>
     public partial class AddChildWindow : Window
     {
-        public static DateTime DefaultChildBirthDate { get; private set; }= DateTime.Now.AddYears(-3);
+        public static DateTime DefaultChildBirthDate { get; private set; } = DateTime.Now.AddYears(-3);
 
         public AddChildWindow()
         {

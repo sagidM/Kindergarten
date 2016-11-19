@@ -21,8 +21,8 @@ namespace WpfApp
         {
             Logger.Trace("On Startup");
             WindowStateSaver.InitializeSettings();
-//            var res = new ResourceDictionary {Source = GetFontsXamlUri()};
-//            Resources.MergedDictionaries.Add(res);
+            var res = new ResourceDictionary {Source = GetFontsXamlUri()};
+            Resources.MergedDictionaries.Add(res);
         }
 
         private void App_Exit(object sender, ExitEventArgs e)
