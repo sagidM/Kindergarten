@@ -6,8 +6,8 @@ namespace WpfApp.Util
 {
     public static class ImageUtil
     {
-        private const int WidthRequired = 1280;
-        private const int HeightRequired = 720;
+        private const int WidthRequired = 600;
+        private const int HeightRequired = 800;
 
         public static BitmapEncoder GetEncoderWithCompressedImage(Uri source)
         {

@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WpfApp.Settings;
-using WpfApp.Util;
 
 namespace WpfApp.View.Converter
 {
@@ -40,8 +40,19 @@ namespace WpfApp.View.Converter
             if (value == null)
                 return DefaultImage;
 
-            var uri = new Uri(_path + (string)value, UriKind.Absolute);
-            return new BitmapImage(uri);
+            var path = _path + (string)value;
+            if (!File.Exists(path))
+                return DependencyProperty.UnsetValue;
+
+            // copy image (to delete in ChildDetails)
+            var uri = new Uri(path, UriKind.Absolute);
+            var image = new BitmapImage();
+            image.BeginInit();
+            image.CacheOption = BitmapCacheOption.OnLoad;
+            image.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+            image.UriSource = uri;
+            image.EndInit();
+            return image;
         }
 
         public ImageSource DefaultImage { get; set; }

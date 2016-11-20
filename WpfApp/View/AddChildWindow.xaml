@@ -8,6 +8,7 @@
 		xmlns:pp="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
 		xmlns:util="clr-namespace:WpfApp.Util"
 		xmlns:converter="clr-namespace:WpfApp.View.Converter"
+		xmlns:system="clr-namespace:System;assembly=mscorlib"
 		mc:Ignorable="d"
         Title="Добавление ребёнка" Height="551.333" Width="1317.417"
 		Name="ThisWindow">
@@ -349,24 +350,39 @@
 
 		<DockPanel Grid.Column="1">
 			<Grid DockPanel.Dock="Bottom" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<Grid.Resources>
+					<converter:ToNegateBoolConverter x:Key="NegateBoolConverter"/>
+				</Grid.Resources>
 				<Grid.ColumnDefinitions>
 					<ColumnDefinition/>
 					<ColumnDefinition/>
+					<ColumnDefinition/>
 				</Grid.ColumnDefinitions>
-				<Button Grid.Column="0" Command="{Binding OpenDialogLoadImageCommand}" Content="Выбрать изображение"/>
-				<Button Grid.Column="1" Content="С камеры" Command="{Binding CaptureFromCameraCommand}"/>
+				<Button Grid.Column="0" Command="{Binding LoadImageFromFileCommand}" Content="Выбрать изображение"/>
+				<Button Grid.Column="1" Content="С камеры" Command="{Binding CaptureImageFromCameraCommand}"/>
+				<Button Grid.Column="2" Content="Убрать" Command="{Binding RemoveImageCommand}" IsEnabled="{Binding ChildImageSource, Converter={StaticResource NegateBoolConverter}, ConverterParameter={x:Null}}"/>
 			</Grid>
-			<Button DockPanel.Dock="Top" Command="{Binding OpenImageChosenCommand}" Cursor="Hand" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+			<Button DockPanel.Dock="Top" Command="{Binding OpenImageChoosingCommand}" DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
 				<Button.Template>
 					<ControlTemplate>
 						<ControlTemplate.Resources>
-							<converter:NullConverter x:Key="NullConverter">
-								<converter:NullConverter.Null>
-									<ImageSource>../resources/no_picture.jpg</ImageSource>
-								</converter:NullConverter.Null>
-							</converter:NullConverter>
+							<ImageSource x:Key="NoPicture">../resources/no_picture.jpg</ImageSource>
+							<converter:NullConverter x:Key="NullConverter" Null="{StaticResource NoPicture}"/>
+							<converter:ToBoolConverter x:Key="BoolConverter"/>
 						</ControlTemplate.Resources>
 						<Image Source="{Binding ChildImageSource, Converter={StaticResource NullConverter}}">
+							<Image.Style>
+								<Style TargetType="Image">
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Source, Converter={StaticResource BoolConverter}, ConverterParameter={StaticResource NoPicture}}">
+											<DataTrigger.Value>
+												<system:Boolean>False</system:Boolean>
+											</DataTrigger.Value>
+											<Setter Property="Cursor" Value="Hand"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</Image.Style>
 						</Image>
 					</ControlTemplate>
 				</Button.Template>

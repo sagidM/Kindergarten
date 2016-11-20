@@ -18,24 +18,29 @@ namespace WpfApp.ViewModel
 {
     internal class AddChildViewModel : ViewModelBase
     {
-        private static readonly string WebcamPath = ConfigurationManager.AppSettings["WebcamPath"];
-        private const string WebcamArguments = "photo 1";
-
-        public IRelayCommand OpenDialogLoadImageCommand { get; }
+        public IRelayCommand LoadImageFromFileCommand { get; }
         public IRelayCommand AddChildCommand { get; }
-        public IRelayCommand CaptureFromCameraCommand { get; }
-        public IRelayCommand OpenImageChosenCommand { get; }
+        public IRelayCommand CaptureImageFromCameraCommand { get; }
+        public IRelayCommand OpenImageChoosingCommand { get; }
+        public IRelayCommand RemoveImageCommand { get; }
         public IRelayCommand ChooseParentCommand { get; }
         public IRelayCommand DetachParentCommand { get; }
 
         public AddChildViewModel()
         {
             AddChildCommand = new RelayCommand<Child>(AddChild);
-            OpenDialogLoadImageCommand = new RelayCommand(OpenDialogLoadImage);
-            CaptureFromCameraCommand = new RelayCommand(CaptureFromCamera);
-            OpenImageChosenCommand = new RelayCommand(OpenChosenImage);
+            LoadImageFromFileCommand = new RelayCommand(LoadImageFromFile);
+            CaptureImageFromCameraCommand = new RelayCommand(CaptureImageFromCamera);
+            OpenImageChoosingCommand = new RelayCommand(OpenImageChoosing);
+            RemoveImageCommand = new RelayCommand(RemoveImage);
             ChooseParentCommand = new RelayCommand<Parents>(ChooseParent);
             DetachParentCommand = new RelayCommand<Parents>(DetachParent);
+        }
+
+        private void RemoveImage()
+        {
+            _imageUri = null;
+            ChildImageSource = null;
         }
 
         private void DetachParent(Parents parents)
@@ -93,19 +98,19 @@ namespace WpfApp.ViewModel
             }
         }
 
-        private void OpenChosenImage()
+        private void OpenImageChoosing()
         {
             if (_imageUri != null)
-                Process.Start(_imageUri.AbsolutePath);
+                Process.Start("explorer.exe", $"/select, \"{Path.GetFullPath(_imageUri.AbsolutePath)}\"");
         }
 
-        private void CaptureFromCamera()
+        private void CaptureImageFromCamera()
         {
             var process = new Process
             {
                 StartInfo =
                 {
-                    FileName = WebcamPath, RedirectStandardOutput = true, UseShellExecute = false, Arguments = WebcamArguments,
+                    FileName = App.WebcamPath, RedirectStandardOutput = true, UseShellExecute = false, Arguments = App.WebcamArguments,
                 },
             };
             process.Start();
@@ -320,7 +325,8 @@ namespace WpfApp.ViewModel
         }
 
 
-        private void OpenDialogLoadImage()
+        // copypaste in ChildDetailsViewModel.cs
+        private void LoadImageFromFile()
         {
             if (_openFileDialog.ShowDialog() == false) return;
 
@@ -336,6 +342,7 @@ namespace WpfApp.ViewModel
                 var b = new BitmapImage();
                 b.BeginInit();
                 b.CacheOption = BitmapCacheOption.OnLoad;
+                b.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
                 b.UriSource = _imageUri;
                 b.EndInit();
                 ChildImageSource = b;

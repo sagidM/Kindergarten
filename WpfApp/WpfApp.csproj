@@ -422,6 +422,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Content Include="resources\schema.sql" />
     <Resource Include="resources\icon256.ico" />
     <Resource Include="resources\icon256.png" />
     <Resource Include="resources\icon128.png" />
@@ -475,7 +476,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\queries.sql" />
+    <None Include="resources\full_removing_child.sql" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

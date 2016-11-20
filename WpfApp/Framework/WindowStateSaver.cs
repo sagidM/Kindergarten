@@ -67,7 +67,7 @@ namespace WpfApp.Framework
                 return InitialisationResult.FileNotFound;
             }
 
-            string json = File.ReadAllText(Path);
+            var json = File.ReadAllText(Path);
             try
             {
                 _settings = JsonConvert.DeserializeObject<IDictionary<string, Settings>>(json);
@@ -92,12 +92,12 @@ namespace WpfApp.Framework
         {
             try
             {
-                string json = JsonConvert.SerializeObject(_settings);
+                var json = JsonConvert.SerializeObject(_settings);
                 File.WriteAllText(Path, json);
             }
-            catch (Exception e)
+            catch (IOException e)
             {
-                App.Logger.Fatal(e, "Cannot save settings");
+                App.Logger.Error(e, "Cannot save settings");
             }
         }
 

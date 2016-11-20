@@ -1097,7 +1097,9 @@ namespace WpfApp.ViewModel
                     var income = (IncomeDTO)o;
                     if (!string.IsNullOrEmpty(SearchIncomesFilter) &&
                         (income.PersonName == null ||
-                         income.PersonName.IndexOf(SearchIncomesFilter, StringComparison.OrdinalIgnoreCase) < 0))
+                         income.PersonName.IndexOf(SearchIncomesFilter, StringComparison.OrdinalIgnoreCase) < 0) &&
+                        (income.Note == null ||
+                         income.Note.IndexOf(SearchIncomesFilter, StringComparison.OrdinalIgnoreCase) < 0))
                         return false;
 
                     if (FromDateIncomesFilter.HasValue && income.IncomeDate < FromDateIncomesFilter)

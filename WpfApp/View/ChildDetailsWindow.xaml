@@ -47,12 +47,35 @@
 		<TabItem Header="Осн. информация">
 			<DockPanel Margin="5">
 				<StackPanel Margin="5 0 0 0" Width="250" DockPanel.Dock="Right">
-					<Image MaxHeight="400" Source="{Binding CurrentChild.Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
+					<Button Command="{Binding OpenImageCommand}">
+						<Button.Template>
+							<ControlTemplate>
+								<ControlTemplate.Resources>
+									<ImageSource x:Key="NoPicture">../resources/no_picture.jpg</ImageSource>
+									<converter:NullConverter x:Key="NullConverter" Null="{StaticResource NoPicture}"/>
+									<converter:ToBoolConverter x:Key="BoolConverter"/>
+								</ControlTemplate.Resources>
+								<Image MaxHeight="400" Source="{Binding ChildImageSource, Converter={StaticResource NullConverter}}">
+									<Image.Style>
+										<Style TargetType="Image">
+											<Style.Triggers>
+												<DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Source, Converter={StaticResource BoolConverter}, ConverterParameter={StaticResource NoPicture}}">
+													<DataTrigger.Value>
+														<system:Boolean>False</system:Boolean>
+													</DataTrigger.Value>
+													<Setter Property="Cursor" Value="Hand"/>
+												</DataTrigger>
+											</Style.Triggers>
+										</Style>
+									</Image.Style>
+								</Image>
+							</ControlTemplate>
+						</Button.Template>
+					</Button>
 					<StackPanel>
 						<StackPanel.Resources>
-							<converter:FromBoolConverter x:Key="EnableConverter">
-								<converter:FromBoolConverter.True>sdf</converter:FromBoolConverter.True>
-							</converter:FromBoolConverter>
+							<converter:FromBoolConverter x:Key="EnableConverter"/>
+							<converter:ToNegateBoolConverter x:Key="NegateBoolConverter"/>
 						</StackPanel.Resources>
 						<StackPanel Orientation="Vertical" Visibility="{Binding Path=CurrentChildIsArchived, Converter={StaticResource VisibleCollapsedVisibilityConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}">
 							<TextBox IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
@@ -65,6 +88,11 @@
 									Command="{Binding RemoveChildFromArchiveCommand}" Content="Убрать из архива"/>
 						</StackPanel>
 						<Button Command="{Binding ChangeGroupCommand}" Content="Перевести в другую группу..."/>
+						<Separator Margin="10"/>
+						<Label HorizontalAlignment="Center" Content="Изображение"/>
+						<Button Command="{Binding ReloadImageFromFileCommand}" Content="Выбрать изображение..."/>
+						<Button Command="{Binding RecaptureImageFromCameraCommand}" Content="С камеры..."/>
+						<Button Command="{Binding RemoveImageCommand}" Content="Удалить изображение" IsEnabled="{Binding ChildImageSource, Converter={StaticResource NegateBoolConverter}, ConverterParameter={x:Null}}"/>
 					</StackPanel>
 				</StackPanel>
 				<DockPanel DockPanel.Dock="Left">

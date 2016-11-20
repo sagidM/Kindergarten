@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Windows;
 using NLog;
 using WpfApp.Framework;
@@ -10,7 +11,11 @@ namespace WpfApp
     /// </summary>
     public partial class App : Application
     {
+        /// <summary>Path to Camera.exe</summary>
+        public static readonly string WebcamPath = ConfigurationManager.AppSettings["WebcamPath"];
+        public const string WebcamArguments = "photo 1";
         public static readonly Logger Logger = LogManager.GetLogger(string.Empty);
+
         public App()
         {
             Startup += App_Startup;
@@ -25,7 +30,7 @@ namespace WpfApp
             Resources.MergedDictionaries.Add(res);
         }
 
-        private void App_Exit(object sender, ExitEventArgs e)
+        private static void App_Exit(object sender, ExitEventArgs e)
         {
             WindowStateSaver.SaveAllSettings();
             Logger.Trace("On Exit");

@@ -6,7 +6,7 @@ namespace WpfApp.View.Converter
 {
     public class FromBoolConverter : IValueConverter
     {
-        public static object Reverce = new object();
+        public static readonly object Reverce = new object();
 
         public object True { get; set; } = true;
         public object False { get; set; } = false;

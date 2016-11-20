@@ -2,15 +2,21 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.Entity;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 using WpfApp.Util;
 using WpfApp.View.DialogService;
 using WpfApp.View.UI;
+using System.Windows.Media.Imaging;
+using Microsoft.Win32;
+using WpfApp.Settings;
 
 namespace WpfApp.ViewModel
 {
@@ -25,6 +31,10 @@ namespace WpfApp.ViewModel
         public IRelayCommand PayFeeCommand { get; }
         public IRelayCommand PayForYearCommand { get; }
         public IRelayCommand PayTillDateWithRecalculateCommand { get; }
+        public IRelayCommand ReloadImageFromFileCommand { get; }
+        public IRelayCommand RecaptureImageFromCameraCommand { get; }
+        public IRelayCommand RemoveImageCommand { get; }
+        public IRelayCommand OpenImageCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -37,6 +47,10 @@ namespace WpfApp.ViewModel
             PayFeeCommand = new RelayCommand<string>(PayFee);
             PayForYearCommand = new RelayCommand(PayForYear);
             PayTillDateWithRecalculateCommand = new RelayCommand<DateTime>(PayTillDateWithRecalculate);
+            ReloadImageFromFileCommand = new RelayCommand(ReloadImageFromFile);
+            RecaptureImageFromCameraCommand = new RelayCommand(RecaptureImageFromCamera);
+            RemoveImageCommand = new RelayCommand(RemoveImage);
+            OpenImageCommand = new RelayCommand(OpenImage);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -52,6 +66,74 @@ namespace WpfApp.ViewModel
             _fatherNotifier.DirtyCountChanged += onDirtyCountChanged;
             _motherNotifier.DirtyCountChanged += onDirtyCountChanged;
             _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
+        }
+
+        private void OpenImage()
+        {
+            if (_imageUri != null)
+                Process.Start("explorer.exe", $"/select, \"{Path.GetFullPath(_imageUri.AbsolutePath)}\"");
+        }
+
+        private void RemoveImage()
+        {
+            if (CurrentChildPeoplePhotoPath == null) return;
+
+            _isNewPhoto = true;
+            _imageUri = null;
+            CurrentChildPeoplePhotoPath = null;
+            ChildImageSource = null;
+        }
+
+        // copypaste in AddChildViewModel.cs
+        private void RecaptureImageFromCamera()
+        {
+            var process = new Process
+            {
+                StartInfo =
+                {
+                    FileName = App.WebcamPath, RedirectStandardOutput = true, UseShellExecute = false, Arguments = App.WebcamArguments,
+                },
+            };
+            process.Start();
+            var imagePath = process.StandardOutput.ReadLine();
+            if (imagePath != null)
+            {
+                _isNewPhoto = true;
+                CurrentChildPeoplePhotoPath = CommonHelper.GetUniqueString();
+                SetChildImage(imagePath);
+            }
+        }
+
+        private void SetChildImage(string path)
+        {
+            _imageUri = new Uri(path);
+            try
+            {
+                var b = new BitmapImage();
+                b.BeginInit();
+                b.CacheOption = BitmapCacheOption.OnLoad;
+                b.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                b.UriSource = _imageUri;
+                b.EndInit();
+                ChildImageSource = b;
+            }
+            catch (Exception e)
+            {
+                App.Logger.Warn(e, "Image is not supported. The path: " + path);
+                _imageUri = null;
+                var message = File.Exists(path) ? "Изображение не поддерживается" : $"Файл {path} не найден";
+                MessageBox.Show(message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void ReloadImageFromFile()
+        {
+            if (_openFileDialog.ShowDialog() == false) return;
+
+            var path = _openFileDialog.FileName;
+            _isNewPhoto = true;
+            CurrentChildPeoplePhotoPath = CommonHelper.GetUniqueString();
+            SetChildImage(path);
         }
 
         private async void PayTillDateWithRecalculate(DateTime tillDate)
@@ -499,14 +581,35 @@ namespace WpfApp.ViewModel
                 // but "SaveChanges" set to null
                 if (CurrentChild.Tarif == null || CurrentChild.Tarif.Id != CurrentChild.TarifId)
                 {
-                    // add fictitious payment to change debt increase after this moment
-                    CurrentChild.Payments.Add(new MonthlyPayment
+                    var paymentDate = LastMonthlyPayment.PaymentDate;
+                    var now = DateTime.Now;
+                    if (LastMonthlyPayment.Id == 0 || paymentDate.Month != now.Month || paymentDate.Year != now.Year)
                     {
-                        Child = CurrentChild,
-                        MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment,
-                        PaidMoney = 0,
-                    });
+                        // add fictitious payment to change debt increase after this moment
+                        CurrentChild.Payments.Add(new MonthlyPayment
+                        {
+                            Child = CurrentChild,
+                            MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment,
+                            PaidMoney = 0,
+                            DebtAfterPaying = LastMonthlyPayment.DebtAfterPaying + (CurrentChildTarif.MonthlyPayment - LastMonthlyPayment.MoneyPaymentByTarif),
+                            // Test by Id 54
+                        });
+                    }
                 }
+
+                if (_isNewPhoto)
+                {
+                    if (_imageUri != null)
+                    {
+                        var filename = ImageUtil.SaveImage(_imageUri, AppFilePaths.ChildImages + Path.DirectorySeparatorChar + CurrentChildPeoplePhotoPath);
+                        CurrentChildPeoplePhotoPath = Path.GetFileName(filename);
+                    }
+                    else
+                    {
+                        CurrentChildPeoplePhotoPath = null;
+                    }
+                }
+
                 try
                 {
                     context.SaveChanges();
@@ -514,6 +617,14 @@ namespace WpfApp.ViewModel
                     _fatherContext?.SaveChanges();
                     _motherContext?.SaveChanges();
                     _otherContext?.SaveChanges();
+
+                    if (_isNewPhoto)
+                    {
+                        var oldOld = _oldPhotoSource;
+                        _oldPhotoSource = CurrentChildPeoplePhotoPath;
+                        _isNewPhoto = false;
+                        if (oldOld != null) File.Delete(AppFilePaths.ChildImages + Path.DirectorySeparatorChar + oldOld);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -647,6 +758,12 @@ namespace WpfApp.ViewModel
                 _childNotifier.SetProperty(nameof(CurrentChildIsNobody), CurrentChildIsNobody);
                 OnPropertyChanged(nameof(CurrentChildSex));
                 _childNotifier.SetProperty(nameof(CurrentChildSex), CurrentChildSex);
+
+                _oldPhotoSource = CurrentChildPeoplePhotoPath;
+                if (_oldPhotoSource != null)
+                    SetChildImage(Path.GetFullPath(Path.Combine(AppFilePaths.ChildImages, _oldPhotoSource)));
+                OnPropertyChanged(nameof(CurrentChildPeoplePhotoPath));
+                _childNotifier.SetProperty(nameof(CurrentChildPeoplePhotoPath), CurrentChildPeoplePhotoPath);
             }
         }
 
@@ -737,6 +854,18 @@ namespace WpfApp.ViewModel
             {
                 if (CurrentChild.TarifId == value.Id) return;
                 CurrentChild.TarifId = value.Id;
+                _childNotifier.OnPropertyChanged(value);
+            }
+        }
+
+        public string CurrentChildPeoplePhotoPath
+        {
+            get { return CurrentChild.Person.PhotoPath; }
+            set
+            {
+                if (CurrentChild.Person.PhotoPath == value) return;
+                CurrentChild.Person.PhotoPath = value;
+                OnPropertyChanged(nameof(ChildImageSource));
                 _childNotifier.OnPropertyChanged(value);
             }
         }
@@ -1363,6 +1492,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public ImageSource ChildImageSource
+        {
+            get { return _childImageSource; }
+            private set
+            {
+                if (Equals(value, _childImageSource)) return;
+                _childImageSource = value;
+                OnPropertyChanged();
+            }
+        }
+
         private double GetTotalCredit()
         {
             if (LastMonthlyPayment == null) return 0d;
@@ -1399,5 +1539,10 @@ namespace WpfApp.ViewModel
         private DateTime _startDateOfNextAnnualPayment;
         private double _totalAnnualUnpaidMoney;
         private string _monthlyPaymentMoney;
+        private Uri _imageUri;
+        private ImageSource _childImageSource;
+        private readonly OpenFileDialog _openFileDialog = IODialog.LoadOneImage;
+        private bool _isNewPhoto;
+        private string _oldPhotoSource;
     }
 }
