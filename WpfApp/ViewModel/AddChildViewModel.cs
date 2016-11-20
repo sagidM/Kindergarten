@@ -358,7 +358,6 @@ namespace WpfApp.ViewModel
 
         private Sex _otherSex;
         private string _otherParentText;
-        private DateTime _childAddedDate = DateTime.Now;
         private bool _startedToPayFromAdditionDate;
         private DateTime _childAdditionDate = DateTime.Now;
     }

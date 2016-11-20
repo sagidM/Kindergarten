@@ -10,7 +10,7 @@ namespace WpfApp
     /// </summary>
     public partial class App : Application
     {
-        public static readonly Logger Logger = LogManager.GetLogger("");
+        public static readonly Logger Logger = LogManager.GetLogger(string.Empty);
         public App()
         {
             Startup += App_Startup;

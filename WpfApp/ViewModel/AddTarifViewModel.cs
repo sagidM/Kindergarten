@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;

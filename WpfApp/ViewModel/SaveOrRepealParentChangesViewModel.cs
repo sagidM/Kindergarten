@@ -1,5 +1,4 @@
-﻿using System;
-using DAL.Model;
+﻿using DAL.Model;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
 

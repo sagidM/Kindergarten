@@ -33,7 +33,7 @@ namespace WpfApp.Framework.Core
             var pair = pairs.Pairs.FirstOrDefault(p => p.ViewModel == type);
 
             if (pair == null)
-                throw new ArgumentException($"ViewModel \"{type.FullName}\" doesn't register", nameof(type));
+                throw new ArgumentException($"ViewModel \"{type.FullName}\" doesn't register in App.xaml", nameof(type));
 
             pair.Start(pipe);
         }
