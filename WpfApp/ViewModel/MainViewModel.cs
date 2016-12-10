@@ -384,6 +384,7 @@ namespace WpfApp.ViewModel
                     .ToList();
             });
             Incomes = new ListCollectionView(_incomesList);
+            SelectedExpense = null;
 
             --LoadingDataCount;
         }
@@ -932,6 +933,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public Expense SelectedExpense
+        {
+            get { return _selectedExpense; }
+            set
+            {
+                if (Equals(value, _selectedExpense)) return;
+                _selectedExpense = value;
+                OnPropertyChanged();
+            }
+        }
+
         public string SearchExpensesFilter
         {
             get { return _searchExpensesFilter; }
@@ -1236,6 +1248,7 @@ namespace WpfApp.ViewModel
         private bool _isShowedAnnualIncomesFilter;
         private IncomeDTO _selectedIncome;
         private bool _canDeleteIncome;
+        private Expense _selectedExpense;
 
         // prefixes at Incomes tab
         private const string IncomePrefix = "Д-";

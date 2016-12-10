@@ -169,6 +169,7 @@
     <Compile Include="View\Converter\FontSizePercentConverter.cs" />
     <Compile Include="View\Converter\GroupTypeFinished.cs" />
     <Compile Include="View\Converter\InactiveParentMultiConverter.cs" />
+    <Compile Include="View\Converter\IncomeFictitionChangeId.cs" />
     <Compile Include="View\Converter\MonthPaymentConverter.cs" />
     <Compile Include="View\Converter\NullConverter.cs" />
     <Compile Include="View\Converter\PassportConverter.cs" />

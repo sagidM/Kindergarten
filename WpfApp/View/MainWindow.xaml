@@ -382,26 +382,42 @@
 					</StackPanel>
 
 					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="IncomesDataGrid" ItemsSource="{Binding Incomes}" SelectedItem="{Binding SelectedIncome}" Style="{StaticResource DataTableStyle}">
+						<DataGrid.Resources>
+							<converter:IncomeFictitionEditId x:Key="IncomeFictitionEditId" />
+						</DataGrid.Resources>
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="№">
 								<DataGridTextColumn.Binding>
-									<MultiBinding StringFormat="{}{0}{1}">
-										<Binding Path="Prefix"/>
+									<MultiBinding Converter="{StaticResource IncomeFictitionEditId}">
 										<Binding Path="Id"/>
+										<Binding Path="Prefix"/>
 									</MultiBinding>
+<!--									<Binding Path="." Converter="{StaticResource IncomeFictitionEditId}" Mode="TwoWay" />-->
 								</DataGridTextColumn.Binding>
 							</DataGridTextColumn>
 							<DataGridTextColumn Header="ФИО" Binding="{Binding PersonName}"/>
 							<DataGridTextColumn Header="Сумма" Binding="{Binding Money}"/>
-							<DataGridTextColumn Header="Дата" Binding="{Binding IncomeDate}"/>
-							<DataGridTemplateColumn Width="2*" Header="Примечание">
+							<DataGridTextColumn Header="Дата" Binding="{Binding IncomeDate, Converter={StaticResource DateConverter}}"/>
+							<DataGridTemplateColumn Width="2*" Header="Примечание" SortMemberPath="Note">
 								<DataGridTemplateColumn.CellTemplate>
 									<DataTemplate>
-										<TextBlock Text="{Binding Note}" TextWrapping="WrapWithOverflow"/>
+										<TextBlock FontSize="{Binding ElementName=IncomesDataGrid, Path=FontSize}" Text="{Binding Note}" TextWrapping="WrapWithOverflow"/>
 									</DataTemplate>
 								</DataGridTemplateColumn.CellTemplate>
+								<DataGridTemplateColumn.CellEditingTemplate>
+									<DataTemplate>
+										<TextBox FontSize="{Binding ElementName=IncomesDataGrid, Path=FontSize}" Text="{Binding Note}" TextWrapping="WrapWithOverflow"/>
+									</DataTemplate>
+								</DataGridTemplateColumn.CellEditingTemplate>
 							</DataGridTemplateColumn>
 							<!--<DataGridTextColumn Header="Примечание" Binding="{Binding Note}"/>-->
+							<DataGridTemplateColumn>
+								<DataGridTemplateColumn.CellEditingTemplate>
+									<DataTemplate>
+										<TextBox FocusManager.FocusedElement="{Binding RelativeSource={RelativeSource Self}}"></TextBox>
+									</DataTemplate>
+								</DataGridTemplateColumn.CellEditingTemplate>
+							</DataGridTemplateColumn>
 						</DataGrid.Columns>
 					</DataGrid>
 				</DockPanel>
@@ -426,17 +442,17 @@
 						</Grid>
 						<TextBlock Margin="15" TextAlignment="Center" Text="{Binding SumOfSumOfExpensesFilter, StringFormat='Затраты за выбранный период: {0}'}"/>
 						<Button Padding="4" Margin="20 5" Command="{Binding ResetExpensesFilterCommand}" Content="Сбросить"/>
-						<Button Padding="4" Margin="20 0" Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding}" Content="Удалить"
+						<Button Padding="4" Margin="20 0" Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem}" Content="Удалить"
 								IsEnabled="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem, Converter={StaticResource ToNegateBoolConverter}, ConverterParameter={x:Null}}"/>
 						<Separator Height="10" Margin="20 10"/>
 						<Button Padding="4" Margin="50 0" Command="{Binding ShowAddExpenseCommand}" Content="Добавить..."/>
 					</StackPanel>
-					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="ExpensesDataGrid" ItemsSource="{Binding Expenses}" Style="{StaticResource DataTableStyle}" IsReadOnly="True" SelectionMode="Single">
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="ExpensesDataGrid" SelectedItem="{Binding SelectedExpense}" ItemsSource="{Binding Expenses}" Style="{StaticResource DataTableStyle}" IsReadOnly="True" SelectionMode="Single">
 						<DataGrid.Columns>
 							<DataGridTextColumn Header="Номер" Binding="{Binding Id}"/>
 							<DataGridTextColumn Header="Тип" Binding="{Binding ExpenseType, Converter={StaticResource ExpenseTypeConverter}}"/>
 							<DataGridTextColumn Header="Сумма" Binding="{Binding Money}"/>
-							<DataGridTextColumn Header="Дата" Binding="{Binding ExpenseDate}"/>
+							<DataGridTextColumn Header="Дата" Binding="{Binding ExpenseDate, Converter={StaticResource DateConverter}}"/>
 							<DataGridTextColumn Header="Примечание" Binding="{Binding Description}"/>
 						</DataGrid.Columns>
 					</DataGrid>

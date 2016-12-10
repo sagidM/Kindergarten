@@ -276,29 +276,29 @@ namespace WpfApp.ViewModel
                     .Include("Child.Person").Include("Child.Tarif").Include("Child.Group")
                     .Where(e => e.ChildId == id)
                     .ToList();
-                var context = new KindergartenContext();
-                currentFather = context.ParentChildren
+                var tmpContext = new KindergartenContext();
+                currentFather = tmpContext.ParentChildren
                     .Where(pc => pc.ChildId == id && pc.ParentType == Parents.Father)
                     .Select(pc => pc.Parent)
                     .Include("Person")
                     .FirstOrDefault();
-                _fatherContext = currentFather != null ? context : null;
+                _fatherContext = currentFather != null ? tmpContext : null;
 
-                context = new KindergartenContext();
-                currentMother = context.ParentChildren.Include("Parent.Person")
+                tmpContext = new KindergartenContext();
+                currentMother = tmpContext.ParentChildren.Include("Parent.Person")
                     .Where(pc => pc.ChildId == id && pc.ParentType == Parents.Mother)
                     .Select(pc => pc.Parent)
                     .Include("Person")
                     .FirstOrDefault();
-                _motherContext = currentMother != null ? context : null;
+                _motherContext = currentMother != null ? tmpContext : null;
 
-                context = new KindergartenContext();
-                currentOther = context.ParentChildren.Include("Parent.Person")
+                tmpContext = new KindergartenContext();
+                currentOther = tmpContext.ParentChildren.Include("Parent.Person")
                     .Where(pc => pc.ChildId == id && pc.ParentType == Parents.Other)
                     .Select(pc => pc.Parent)
                     .Include("Person")
                     .FirstOrDefault();
-                _otherContext = currentOther != null ? context : null;
+                _otherContext = currentOther != null ? tmpContext : null;
 
                 int maxEnterIndex = -1;
                 DateTime maxDateTime = DateTime.MinValue;
@@ -581,6 +581,8 @@ namespace WpfApp.ViewModel
                 // but "SaveChanges" set to null
                 if (CurrentChild.Tarif == null || CurrentChild.Tarif.Id != CurrentChild.TarifId)
                 {
+                    // if tarif was exchanged, add fictition payment or change "MonthlyPayment" of current
+
                     var paymentDate = LastMonthlyPayment.PaymentDate;
                     var now = DateTime.Now;
                     if (LastMonthlyPayment.Id == 0 || paymentDate.Month != now.Month || paymentDate.Year != now.Year)
@@ -591,9 +593,13 @@ namespace WpfApp.ViewModel
                             Child = CurrentChild,
                             MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment,
                             PaidMoney = 0,
-                            DebtAfterPaying = LastMonthlyPayment.DebtAfterPaying + (CurrentChildTarif.MonthlyPayment - LastMonthlyPayment.MoneyPaymentByTarif),
-                            // Test by Id 54
+                            DebtAfterPaying = LastMonthlyPayment.DebtAfterPaying,
                         });
+                    }
+                    else
+                    {
+                        var last = CurrentChild.Payments.OrderBy(p => p.PaymentDate).Last();   // last payment was remitted in this month
+                        last.MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment;
                     }
                 }
 
