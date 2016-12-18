@@ -35,6 +35,8 @@ namespace WpfApp.ViewModel
         public IRelayCommand RecaptureImageFromCameraCommand { get; }
         public IRelayCommand RemoveImageCommand { get; }
         public IRelayCommand OpenImageCommand { get; }
+        public IRelayCommand PrintCommand { get; }
+        public IRelayCommand OpenDocumentDirectoryCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -51,6 +53,8 @@ namespace WpfApp.ViewModel
             RecaptureImageFromCameraCommand = new RelayCommand(RecaptureImageFromCamera);
             RemoveImageCommand = new RelayCommand(RemoveImage);
             OpenImageCommand = new RelayCommand(OpenImage);
+            PrintCommand = new RelayCommand(PrintTest);
+            OpenDocumentDirectoryCommand = new RelayCommand(OpenDocumentDirectory);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -66,6 +70,73 @@ namespace WpfApp.ViewModel
             _fatherNotifier.DirtyCountChanged += onDirtyCountChanged;
             _motherNotifier.DirtyCountChanged += onDirtyCountChanged;
             _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
+        }
+
+        private void OpenDocumentDirectory()
+        {
+            var s = Path.GetFullPath(_documentDirectoryPath);
+            if (!Directory.Exists(s))
+            {
+                if (MessageBox.Show("Папки с документами не существует, создать её?", "Отсутствие пакета документов", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
+                {
+                    return;
+                }
+                Directory.CreateDirectory(s);
+            }
+            Process.Start("explorer.exe", $"\"{s}\"");
+        }
+
+        private void PrintTest()
+        {
+            var now = DateTime.Now;
+            var data = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&child_second_name"] = CurrentChild?.Person?.LastName,
+                ["&child_first_name"] = CurrentChild?.Person?.FirstName,
+                ["&child_patronymic"] = CurrentChild?.Person?.Patronymic,
+                ["&child_birthdate"] = CurrentChild?.BirthDate.ToString("dd-mm-yyyy"),
+                ["&parent_type"] = "НЕЗАПИСАНО",
+
+                ["&father_second_name"] = CurrentFather?.Person?.LastName,
+                ["&father_first_name"] = CurrentFather?.Person?.FirstName,
+                ["&father_patronymic"] = CurrentFather?.Person?.Patronymic,
+                ["&father_residence_address"] = CurrentFather?.ResidenceAddress,
+                ["&father_phone_number"] = CurrentFather?.PhoneNumber,
+                ["&father_passport_series"] = CurrentFather?.PassportSeries?.Substring(0, 4),
+                ["&father_passport_number"] = CurrentFather?.PassportSeries?.Substring(4),
+                ["&father_passport_issue_date"] = CurrentFather?.PassportIssueDate.ToString("dd-mm-yyyy"),
+                ["&father_passport_issue_by"] = CurrentFather?.PassportIssuedBy,
+
+                ["&mother_second_name"] = CurrentMother.Person?.LastName,
+                ["&mother_first_name"] = CurrentMother?.Person?.FirstName,
+                ["&mother_patronymic"] = CurrentMother?.Person?.Patronymic,
+                ["&mother_residence_address"] = CurrentMother?.ResidenceAddress,
+                ["&mother_phone_number"] = CurrentMother?.PhoneNumber,
+                ["&mother_passport_series"] = CurrentMother?.PassportSeries.Substring(0, 4),
+                ["&mother_passport_number"] = CurrentMother?.PassportSeries.Substring(4),
+                ["&mother_passport_issue_date"] = CurrentMother?.PassportIssueDate.ToString("dd-mm-yyyy"),
+                ["&mother_passport_issue_by"] = CurrentMother?.PassportIssuedBy,
+            };
+            // &payment_id	&payment_date	&payment_credit	&child_debt
+            var body = new IDictionary<string, string>[2];
+            body[0] = new Dictionary<string, string>
+            {
+                ["&payment_id"] = "1",
+                ["&payment_date"] = "2016-11-18",
+                ["&payment_credit"] = "2500",
+                ["&payment_debt"] = "0",
+            };
+            body[1] = new Dictionary<string, string>
+            {
+                ["&payment_id"] = "2",
+                ["&payment_date"] = "2016-12-08",
+                ["&payment_credit"] = "3000",
+                ["&payment_debt"] = "0",
+            };
+            WordWorker.InsertTableAndReplaceText(Path.GetFullPath("template.docx"), Path.GetFullPath("result.docx"), body, data);
         }
 
         private void OpenImage()
@@ -310,9 +381,10 @@ namespace WpfApp.ViewModel
                         maxEnterIndex = i;
                     }
                 }
-                if (maxEnterIndex == -1) throw new NotImplementedException();
+                if (maxEnterIndex == -1) throw new NotImplementedException("There's some bug");
                 currentChild = enters[0].Child; // 0 - enters consists of same elements
                 currentChild.LastEnterChild = enters[maxEnterIndex];
+                _documentDirectoryPath = AppFilePaths.GetDocumentsDirecoryPathForChild(currentChild, enters[0].EnterDate.Year);
 
                 groups = (IEnumerable<Group>)Pipe.GetParameter("groups");
                 tarifs = (IEnumerable<Tarif>)Pipe.GetParameter("tarifs");
@@ -1550,5 +1622,6 @@ namespace WpfApp.ViewModel
         private readonly OpenFileDialog _openFileDialog = IODialog.LoadOneImage;
         private bool _isNewPhoto;
         private string _oldPhotoSource;
+        private volatile string _documentDirectoryPath;
     }
 }

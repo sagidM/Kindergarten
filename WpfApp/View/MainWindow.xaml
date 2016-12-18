@@ -40,11 +40,10 @@
 					<WrapPanel.ToolTip>
 						<TextBlock Text="{Binding Path=ChildTotalCount, StringFormat='Общее число детей: {0:### ### ##0}'}"/>
 					</WrapPanel.ToolTip>
-					<TextBlock FontSize="11" Text="Количество детей: "/>
-					<TextBlock FontSize="11" Text="{Binding Path=Count}"
-					       DataContext="{Binding Path=Children, TargetNullValue={}}">
-					</TextBlock>
-					<TextBlock FontSize="11" Text="{Binding Path=ChildNoArchivedCount, StringFormat='. Вне архива - {0}'}"/>
+					<TextBlock FontSize="11" Text="{Binding Path=ChildNoArchivedCount, StringFormat='  Детей в саду: {0}    '}"/>
+					<TextBlock FontSize="11" Text="{Binding Path=Count, StringFormat='Детей в таблице: {0}    '}"
+					       DataContext="{Binding Path=Children, TargetNullValue={}}"/>
+					<TextBlock FontSize="11" Text="{Binding CommonDebt, StringFormat='Общий долг: {0}'}"/>
 				</WrapPanel>
 			</StatusBarItem>
 			<StatusBarItem HorizontalAlignment="Right">
@@ -96,7 +95,7 @@
 									<DockPanel>
 										<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
 									</DockPanel>
-									<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 20">
+									<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 5">
 										<StackPanel>
 											<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
 											<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
@@ -125,10 +124,12 @@
 									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
 								</StackPanel>
 
-								<Separator Margin="20" Height="20"/>
-								<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
-								<Separator Margin="20" Height="20"/>
-
+								<StackPanel ZIndex="2">
+									<Separator Margin="20 10" Height="10"/>
+									<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
+									<Separator Margin="20 10" Height="10"/>
+								</StackPanel>
+								
 								<StackPanel DataContext="{Binding ElementName=ThisWindow, Path=DataContext.SelectedChild}">
 									<StackPanel.Style>
 										<Style TargetType="StackPanel">
@@ -145,50 +146,83 @@
 											<Setter Property="Margin" Value="3"/>
 										</Style>
 									</StackPanel.Resources>
-									<TextBlock Text="Краткая информация"/>
-									<Image MaxHeight="400" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}"/>
-									<TextBlock>
-										<TextBlock.Text>
-											<MultiBinding StringFormat="{}{0} {1} {2}">
-												<Binding Path="Person.LastName"/>
-												<Binding Path="Person.FirstName"/>
-												<Binding Path="Person.Patronymic"/>
-											</MultiBinding>
-										</TextBlock.Text>
-									</TextBlock>
-									<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource DateConverter}, StringFormat='Родился: {0}'}"/>
-									<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource YearsOldConverter}, StringFormat='Возраст: {0}'}"/>
-									<TextBlock Text="{Binding Path=Group.GroupType, Converter={StaticResource GroupsConverter}, StringFormat='Группа: {0}'}"/>
-									<TextBlock Text="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}, StringFormat='Дата зачисления: {0}'}"/>
-									<TextBlock Text="{Binding Path=LocationAddress}"/>
-									<TextBlock Text="Номера родителей:"/>
-									<ListBox ItemsSource="{Binding Path=ParentsChildren}" HorizontalAlignment="Center">
-										<ListBox.Style>
-											<Style TargetType="ListBox">
-												<Style.Triggers>
-													<Trigger Property="HasItems" Value="True">
-														<Setter Property="Background" Value="Bisque"/>
-													</Trigger>
-													<DataTrigger Binding="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=Items.Count}"
+									
+									<Grid ZIndex="-1">
+										<Image Name="SmallImage" Margin="0 -50 0 0" MaxHeight="200" MaxWidth="200" Source="{Binding Person.PhotoPath, Converter={StaticResource ChildImageConverter}}" />
+										<Rectangle SnapsToDevicePixels="True" Stroke="#F3F3F3" Margin="{Binding ElementName=SmallImage, Path=Margin}" Width="200" Height="200">
+											<Rectangle.Fill>
+												<DrawingBrush>
+													<DrawingBrush.Drawing>
+														<GeometryDrawing Brush="#F3F3F3">
+															<GeometryDrawing.Geometry>
+																<CombinedGeometry GeometryCombineMode="Exclude">
+																	<CombinedGeometry.Geometry1>
+																		<RectangleGeometry Rect="0 0 1 1" />
+																	</CombinedGeometry.Geometry1>
+																	<CombinedGeometry.Geometry2>
+																		<EllipseGeometry Center="0.5 0.5" RadiusX="0.3" RadiusY="0.3" />
+																	</CombinedGeometry.Geometry2>
+																</CombinedGeometry>
+															</GeometryDrawing.Geometry>
+														</GeometryDrawing>
+													</DrawingBrush.Drawing>
+												</DrawingBrush>
+											</Rectangle.Fill>
+										</Rectangle>
+									</Grid>
+
+									<StackPanel ZIndex="10" Margin="0 -40 0 0">
+										<TextBlock>
+											<TextBlock.Text>
+												<MultiBinding StringFormat="{}{0} {1} {2}">
+													<Binding Path="Person.LastName"/>
+													<Binding Path="Person.FirstName"/>
+													<Binding Path="Person.Patronymic"/>
+												</MultiBinding>
+											</TextBlock.Text>
+										</TextBlock>
+										<TextBlock Text="{Binding Path=BirthDate, Converter={StaticResource YearsOldConverter}, StringFormat='Возраст: {0}'}"/>
+										<TextBlock Text="{Binding Path=Group.GroupType, Converter={StaticResource GroupsConverter}, StringFormat='Группа: {0}'}"/>
+										<TextBlock Text="Номера родителей:"/>
+										<ListBox ItemsSource="{Binding Path=ParentsChildren}" HorizontalAlignment="Center">
+											<ListBox.Style>
+												<Style TargetType="ListBox">
+													<Style.Triggers>
+														<Trigger Property="HasItems" Value="True">
+															<Setter Property="Background" Value="Bisque"/>
+														</Trigger>
+														<DataTrigger Binding="{Binding RelativeSource={x:Static RelativeSource.Self}, Path=Items.Count}"
 															 Value="0">
-														<Setter Property="Template">
-															<Setter.Value>
-																<ControlTemplate>
-																	<TextBlock Text="-----"/>
-																</ControlTemplate>
-															</Setter.Value>
-														</Setter>
-													</DataTrigger>
-												</Style.Triggers>
-											</Style>
-										</ListBox.Style>
-										<ListBox.ItemTemplate>
-											<DataTemplate>
-												<TextBlock Text="{Binding Parent.PhoneNumber}"/>
-											</DataTemplate>
-										</ListBox.ItemTemplate>
-									</ListBox>
-									<Button Margin="0 20" DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Content="Подробнее о ребёнке..."/>
+															<Setter Property="Template">
+																<Setter.Value>
+																	<ControlTemplate>
+																		<TextBlock Text="-----"/>
+																	</ControlTemplate>
+																</Setter.Value>
+															</Setter>
+														</DataTrigger>
+													</Style.Triggers>
+												</Style>
+											</ListBox.Style>
+											<ListBox.ItemTemplate>
+												<DataTemplate>
+													<TextBlock Margin="5 0" TextAlignment="Center" Text="{Binding Parent.PhoneNumber}"/>
+												</DataTemplate>
+											</ListBox.ItemTemplate>
+											<ListBox.ItemContainerStyle>
+												<Style TargetType="ListBoxItem">
+													<Setter Property="Template">
+														<Setter.Value>
+															<ControlTemplate TargetType="ListBoxItem">
+																<ContentPresenter/>
+															</ControlTemplate>
+														</Setter.Value>
+													</Setter>
+												</Style>
+											</ListBox.ItemContainerStyle>
+										</ListBox>
+									</StackPanel>
+									<Button Margin="50 20 50 0" DataContext="{StaticResource ViewModel}" Command="{Binding ShowChildDetailsCommand}" CommandParameter="{Binding ElementName=DataGridChildren, Path=SelectedItem}" Content="Подробнее..."/>
 								</StackPanel>
 							</StackPanel>
 						</StackPanel>
@@ -203,6 +237,7 @@
 						</DataGrid.InputBindings>
 						<DataGrid.Resources>
 							<converter:ToNegateBoolConverter x:Key="BoolConverter" True="Да" False="Нет"/>
+							<converter:NullConverter x:Key="NullConverter" Null="Нет оплат"/>
 						</DataGrid.Resources>
 						<DataGrid.Columns>
 							<DataGridTextColumn Binding="{Binding Id}" Header="№" />
@@ -223,6 +258,7 @@
 							<DataGridTextColumn Width="*" Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
 							<DataGridTextColumn Width="0.5*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
 							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.ExpulsionDate, Converter={StaticResource BoolConverter}, ConverterParameter={x:Null}}" Header="В архиве"/>
+							<DataGridTextColumn Binding="{Binding Path=MonthlyDebt, Converter={StaticResource NullConverter}}" Header="Долг"/>
 						</DataGrid.Columns>
 					</DataGrid>
 
@@ -386,13 +422,13 @@
 							<converter:IncomeFictitionEditId x:Key="IncomeFictitionEditId" />
 						</DataGrid.Resources>
 						<DataGrid.Columns>
-							<DataGridTextColumn Header="№">
+							<DataGridTextColumn Header="№" SortMemberPath="Id">
 								<DataGridTextColumn.Binding>
 									<MultiBinding Converter="{StaticResource IncomeFictitionEditId}">
 										<Binding Path="Id"/>
 										<Binding Path="Prefix"/>
 									</MultiBinding>
-<!--									<Binding Path="." Converter="{StaticResource IncomeFictitionEditId}" Mode="TwoWay" />-->
+									<!--									<Binding Path="." Converter="{StaticResource IncomeFictitionEditId}" Mode="TwoWay" />-->
 								</DataGridTextColumn.Binding>
 							</DataGridTextColumn>
 							<DataGridTextColumn Header="ФИО" Binding="{Binding PersonName}"/>
@@ -426,7 +462,7 @@
 				<DockPanel Margin="{StaticResource DockPanelThickness}">
 					<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
 						<TextBox Padding="4" Style="{StaticResource PlaceHolderTextBox}" Tag="Поиск..." Text="{Binding SearchExpensesFilter, UpdateSourceTrigger=PropertyChanged}"/>
-						<ComboBox Margin="0 5" ItemsSource="{StaticResource ExpenseTypes}" SelectedItem="{Binding SelectedExpenseTypesExpensesFilter}" ItemTemplate="{StaticResource ExpenseTypeDataTemplate}"></ComboBox>
+						<ComboBox Margin="0 5" ItemsSource="{StaticResource ExpenseTypes}" SelectedItem="{Binding SelectedExpenseTypesExpensesFilter}" ItemTemplate="{StaticResource ExpenseTypeDataTemplate}"/>
 						<Label Content="Дата расходов"/>
 						<Grid>
 							<Grid.ColumnDefinitions>
@@ -457,6 +493,11 @@
 						</DataGrid.Columns>
 					</DataGrid>
 				</DockPanel>
+			</TabItem>
+			<TabItem Header="Документы">
+				<StackPanel>
+					<Button  Content="Выбрать шаблон договора добавления детей"/>
+				</StackPanel>
 			</TabItem>
 		</TabControl>
 	</DockPanel>

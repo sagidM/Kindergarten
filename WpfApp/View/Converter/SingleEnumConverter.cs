@@ -22,7 +22,10 @@ namespace WpfApp.View.Converter
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return Enum.Parse(targetType, (string) parameter);
+            var s = parameter as string;
+            if (s != null)
+                return Enum.Parse(targetType, s);
+            return parameter;
         }
     }
     public class SingleEnumValuesConverter : IValueConverter

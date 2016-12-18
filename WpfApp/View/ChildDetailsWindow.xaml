@@ -46,8 +46,8 @@
 	<TabControl>
 		<TabItem Header="Осн. информация">
 			<DockPanel Margin="5">
-				<StackPanel Margin="5 0 0 0" Width="250" DockPanel.Dock="Right">
-					<Button Command="{Binding OpenImageCommand}">
+				<DockPanel DockPanel.Dock="Right" Margin="5 0 0 0" Width="250">
+					<Button DockPanel.Dock="Top" Command="{Binding OpenImageCommand}">
 						<Button.Template>
 							<ControlTemplate>
 								<ControlTemplate.Resources>
@@ -72,29 +72,34 @@
 							</ControlTemplate>
 						</Button.Template>
 					</Button>
-					<StackPanel>
-						<StackPanel.Resources>
-							<converter:FromBoolConverter x:Key="EnableConverter"/>
-							<converter:ToNegateBoolConverter x:Key="NegateBoolConverter"/>
-						</StackPanel.Resources>
-						<StackPanel Orientation="Vertical" Visibility="{Binding Path=CurrentChildIsArchived, Converter={StaticResource VisibleCollapsedVisibilityConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}">
-							<TextBox IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
-									 Name="ArchiveNote" Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..."/>
-							<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
-									Command="{Binding AddChildToArchiveCommand}" CommandParameter="{Binding ElementName=ArchiveNote, Path=Text}" Content="Отправить в архив"/>
+					<ScrollViewer DockPanel.Dock="Bottom">
+						<StackPanel>
+							<StackPanel.Resources>
+								<converter:FromBoolConverter x:Key="EnableConverter"/>
+								<converter:ToNegateBoolConverter x:Key="NegateBoolConverter"/>
+							</StackPanel.Resources>
+							<StackPanel Orientation="Vertical" Visibility="{Binding Path=CurrentChildIsArchived, Converter={StaticResource VisibleCollapsedVisibilityConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}">
+								<TextBox IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
+								         Name="ArchiveNote" Style="{StaticResource PlaceHolderTextBox}" Tag="Примечание..."/>
+								<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}, ConverterParameter={x:Static converter:FromBoolConverter.Reverce}}"
+								        Command="{Binding AddChildToArchiveCommand}" CommandParameter="{Binding ElementName=ArchiveNote, Path=Text}" Content="Отправить в архив"/>
+							</StackPanel>
+							<StackPanel Orientation="Vertical" Visibility="{Binding Path=CurrentChildIsArchived, Converter={StaticResource VisibleCollapsedVisibilityConverter}}">
+								<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}}"
+								        Command="{Binding RemoveChildFromArchiveCommand}" Content="Убрать из архива"/>
+							</StackPanel>
+							<Button Command="{Binding ChangeGroupCommand}" Content="Перевести в другую группу..."/>
+							<Separator Margin="10"/>
+							<Label HorizontalAlignment="Center" Content="Изображение"/>
+							<Button Command="{Binding ReloadImageFromFileCommand}" Content="Выбрать изображение..."/>
+							<Button Command="{Binding RecaptureImageFromCameraCommand}" Content="С камеры..."/>
+							<Button Command="{Binding RemoveImageCommand}" Content="Удалить изображение" IsEnabled="{Binding ChildImageSource, Converter={StaticResource NegateBoolConverter}, ConverterParameter={x:Null}}"/>
+							<Button Command="{Binding PrintCommand}" Content="Print" />
+							<Button Command="{Binding OpenDocumentDirectoryCommand}" Content="Документы" />
 						</StackPanel>
-						<StackPanel Orientation="Vertical" Visibility="{Binding Path=CurrentChildIsArchived, Converter={StaticResource VisibleCollapsedVisibilityConverter}}">
-							<Button IsEnabled="{Binding CurrentChildIsArchived, Converter={StaticResource EnableConverter}}"
-									Command="{Binding RemoveChildFromArchiveCommand}" Content="Убрать из архива"/>
-						</StackPanel>
-						<Button Command="{Binding ChangeGroupCommand}" Content="Перевести в другую группу..."/>
-						<Separator Margin="10"/>
-						<Label HorizontalAlignment="Center" Content="Изображение"/>
-						<Button Command="{Binding ReloadImageFromFileCommand}" Content="Выбрать изображение..."/>
-						<Button Command="{Binding RecaptureImageFromCameraCommand}" Content="С камеры..."/>
-						<Button Command="{Binding RemoveImageCommand}" Content="Удалить изображение" IsEnabled="{Binding ChildImageSource, Converter={StaticResource NegateBoolConverter}, ConverterParameter={x:Null}}"/>
-					</StackPanel>
-				</StackPanel>
+					</ScrollViewer>
+				</DockPanel>
+
 				<DockPanel DockPanel.Dock="Left">
 					<Button IsEnabled="{Binding IsDirty}" DockPanel.Dock="Bottom" IsDefault="True" Command="{Binding SaveChangesCommand}">
 						<Button.Content>
@@ -368,72 +373,72 @@
 
 							<!--Other-->
 							<StackPanel Margin="0 15 0 0">
-							<StackPanel Margin="0 15 0 0" Visibility="{Binding Path=CurrentOther, Converter={StaticResource CollapsedOnEqualsConverter}, ConverterParameter={x:Null}}">
-								<DockPanel>
-									<Button DockPanel.Dock="Right" Style="{StaticResource DetachButton}" Command="{Binding DetachParentCommand}" CommandParameter="{x:Static m:Parents.Other}" Content="Открепить"/>
-									<Label Padding="0" DockPanel.Dock="Left">
-										<Label.Content>
-											<StackPanel Orientation="Horizontal">
-												<Viewbox Style="{StaticResource PersonLogoViewbox}">
-													<Path Style="{StaticResource PersonLogoPath}" Data="{StaticResource OtherParentLogoData}"></Path>
-												</Viewbox>
-												<TextBlock Text="Информация об ином представителе"/>
-											</StackPanel>
-										</Label.Content>
-									</Label>
-								</DockPanel>
-								<Separator Height="5"/>
-								<Grid>
-									<Grid.RowDefinitions>
-										<RowDefinition/>
-										<RowDefinition/>
-										<RowDefinition/>
-										<RowDefinition/>
-									</Grid.RowDefinitions>
-									<Grid.ColumnDefinitions>
-										<ColumnDefinition/>
-										<ColumnDefinition/>
-									</Grid.ColumnDefinitions>
-									<WrapPanel Grid.Row="0" Grid.Column="0" Margin="3">
-										<Label Content="ФИО:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonLastName, UpdateSourceTrigger=PropertyChanged}"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonFirstName, UpdateSourceTrigger=PropertyChanged}"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonPatronymic, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="1" Grid.Column="0" Margin="3">
-										<Label Content="Серия:"/>
-										<TextBox MinWidth="30" MaxLength="10" Text="{Binding CurrentOtherPassportSeries, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="2" Grid.Column="0" Margin="3">
-										<Label Content="Выдан:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherPassportIssuedBy, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="3" Grid.Column="0" Margin="3">
-										<Label Content="Дата выдачи:"/>
-										<DatePicker SelectedDate="{Binding CurrentOtherPassportIssueDate, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="0" Grid.Column="1" Margin="3">
-										<Label Content="Телефон:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherPhoneNumber, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="1" Grid.Column="1" Margin="3">
-										<Label Content="Адрес прописки:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherLocationAddress, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="2" Grid.Column="1" Margin="3">
-										<Label Content="Адрес проживания:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherResidenceAddress, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-									<WrapPanel Grid.Row="3" Grid.Column="1" Margin="3">
-										<Label Content="Место работы:"/>
-										<TextBox MinWidth="30" Text="{Binding CurrentOtherWorkAddress, UpdateSourceTrigger=PropertyChanged}"/>
-									</WrapPanel>
-								</Grid>
-							</StackPanel>
-							<Button Style="{StaticResource AttachButton}" Content="Закрепить иного представителя" Command="{Binding AttachParentCommand}" CommandParameter="{x:Static m:Parents.Other}"
+								<StackPanel Margin="0 15 0 0" Visibility="{Binding Path=CurrentOther, Converter={StaticResource CollapsedOnEqualsConverter}, ConverterParameter={x:Null}}">
+									<DockPanel>
+										<Button DockPanel.Dock="Right" Style="{StaticResource DetachButton}" Command="{Binding DetachParentCommand}" CommandParameter="{x:Static m:Parents.Other}" Content="Открепить"/>
+										<Label Padding="0" DockPanel.Dock="Left">
+											<Label.Content>
+												<StackPanel Orientation="Horizontal">
+													<Viewbox Style="{StaticResource PersonLogoViewbox}">
+														<Path Style="{StaticResource PersonLogoPath}" Data="{StaticResource OtherParentLogoData}"></Path>
+													</Viewbox>
+													<TextBlock Text="Информация об ином представителе"/>
+												</StackPanel>
+											</Label.Content>
+										</Label>
+									</DockPanel>
+									<Separator Height="5"/>
+									<Grid>
+										<Grid.RowDefinitions>
+											<RowDefinition/>
+											<RowDefinition/>
+											<RowDefinition/>
+											<RowDefinition/>
+										</Grid.RowDefinitions>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition/>
+											<ColumnDefinition/>
+										</Grid.ColumnDefinitions>
+										<WrapPanel Grid.Row="0" Grid.Column="0" Margin="3">
+											<Label Content="ФИО:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonLastName, UpdateSourceTrigger=PropertyChanged}"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonFirstName, UpdateSourceTrigger=PropertyChanged}"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherPersonPatronymic, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="1" Grid.Column="0" Margin="3">
+											<Label Content="Серия:"/>
+											<TextBox MinWidth="30" MaxLength="10" Text="{Binding CurrentOtherPassportSeries, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="2" Grid.Column="0" Margin="3">
+											<Label Content="Выдан:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherPassportIssuedBy, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="3" Grid.Column="0" Margin="3">
+											<Label Content="Дата выдачи:"/>
+											<DatePicker SelectedDate="{Binding CurrentOtherPassportIssueDate, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="0" Grid.Column="1" Margin="3">
+											<Label Content="Телефон:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherPhoneNumber, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="1" Grid.Column="1" Margin="3">
+											<Label Content="Адрес прописки:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherLocationAddress, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="2" Grid.Column="1" Margin="3">
+											<Label Content="Адрес проживания:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherResidenceAddress, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+										<WrapPanel Grid.Row="3" Grid.Column="1" Margin="3">
+											<Label Content="Место работы:"/>
+											<TextBox MinWidth="30" Text="{Binding CurrentOtherWorkAddress, UpdateSourceTrigger=PropertyChanged}"/>
+										</WrapPanel>
+									</Grid>
+								</StackPanel>
+								<Button Style="{StaticResource AttachButton}" Content="Закрепить иного представителя" Command="{Binding AttachParentCommand}" CommandParameter="{x:Static m:Parents.Other}"
 									Visibility="{Binding Path=CurrentOther, Converter={StaticResource VisibleOnEqualsConverter}, ConverterParameter={x:Null}}"/>
 							</StackPanel>
-							
+
 						</StackPanel>
 					</ScrollViewer>
 				</DockPanel>
@@ -469,7 +474,7 @@
 							<Label Content="Депозит:"/>
 							<Label Content="{Binding TotalChildDeposit}"/>
 						</WrapPanel>
-						
+
 						<DockPanel Margin="10">
 							<Grid DockPanel.Dock="Top" Background="LightGray">
 								<Grid.ColumnDefinitions>

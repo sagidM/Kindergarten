@@ -13,9 +13,9 @@ namespace WpfApp.View.Converter
             switch (sex)
             {
                 case Sex.Male:
-                    return "мальчик";
+                    return "мужской";
                 case Sex.Female:
-                    return "девочка";
+                    return "женский";
             }
             throw new ArgumentException("Wrong value sex");
         }

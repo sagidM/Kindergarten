@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -11,6 +13,7 @@ using DAL.Model;
 using WpfApp.Framework;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
+using WpfApp.Settings;
 using WpfApp.Util;
 using WpfApp.View.DialogService;
 using static WpfApp.App;
@@ -304,6 +307,8 @@ namespace WpfApp.ViewModel
             var addedChild = (Child)pipe.GetParameter("saved_child_result");
             if (addedChild != null)
             {
+                SaveAddedChildDocument(addedChild, (ParentChild)pipe.GetParameter("brought_parent"), (IList<ParentChild>)pipe.GetParameter("parents"),
+                    ((EnterChild)pipe.GetParameter("enter")).EnterDate);
                 var enterDate = addedChild.LastEnterChild.EnterDate;
                 if (enterDate < FromEnterDateChildrenFilter) FromEnterDateChildrenFilter = enterDate;
                 var mResult = MessageBox.Show("Ребёнок добавлен.\r\nОткрыть портфолио?", "Что дальше?", MessageBoxButton.YesNo);
@@ -313,6 +318,93 @@ namespace WpfApp.ViewModel
                 }
                 await UpdateChildrenAsync();
             }
+        }
+
+        private void SaveAddedChildDocument(Child addedChild, ParentChild bringParentChild, IEnumerable<ParentChild> parents, DateTime enterDate)
+        {
+            Parent father = null, mother = null, other = null, bringParent = null;
+            foreach (var parent in parents)
+            {
+                switch (parent.ParentType)
+                {
+                    case Parents.Father:
+                        father = parent.Parent;
+                        break;
+                    case Parents.Mother:
+                        mother = parent.Parent;
+                        break;
+                    case Parents.Other:
+                        other = parent.Parent;
+                        break;
+                }
+            }
+            switch (bringParentChild.ParentType)
+            {
+                case Parents.Father:
+                    bringParent = father;
+                    break;
+                case Parents.Mother:
+                    bringParent = mother;
+                    break;
+                case Parents.Other:
+                    bringParent = other;
+                    break;
+            }
+            string groupName = Groups.Cast<Group>().First(g => g.Id == addedChild.GroupId).Name;
+
+            var now = DateTime.Now;
+            var data = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&child_second_name"] = addedChild.Person.LastName,
+                ["&child_first_name"] = addedChild.Person.FirstName,
+                ["&child_patronymic"] = addedChild.Person.Patronymic,
+                ["&child_birthdate"] = addedChild.BirthDate.ToString("dd-mm-yyyy"),
+                ["&group_name"] = groupName,
+                ["&parent_type"] = bringParentChild.ParentType == Parents.Father
+                                    ? "Отец"
+                                    : bringParentChild.ParentType == Parents.Mother
+                                        ? "Мать"
+                                        : bringParentChild.ParentTypeText,
+
+                ["&bring_parent_second_name"] = bringParent?.Person?.LastName,
+                ["&bring_parent_first_name"] = bringParent?.Person?.FirstName,
+                ["&bring_parent_patronymic"] = bringParent?.Person?.Patronymic,
+                ["&bring_parent_residence_address"] = bringParent?.ResidenceAddress,
+                ["&bring_parent_phone_number"] = bringParent?.PhoneNumber,
+                ["&bring_parent_passport_series"] = bringParent?.PassportSeries?.Substring(0, 4),
+                ["&bring_parent_passport_number"] = bringParent?.PassportSeries?.Substring(4),
+                ["&bring_parent_passport_issue_date"] = bringParent?.PassportIssueDate.ToString("dd-mm-yyyy"),
+                ["&bring_parent_passport_issue_by"] = bringParent?.PassportIssuedBy,
+
+                ["&father_second_name"] = father?.Person?.LastName,
+                ["&father_first_name"] = father?.Person?.FirstName,
+                ["&father_patronymic"] = father?.Person?.Patronymic,
+                ["&father_residence_address"] = father?.ResidenceAddress,
+                ["&father_phone_number"] = father?.PhoneNumber,
+                ["&father_passport_series"] = father?.PassportSeries?.Substring(0, 4),
+                ["&father_passport_number"] = father?.PassportSeries?.Substring(4),
+                ["&father_passport_issue_date"] = father?.PassportIssueDate.ToString("dd-mm-yyyy"),
+                ["&father_passport_issue_by"] = father?.PassportIssuedBy,
+
+                ["&mother_second_name"] = mother?.Person?.LastName,
+                ["&mother_first_name"] = mother?.Person?.FirstName,
+                ["&mother_patronymic"] = mother?.Person?.Patronymic,
+                ["&mother_residence_address"] = mother?.ResidenceAddress,
+                ["&mother_phone_number"] = mother?.PhoneNumber,
+                ["&mother_passport_series"] = mother?.PassportSeries.Substring(0, 4),
+                ["&mother_passport_number"] = mother?.PassportSeries.Substring(4),
+                ["&mother_passport_issue_date"] = mother?.PassportIssueDate.ToString("dd-mm-yyyy"),
+                ["&mother_passport_issue_by"] = mother?.PassportIssuedBy,
+            };
+
+            var dirName = AppFilePaths.GetDocumentsDirecoryPathForChild(addedChild, enterDate.Year);
+            Directory.CreateDirectory(dirName);
+            var destination = Path.GetFullPath(Path.Combine(dirName, AppFilePaths.GetAddedChildDocumentFileName(addedChild)));
+            WordWorker.Replace(Path.GetFullPath(AppFilePaths.GetAddedChildDocumentTemplatePath()), destination, data);
+            Process.Start("explorer.exe", $"/select, \"{Path.GetFullPath(destination)}\"");
         }
 
         private void ShowChildDetails(Child child)
@@ -370,7 +462,7 @@ namespace WpfApp.ViewModel
                         Money = payment.PaidMoney,
                         Note = payment.Description,
                         Prefix = MonthlyPrefix,
-                    }))
+                    }).Where(m => m.Money != 0))
                     .Union(context.AnnualPayments.Include("Child.Person")
                     .Select(payment => new IncomeDTO
                     {
@@ -415,22 +507,61 @@ namespace WpfApp.ViewModel
             DateTime from = DateTime.MaxValue;
             int notArchivedCount = 0;
             int archivedCount = 0;
+            double debtSum = 0;
 
             var c = await Task.Run(() =>
             {
                 var context = new KindergartenContext();
+                //var children0 = context.Children
+                //    .Include("Group")
+                //    .Include("Person")
+                //    .Include("Tarif")
+                //    .Include("ParentsChildren.Parent")
+                //    .Select(ch => new
+                //    {
+                //        child = ch,
+                //        lastEnter = ch.EnterChildren.FirstOrDefault(en => en.EnterDate == ch.EnterChildren.Max(en2 => en2.EnterDate)),
+                //        lastMonthlyPayment = ch.Payments.FirstOrDefault(p => p.PaymentDate == ch.Payments.Max(p2 => (DateTime?) p.PaymentDate))
+                //    })
+                //    .OrderByDescending(ch => ch.lastEnter.EnterDate)
+                //    .ToList();
                 var enters = context.EnterChildren
                     .Include("Child.Group")
                     .Include("Child.Person")
                     .Include("Child.Tarif")
                     .Include("Child.ParentsChildren.Parent")
                     .Where(e => e.EnterDate == context.EnterChildren.Where(t => t.ChildId == e.ChildId).Max(ee => ee.EnterDate))
-                    .OrderByDescending(e => e.EnterDate);
+                    .OrderByDescending(e => e.EnterDate)
+                    .ToList();
+                var childrenWithLastPayment = context
+                    .Children
+                    .Select(ch => new {
+                        ch.Id,
+                        lastPayment = ch.Payments.FirstOrDefault(p => p.PaymentDate == ch.Payments.Max(p2 => (DateTime?)p2.PaymentDate)),
+                        lastEnter = ch.EnterChildren.Max(e => e.EnterDate)})
+                    .OrderByDescending(ch => ch.lastEnter)
+                    .ToList();
                 var result = new List<Child>(8);
+                int i = 0;
                 foreach (var enter in enters)
                 {
                     var child = enter.Child;
+                    //var child = enter.child;
                     child.LastEnterChild = enter;
+                    //child.LastEnterChild = enter.lastEnter;
+                    var lmp = childrenWithLastPayment[i++].lastPayment;
+                    if (lmp != null)
+                    {
+                        var endDate = enter.ExpulsionDate ?? DateTime.Now;
+                        if (endDate < lmp.PaymentDate) // if there's past date
+                            endDate = lmp.PaymentDate;
+                        double debt = lmp.DebtAfterPaying +
+                                          lmp.MoneyPaymentByTarif*((endDate.Year-lmp.PaymentDate.Year)*12 + endDate.Month-lmp.PaymentDate.Month);
+                        debtSum += debt;
+                        child.MonthlyDebt = debt;
+                        child.LastMonthlyPayment = lmp;
+                    }
+                    //child.LastMonthlyPayment = enter.lastMonthlyPayment;
                     if (child.LastEnterChild.ExpulsionDate != null) archivedCount++;
 
                     DateTime enterDate = child.LastEnterChild.EnterDate;
@@ -439,10 +570,10 @@ namespace WpfApp.ViewModel
                     result.Add(child);
                 }
                 notArchivedCount = result.Count - archivedCount;
-//                Thread.Sleep(Random.Next(1000));
 
                 return result;
             });
+            CommonDebt = debtSum;
             if (c.Count > 0)
                 if (!FromEnterDateChildrenFilter.HasValue) FromEnterDateChildrenFilter = from;
 
@@ -550,9 +681,9 @@ namespace WpfApp.ViewModel
             if (FromEnterDateChildrenFilter > c.LastEnterChild.EnterDate || TillEnterDateChildrenFilter < c.LastEnterChild.EnterDate.Date)
                 return false;
 
-            if (OnlyDebtorsChildrenFilter)
+            if (OnlyDebtorsChildrenFilter && c.LastMonthlyPayment != null && c.MonthlyDebt <= 0)
             {
-
+                return false;
             }
 
             // LastName, FirstName, Patronymic
@@ -587,9 +718,14 @@ namespace WpfApp.ViewModel
         private void OnPropertyChangedAndRefreshChildrenFilter([CallerMemberName] string propertyName = null)
         {
             OnPropertyChanged(propertyName);
+            if (Children == null) return;
             Children.TryRefreshFilter();
+            CommonDebt = (
+                from Child c in Children
+                where c.MonthlyDebt != null
+                select c.MonthlyDebt.Value
+                ).Sum();
         }
-
 
         #region Search
 
@@ -832,6 +968,17 @@ namespace WpfApp.ViewModel
             {
                 if (value == _childTotalCount) return;
                 _childTotalCount = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public double CommonDebt
+        {
+            get { return _commonDebt; }
+            set
+            {
+                if (value.Equals(_commonDebt)) return;
+                _commonDebt = value;
                 OnPropertyChanged();
             }
         }
@@ -1212,7 +1359,7 @@ namespace WpfApp.ViewModel
         private string _personFullNameChildrenFilter = string.Empty;
         private bool _wholeNamesChildrenFilter;
         private bool _namesCaseSensitiveChildrenFilter;
-        private bool? _archivedChildrenFilter;
+        private bool? _archivedChildrenFilter = false;
         private bool _onlyDebtorsChildrenFilter;
         private string _title;
         private ListCollectionView _children;
@@ -1249,6 +1396,7 @@ namespace WpfApp.ViewModel
         private IncomeDTO _selectedIncome;
         private bool _canDeleteIncome;
         private Expense _selectedExpense;
+        private double _commonDebt;
 
         // prefixes at Incomes tab
         private const string IncomePrefix = "Д-";

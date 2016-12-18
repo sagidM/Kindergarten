@@ -243,6 +243,10 @@ namespace DAL.Model
 
         [NotMapped]
         public EnterChild LastEnterChild { get; set; }
+        [NotMapped]
+        public MonthlyPayment LastMonthlyPayment { get; set; }
+        [NotMapped]
+        public double? MonthlyDebt { get; set; }
 
         public bool IsNobody { get; set; }
 

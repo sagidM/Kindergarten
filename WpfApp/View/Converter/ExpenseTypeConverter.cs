@@ -20,7 +20,7 @@ namespace WpfApp.View.Converter
                 case ExpenseType.Tax:
                     return "Налоги";
                 case ExpenseType.Foodstuff:
-                    return "Продукы питания";
+                    return "Продукты питания";
                 case ExpenseType.Utilities:
                     return "Коммунальные услуги";
                 case ExpenseType.Private:

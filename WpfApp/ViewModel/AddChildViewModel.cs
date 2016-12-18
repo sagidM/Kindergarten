@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -212,8 +213,17 @@ namespace WpfApp.ViewModel
                 MessageBox.Show("Должен быть выбран хотя бы один из родителей либо иной представитель", "Некорректный выбор", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-
+            if (BroughtParent == Parents.Father && SelectedFather == null ||
+                BroughtParent == Parents.Mother && SelectedMother == null ||
+                BroughtParent == Parents.Other && SelectedOther == null)
+            {
+                MessageBox.Show("Выберите существующего родителя");
+                return;
+            }
             AddChildCommand.NotifyCanExecute(false);
+
+            ParentChild broghtParent = null;
+            EnterChild enterChild = null;
             await Task.Run(() =>
             {
                 string imageFileName = null;
@@ -230,7 +240,7 @@ namespace WpfApp.ViewModel
                     child.GroupId = child.Group.Id;
                     child.Group = null;
                     child.TarifId = child.Tarif.Id;
-                    var enterChild = new EnterChild { Child = child, EnterDate = ChildAdditionDate };
+                    enterChild = new EnterChild {Child = child, EnterDate = ChildAdditionDate};
                     child.LastEnterChild = enterChild;
 
                     var context = new KindergartenContext();
@@ -242,18 +252,13 @@ namespace WpfApp.ViewModel
                         // 1) the first fictitious payment for start range
                         context.MonthlyPayments.Add(new MonthlyPayment
                         {
-                            ChildId = child.Id,
-                            PaymentDate = ChildAdditionDate,
-                            MoneyPaymentByTarif = 0, // 0 - because to make no debt
+                            ChildId = child.Id, PaymentDate = ChildAdditionDate, MoneyPaymentByTarif = 0, // 0 - because to make no debt
                         });
 
                         // 2) the second fictitious payment for end range
                         context.MonthlyPayments.Add(new MonthlyPayment
                         {
-                            ChildId = child.Id,
-                            PaymentDate = DateTime.Now,
-                            MoneyPaymentByTarif = child.Tarif.MonthlyPayment,
-                            DebtAfterPaying = child.Tarif.MonthlyPayment,
+                            ChildId = child.Id, PaymentDate = DateTime.Now, MoneyPaymentByTarif = child.Tarif.MonthlyPayment, DebtAfterPaying = child.Tarif.MonthlyPayment,
                         });
                     }
                     child.Tarif = null;
@@ -261,11 +266,26 @@ namespace WpfApp.ViewModel
                     context.EnterChildren.Add(enterChild);
 
                     if (SelectedFather != null)
-                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedFather.Id, ParentType = Parents.Father});
+                    {
+                        var parentChild = new ParentChild {Child = child, ParentId = SelectedFather.Id, ParentType = Parents.Father};
+                        context.ParentChildren.Add(parentChild);
+                        if (BroughtParent == Parents.Father)
+                            broghtParent = parentChild;
+                    }
                     if (SelectedMother != null)
-                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedMother.Id, ParentType = Parents.Mother});
+                    {
+                        var parentChild = new ParentChild {Child = child, ParentId = SelectedMother.Id, ParentType = Parents.Mother};
+                        context.ParentChildren.Add(parentChild);
+                        if (BroughtParent == Parents.Mother)
+                            broghtParent = parentChild;
+                    }
                     if (SelectedOther != null)
-                        context.ParentChildren.Add(new ParentChild { Child = child, ParentId = SelectedOther.Id, ParentType = Parents.Other, ParentTypeText = OtherParentText });
+                    {
+                        var parentChild = new ParentChild {Child = child, ParentId = SelectedOther.Id, ParentType = Parents.Other, ParentTypeText = OtherParentText};
+                        context.ParentChildren.Add(parentChild);
+                        if (BroughtParent == Parents.Other)
+                            broghtParent = parentChild;
+                    }
                     context.SaveChanges();
                 }
                 catch
@@ -276,6 +296,16 @@ namespace WpfApp.ViewModel
                 }
             });
             Pipe.SetParameter("saved_child_result", child);
+            Pipe.SetParameter("brought_parent", broghtParent);
+            Pipe.SetParameter("enter", enterChild);
+            // ReSharper disable once RedundantExplicitArraySize
+            var parents = new ParentChild[3]
+            {
+                new ParentChild {Parent= SelectedFather, ParentType = Parents.Father},
+                new ParentChild {Parent=SelectedMother, ParentType=Parents.Mother},
+                new ParentChild {Parent = SelectedOther, ParentType = Parents.Other}
+            };
+            Pipe.SetParameter("parents", parents);
             AddChildCommand.NotifyCanExecute(true);
             Finish();
         }
@@ -324,6 +354,17 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public Parents BroughtParent
+        {
+            get { return _broughtParent; }
+            set
+            {
+                if (Equals(value, _broughtParent)) return;
+                _broughtParent = value;
+                OnPropertyChanged();
+            }
+        }
+
 
         // copypaste in ChildDetailsViewModel.cs
         private void LoadImageFromFile()
@@ -367,5 +408,6 @@ namespace WpfApp.ViewModel
         private string _otherParentText;
         private bool _startedToPayFromAdditionDate;
         private DateTime _childAdditionDate = DateTime.Now;
+        private Parents _broughtParent;
     }
 }

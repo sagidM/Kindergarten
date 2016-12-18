@@ -227,8 +227,8 @@
 								<ColumnDefinition/>
 								<ColumnDefinition/>
 							</Grid.ColumnDefinitions>
-							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter=Male}" Content="Мальчик" />
-							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter=Female}" Content="Девочка" Grid.Column="1" />
+							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter={x:Static m:Sex.Male}}" Content="Мальчик" />
+							<RadioButton IsChecked="{Binding Path=Sex, Converter={StaticResource SingleEnumConverter}, ConverterParameter={x:Static m:Sex.Female}}" Content="Девочка" Grid.Column="1" />
 						</Grid>
 
 					</Grid>
@@ -340,6 +340,12 @@
 				</StackPanel>
 			</Grid>
 
+			<StackPanel DataContext="{Binding ElementName=ThisWindow, Path=DataContext}">
+				<RadioButton IsChecked="{Binding BroughtParent, Converter={StaticResource SingleEnumConverter}, ConverterParameter={x:Static m:Parents.Father}}" Content="Отец"/>
+				<RadioButton IsChecked="{Binding BroughtParent, Converter={StaticResource SingleEnumConverter}, ConverterParameter={x:Static m:Parents.Mother}}" Content="Мать"/>
+				<RadioButton IsChecked="{Binding BroughtParent, Converter={StaticResource SingleEnumConverter}, ConverterParameter={x:Static m:Parents.Other}}" Content="Иной представитель"/>
+			</StackPanel>
+			<Label Content="{Binding BroughtParent}"/>
 			<Button IsDefault="True" HorizontalAlignment="Right" Padding="30 0" Margin="0 0 20 0"
 			        DataContext="{Binding ElementName=ThisWindow, Path=DataContext}"
 			        Command="{Binding AddChildCommand}" Content="Добавить"
