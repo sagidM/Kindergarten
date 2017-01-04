@@ -18,19 +18,24 @@ namespace WpfApp.View.Converter
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var g = (Groups)value;
-            if (g == Groups.Nursery)
-                return Nursery;
-            if (g == Groups.Junior1)
-                return Junior1;
-            if (g == Groups.Junior2)
-                return Junior2;
-            if (g == Groups.Middle)
-                return Middle;
-            if (g == Groups.Older)
-                return Older;
-            if (g == Groups.Preparatory)
-                return Preparatory;
-            return DependencyProperty.UnsetValue;
+            if ((g & Groups.Finished) != 0) g ^= Groups.Finished;  // finished off
+            switch (g)
+            {
+                case Groups.Nursery:
+                    return Nursery;
+                case Groups.Junior1:
+                    return Junior1;
+                case Groups.Junior2:
+                    return Junior2;
+                case Groups.Middle:
+                    return Middle;
+                case Groups.Older:
+                    return Older;
+                case Groups.Preparatory:
+                    return Preparatory;
+                default:
+                    throw new NotSupportedException();
+            }
         }
 
 

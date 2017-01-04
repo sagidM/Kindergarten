@@ -11,10 +11,10 @@ namespace WpfApp.ViewModel
     {
         public ChangeChildGroupViewModel()
         {
-            SaveCommand = new RelayCommand(SaveAsync);
+            SaveCommand = new RelayCommand(Save);
         }
 
-        private async void SaveAsync()
+        private async void Save()
         {
             if (CurrentGroup == SelectedGroup) return;
 
@@ -38,7 +38,8 @@ namespace WpfApp.ViewModel
         {
             Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
             _currentChild = (Child) Pipe.GetParameter("child");
-            SelectedGroup = CurrentGroup = Groups.First(g => g.Id == _currentChild.GroupId);
+            var gr = (Group) Pipe.GetParameter("current_group");
+            SelectedGroup = CurrentGroup = gr;
             Pipe.SetParameter("saved_group_result", null);
         }
 

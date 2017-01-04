@@ -1,16 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Microsoft.Office.Interop.Word;
 
 namespace WpfApp.Util
 {
     public class WordWorker
     {
-        public static void Replace<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue> data)
+        public static void Replace<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue> data, string picturePath = null)
         {
             var app = new Application();
             try
@@ -26,7 +25,9 @@ namespace WpfApp.Util
                     {
                         s.Find.Execute(FindText: pair.Key, ReplaceWith: pair.Value, MatchCase: false, Replace: WdReplace.wdReplaceAll);
                     }
-                    doc.SaveAs(FileName: destination);
+                    if (picturePath != null)
+                        ReplaceByPicture(s, picturePath, "&img");
+                    DocumentSaveAs(doc, destination);
                 }
                 finally
                 {
@@ -75,7 +76,7 @@ namespace WpfApp.Util
                             }
                         }
                     }
-                    doc.SaveAs(FileName: destination);
+                    DocumentSaveAs(doc, destination);
                 }
                 finally
                 {
@@ -89,7 +90,14 @@ namespace WpfApp.Util
             }
         }
 
-        public static void InsertTableAndReplaceText<TKey, TValue>(string templateName, string destination, IDictionary<string, TValue>[] body, IDictionary<TKey, TValue> replaceDict)
+        private static void DocumentSaveAs(Document doc, string file)
+        {
+            var dir = Path.GetDirectoryName(file);
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            doc.SaveAs(FileName: file);
+        }
+
+        public static void InsertTableAndReplaceText<TKey, TValue>(string templateName, string destination, IList<IDictionary<string, TValue>> body, IDictionary<TKey, TValue> replaceDict, string picturePath = null)
         {
             var app = new Application();
             try
@@ -158,7 +166,11 @@ namespace WpfApp.Util
                     {
                         s.Find.Execute(FindText: pair.Key, ReplaceWith: pair.Value, MatchCase: false, Replace: WdReplace.wdReplaceAll);
                     }
-                    doc.SaveAs(FileName: destination);
+                    if (picturePath != null)
+                    {
+                        ReplaceByPicture(s, picturePath, "&img");
+                    }
+                    DocumentSaveAs(doc, destination);
                 }
                 finally
                 {
@@ -169,6 +181,63 @@ namespace WpfApp.Util
             {
                 app.Quit();
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+            }
+        }
+
+        public static void ReplaceWithDuplicate<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue>[] data, string picturePath = null)
+        {
+            var app = new Application();
+            try
+            {
+                var doc = app.Documents.Open(templateName);
+                try
+                {
+                    var s = app.Selection;
+                    s.Find.ClearFormatting();
+                    s.Find.Replacement.ClearFormatting();
+
+                    s.WholeStory();
+                    s.Copy();
+                    int pos = 0;
+
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        s.Paste();
+                        s.SetRange(pos, s.Range.End);
+
+                        foreach (var pair in data[i])
+                        {
+                            s.Find.Execute(FindText: pair.Key, ReplaceWith: pair.Value, MatchCase: false, Replace: WdReplace.wdReplaceAll);
+                        }
+
+                        pos = s.Range.End;
+                        s.SetRange(pos, pos);
+                    }
+
+                    if (picturePath != null)
+                        ReplaceByPicture(s, picturePath, "&img");
+                    DocumentSaveAs(doc, destination);
+                }
+                finally
+                {
+                    app.Documents.Close();
+                }
+            }
+            finally
+            {
+                app.Quit();
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(app);
+            }
+        }
+
+        private static void ReplaceByPicture(Selection s, string picturePath, string placeOf)
+        {
+            s.Find.Execute(placeOf);
+            var imgRange = s.Range;
+            if (imgRange.Text != null)
+            {
+                s.InlineShapes.AddPicture(picturePath, Range: imgRange);
+                s.Find.Execute(placeOf, ReplaceWith: string.Empty, MatchCase: false, Replace: WdReplace.wdReplaceAll);
             }
         }
     }

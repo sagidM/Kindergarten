@@ -102,7 +102,7 @@ namespace WpfApp.ViewModel
         private void OpenImageChoosing()
         {
             if (_imageUri != null)
-                Process.Start("explorer.exe", $"/select, \"{Path.GetFullPath(_imageUri.AbsolutePath)}\"");
+                CommonHelper.OpenFileOrDirectoryWithSelected(Path.GetFullPath(_imageUri.AbsolutePath));
         }
 
         private void CaptureImageFromCamera()

@@ -73,6 +73,8 @@
 	</Style>
 
 	<Style x:Key="PlaceHolderTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+		<Setter Property="KeyboardNavigation.TabNavigation" Value="Continue"/>
+		<Setter Property="IsTabStop" Value="False"/>
 		<Setter Property="Template">
 			<Setter.Value>
 				<ControlTemplate TargetType="TextBox">
@@ -89,6 +91,7 @@
 								 HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
 								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
 								 MaxLength="{TemplateBinding MaxLength}"
+								 IsTabStop="True"
                                  Panel.ZIndex="2" Style="{x:Null}">
 						</TextBox>
 						<TextBox Name="PlaceTextBox" Text="{TemplateBinding Tag}" Background="{TemplateBinding Background}"
@@ -97,6 +100,7 @@
 								 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
 								 HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
 								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+								 IsTabStop="False"
 								 Panel.ZIndex="1">
 							<TextBox.Style>
 								<Style TargetType="TextBox">

@@ -34,11 +34,7 @@
 			<ColumnDefinition Width="3*"/>
 			<ColumnDefinition Width="2*"/>
 		</Grid.ColumnDefinitions>
-		<Button IsCancel="True">
-			<Button.Template>
-				<ControlTemplate/>
-			</Button.Template>
-		</Button>
+		<Button IsCancel="True" Content="Cancel" Template="{x:Null}"/>
 
 		<ScrollViewer Grid.Column="0">
 		<StackPanel Orientation="Vertical" Name="ParentCommonContainer">

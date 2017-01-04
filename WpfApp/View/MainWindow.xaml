@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
-		xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" 
         xmlns:vm="clr-namespace:WpfApp.ViewModel"
         xmlns:util="clr-namespace:WpfApp.Util"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
@@ -75,7 +74,7 @@
 				</StackPanel>
 			</StatusBarItem>
 		</StatusBar>
-		<TabControl>
+		<TabControl SelectedIndex="1"><!--{Binding '[selected_tab, 1]'}-->
 			<TabControl.Resources>
 				<Style x:Key="DataTableStyle" BasedOn="{StaticResource {x:Type DataGrid}}" TargetType="DataGrid">
 					<Setter Property="AutoGenerateColumns" Value="False"/>
@@ -127,6 +126,7 @@
 								<StackPanel ZIndex="2">
 									<Separator Margin="20 10" Height="10"/>
 									<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
+									<Button Margin="50 0" Command="{Binding PrintDocumentChildrenCommand}" Content="Печать..."/>
 									<Separator Margin="20 10" Height="10"/>
 								</StackPanel>
 								
@@ -228,7 +228,7 @@
 						</StackPanel>
 					</ScrollViewer>
 
-					<DataGrid FontSize="{Binding '[font_size_tables]'}" DockPanel.Dock="Right" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" DockPanel.Dock="Right" IsReadOnly="True" SelectionMode="Single"
 					          Style="{StaticResource DataTableStyle}"
 					          SelectedItem="{Binding SelectedChild, Mode=TwoWay}"
 					          x:Name="DataGridChildren" ItemsSource="{Binding Children}">
@@ -417,7 +417,7 @@
 						<Button Padding="4" Margin="50 5" Command="{Binding AddIncomeCommand}" CommandParameter="{Binding ElementName=AdditingIncomeStackPanel}" Content="Добавить"/>
 					</StackPanel>
 
-					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="IncomesDataGrid" ItemsSource="{Binding Incomes}" SelectedItem="{Binding SelectedIncome}" Style="{StaticResource DataTableStyle}">
+					<DataGrid FontSize="{Binding '[font_size_tables]'}" Name="IncomesDataGrid" ItemsSource="{Binding Incomes}" SelectedItem="{Binding SelectedIncome}" Style="{StaticResource DataTableStyle}" SelectionMode="Single">
 						<DataGrid.Resources>
 							<converter:IncomeFictitionEditId x:Key="IncomeFictitionEditId" />
 						</DataGrid.Resources>

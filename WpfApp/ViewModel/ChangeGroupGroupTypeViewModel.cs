@@ -21,28 +21,21 @@ namespace WpfApp.ViewModel
             {
                 var context = new KindergartenContext();
                 var group = context.Groups.First(g => g.Id == CurrentGroup.Id);
-                group.GroupType = CurrentGroup.GroupType | (CurrentGroupType & Groups.Finished); // save Finished flag
+                group.GroupType = SelectedGroupType | (CurrentGroup.GroupType & Groups.Finished); // save Finished flag
                 context.SaveChanges();
                 return group.GroupType;
             });
-            ChangeGroupTypeCommand.NotifyCanExecute(true);
 
             Pipe.SetParameter("group_type_result", groupType);
-            _finished = true;
+            ChangeGroupTypeCommand.NotifyCanExecute(true);
             Finish();
-        }
-
-        public override void OnFinished()
-        {
-            if (_finished) return;
-            Pipe.SetParameter("group_type_result", null);
-            CurrentGroup.GroupType = CurrentGroupType;
         }
 
         public override void OnLoaded()
         {
             CurrentGroup = (Group) Pipe.GetParameter("group");
-            CurrentGroupType = CurrentGroup.GroupType;
+            SelectedGroupType = CurrentGroup.GroupType;
+            Pipe.SetParameter("group_type_result", null);
         }
 
         public Group CurrentGroup
@@ -56,23 +49,24 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public Groups CurrentGroupType
+        public Groups SelectedGroupType
         {
-            get { return _currentGroupType; }
+            get { return _selectedGroupType; }
             set
             {
-                if (value == _currentGroupType) return;
-                _currentGroupType = value;
+                if (value == _selectedGroupType) return;
+                _selectedGroupType = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(GroupTypesAreDifferent));
             }
         }
-        
+
+        public bool GroupTypesAreDifferent => _currentGroup != null && _currentGroup.GroupType != _selectedGroupType;
 
         public IRelayCommand ChangeGroupTypeCommand { get; set; }
 
 
         private Group _currentGroup;
-        private Groups _currentGroupType;
-        private bool _finished;
+        private Groups _selectedGroupType;
     }
 }

@@ -15,22 +15,22 @@ namespace WpfApp
         public static void Main(string[] args)
         {
 #if DEBUG
-            // for SQL Server
+            // if SQL Server
             // Database.Load();
             EFlogger.EntityFramework6.EFloggerFor6.Initialize();
-            AppFilePaths.CreateAllDirectories();
+            App.EnsureAllDirectories();
             App.Main();
 #else
             try
             {
-                // for SQL Server
+                // if SQL Server
                 // Database.Load();
-                AppFilePaths.CreateAllDirectories();
+                App.EnsureAllDirectories();
                 App.Main();
             }
             catch (Exception e)
             {
-                App.Logger.Fatal(e, "Exception");
+                App.Logger.Fatal(e, "Fatal error in App.Main");
                 MessageBox.Show("В программе произошла ошибка, пожалуйста, свяжитесь с разработчиками...", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 #endif

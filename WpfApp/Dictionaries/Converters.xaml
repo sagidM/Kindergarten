@@ -1,16 +1,18 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:converter="clr-namespace:WpfApp.View.Converter">
+                    xmlns:converter="clr-namespace:WpfApp.View.Converter"
+                    xmlns:settings="clr-namespace:WpfApp.Settings">
 
 	<converter:SexConverter x:Key="SexConverter"/>
 	<converter:ExpenseTypeConverter x:Key="ExpenseTypeConverter"/>
+	<!--GroupsConverter key is in ChildDetailsViewModel-->
 	<converter:GroupsConverter x:Key="GroupsConverter"
 							   Nursery="Начинающая" Junior1="I младшая" Junior2="II младшая"
 							   Middle="Средняя" Older="Старшая" Preparatory="Подготовительная" />
 	
 	<converter:ImageConverter x:Key="ChildImageConverter" ImageType="Child" DefaultImage="../resources/no_picture.jpg" />
-	<converter:DateTimeConverter x:Key="DateConverter" Format="dd.MM.yyyy"/>
-	<converter:DateTimeConverter x:Key="TimeConverter" Format="HH:mm:ss"/>
+	<converter:DateTimeConverter x:Key="DateConverter" Format="{x:Static settings:OtherSettings.DateFormat}"/>
+	<converter:DateTimeConverter x:Key="TimeConverter" Format="{x:Static settings:OtherSettings.DateFormat}"/>
 	<converter:YearsOldConverter x:Key="YearsOldConverter"/>
 	<converter:ToBoolConverter x:Key="ToBoolConverter"/>
 	<converter:ToNegateBoolConverter x:Key="ToNegateBoolConverter"/>

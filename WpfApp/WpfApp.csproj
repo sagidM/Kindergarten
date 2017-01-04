@@ -143,6 +143,7 @@
     <Compile Include="Framework\ISaverData.cs" />
     <Compile Include="Settings\AppFilePaths.cs" />
     <Compile Include="Framework\WindowStateSaver.cs" />
+    <Compile Include="Settings\OtherSettings.cs" />
     <Compile Include="Util\WordWorker.cs" />
     <Compile Include="ViewModel\AddExpenseViewModel.cs" />
     <Compile Include="ViewModel\AddParentViewModel.cs" />
@@ -447,6 +448,8 @@
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
     <AppDesigner Include="Properties\" />
+    <Resource Include="resources\default_resource_structure.json" />
+    <Resource Include="resources\ru_default_resource_structure.json" />
     <None Include="WpfApp_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>

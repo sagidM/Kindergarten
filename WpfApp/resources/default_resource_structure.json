@@ -1,0 +1,17 @@
+{
+  "Images": "images",
+  "Documents": "documents",
+  "Templates": "templates",
+  "FilenameOfDocumentsAndTemplates": {
+    "agreement": [ "agreement.docx", "{0}_agreement.docx" ],
+    "portfolio": [ "portfolio.docx", "{0}_portfolio.docx" ],
+    "taking_child": [ "taking_child.docx", "{0}_taking_child.docx" ],
+    "order_of_admission": [ "order_of_admission.docx", "{0}_order_of_admission{1}.docx" ],
+    "notices": [ "notice.docx", "notices.docx" ],
+    "monthly_receipt": [ "monthly_receipt.docx", "{0}_monthly_receipt.docx" ],
+    "annual_receipt": [ "annual_receipt.docx", "{0}_annual_receipt.docx" ],
+    "adding_to_archive": [ "adding_to_archive.docx", "{0}_adding_to_archive{1}.docx" ],
+    "transfer_group": [ "transfer_group.docx", "{0}_transfer_group_{1}_{2}({3}).docx" ],
+    "group_type_changed": [ "group_type_changed.docx", "group_type_changed.docx" ]
+  },
+}

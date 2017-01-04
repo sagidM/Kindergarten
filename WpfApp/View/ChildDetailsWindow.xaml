@@ -94,7 +94,6 @@
 							<Button Command="{Binding ReloadImageFromFileCommand}" Content="Выбрать изображение..."/>
 							<Button Command="{Binding RecaptureImageFromCameraCommand}" Content="С камеры..."/>
 							<Button Command="{Binding RemoveImageCommand}" Content="Удалить изображение" IsEnabled="{Binding ChildImageSource, Converter={StaticResource NegateBoolConverter}, ConverterParameter={x:Null}}"/>
-							<Button Command="{Binding PrintCommand}" Content="Print" />
 							<Button Command="{Binding OpenDocumentDirectoryCommand}" Content="Документы" />
 						</StackPanel>
 					</ScrollViewer>
@@ -467,7 +466,7 @@
 						<WrapPanel DockPanel.Dock="Top" Margin="10 10 10 0">
 							<Label Content="Сумма оплаты:"/>
 							<TextBox VerticalContentAlignment="Center" Name="PaymentAmount" MinWidth="100" Text="{Binding MonthlyPaymentMoney}"/>
-							<TextBox VerticalContentAlignment="Center" Margin="5 0 0 0" Text="{Binding MonthlyPaymentDescription}" Style="{StaticResource PlaceHolderTextBox}" Tag="Основание..." MinWidth="200"/>
+							<TextBox VerticalContentAlignment="Center" Margin="5 0 0 0" Text="{Binding '[monthly_payment_description, Родительский взнос за месяц]'}" Style="{StaticResource PlaceHolderTextBox}" Tag="Основание..." MinWidth="220"/>
 							<Button Margin="10 0 0 0" Command="{Binding PayFeeCommand}" CommandParameter="{Binding ElementName=PaymentAmount, Path=Text}" Content="Оплатить"/>
 							<Label Margin="15 0 0 0" Content="Долг:"/>
 							<Label Content="{Binding TotalChildUnpaidMoney}"/>
@@ -581,7 +580,17 @@
 																				</ItemsControl.Style>
 																				<ItemsControl.ItemTemplate>
 																					<DataTemplate>
-																						<Grid>
+																						<Grid Tag="{Binding ElementName=ThisWindow, Path=DataContext}">
+																							<Grid.ContextMenu>
+																								<ContextMenu>
+																									<MenuItem Command="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}, Path=PlacementTarget.Tag.SaveDocumentReceiptForMonthlyPaymentCommand}"
+																											  CommandParameter="{Binding}">
+																										<MenuItem.Header>
+																											<TextBlock Text="{Binding Path=Id, StringFormat='Печать - {0}'}"/>
+																										</MenuItem.Header>
+																									</MenuItem>
+																								</ContextMenu>
+																							</Grid.ContextMenu>
 																							<Grid.ColumnDefinitions>
 																								<ColumnDefinition Width="*" MaxWidth="50"/>
 																								<ColumnDefinition/>
@@ -631,7 +640,7 @@
 				</TabItem>
 				<TabItem Header="Годовая оплата" Style="{StaticResource HeaderTemplate}">
 					<StackPanel Margin="10">
-						<TextBox Text="{Binding AnnualPaymentDescription}" Style="{StaticResource PlaceHolderTextBox}" Tag="Основание..." Padding="4" Margin="0 0 0 10"/>
+						<TextBox Text="{Binding '[annual_payment_description, Родительский взнос за год]'}" Style="{StaticResource PlaceHolderTextBox}" Tag="Основание..." Padding="4" Margin="0 0 0 10"/>
 						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition/>
@@ -648,10 +657,9 @@
 								</TextBlock>
 							</Button>
 							<DockPanel Grid.Column="1">
-								<Button Command="{Binding PayTillDateWithRecalculateCommand}" CommandParameter="{Binding ElementName=DataPickerRecalculateDate, Path=SelectedDate}"
-										Margin="10 0 5 0" Content="Сделать перерасчёт по "/>
+								<Button Command="{Binding PayTillDateWithRecalculateCommand}" Margin="10 0 5 0" Content="Сделать перерасчёт по "/>
 								<DatePicker x:Name="DataPickerRecalculateDate" Margin="0 0 0 0"
-											SelectedDate="{Binding RecalculationAnnualPaymentDate, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"/>
+											SelectedDate="{Binding RecalculationAnnualPaymentDate, UpdateSourceTrigger=PropertyChanged}"/>
 							</DockPanel>
 						</Grid>
 						<Border Margin="0 20 0 0" BorderThickness="1" BorderBrush="Black">
@@ -678,7 +686,17 @@
 							<ItemsControl.ItemTemplate>
 								<DataTemplate>
 									<Border BorderThickness="1 0 1 1" BorderBrush="Black">
-										<Grid>
+										<Grid Background="#01000000" Tag="{Binding ElementName=ThisWindow, Path=DataContext}">
+											<Grid.ContextMenu>
+												<ContextMenu>
+													<MenuItem Command="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}, Path=PlacementTarget.Tag.SaveDocumentReceiptForAnnualPaymentCommand}"
+															  CommandParameter="{Binding}">
+														<MenuItem.Header>
+															<TextBlock Text="{Binding Path=Id, StringFormat='Печать - {0}'}"/>
+														</MenuItem.Header>
+													</MenuItem>
+												</ContextMenu>
+											</Grid.ContextMenu>
 											<Grid.ColumnDefinitions>
 												<ColumnDefinition MaxWidth="75"/>
 												<ColumnDefinition MaxWidth="75"/>

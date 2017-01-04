@@ -138,8 +138,8 @@ namespace WpfApp.View.UI
                     if (payments == null) continue;
                     for (int k = 0; k < payments.Count/2; k++)
                     {
-                        var p = payments[i];
-                        payments[i] = payments[payments.Count - 1 - k];
+                        var p = payments[k];
+                        payments[k] = payments[payments.Count - 1 - k];
                         payments[payments.Count - 1 - k] = p;
                     }
                 }

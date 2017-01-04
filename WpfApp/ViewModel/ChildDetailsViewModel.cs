@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.Entity;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Media;
 using DAL.Model;
 using WpfApp.Framework.Command;
@@ -35,8 +37,9 @@ namespace WpfApp.ViewModel
         public IRelayCommand RecaptureImageFromCameraCommand { get; }
         public IRelayCommand RemoveImageCommand { get; }
         public IRelayCommand OpenImageCommand { get; }
-        public IRelayCommand PrintCommand { get; }
         public IRelayCommand OpenDocumentDirectoryCommand { get; }
+        public IRelayCommand SaveDocumentReceiptForMonthlyPaymentCommand { get; }
+        public IRelayCommand SaveDocumentReceiptForAnnualPaymentCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -48,13 +51,14 @@ namespace WpfApp.ViewModel
             DetachParentCommand = new RelayCommand<Parents>(DetachParent);
             PayFeeCommand = new RelayCommand<string>(PayFee);
             PayForYearCommand = new RelayCommand(PayForYear);
-            PayTillDateWithRecalculateCommand = new RelayCommand<DateTime>(PayTillDateWithRecalculate);
+            PayTillDateWithRecalculateCommand = new RelayCommand(PayTillDateWithRecalculate);
             ReloadImageFromFileCommand = new RelayCommand(ReloadImageFromFile);
             RecaptureImageFromCameraCommand = new RelayCommand(RecaptureImageFromCamera);
             RemoveImageCommand = new RelayCommand(RemoveImage);
             OpenImageCommand = new RelayCommand(OpenImage);
-            PrintCommand = new RelayCommand(PrintTest);
             OpenDocumentDirectoryCommand = new RelayCommand(OpenDocumentDirectory);
+            SaveDocumentReceiptForMonthlyPaymentCommand = new RelayCommand<MonthlyPayment>(SaveDocumentReceiptForMonthlyPayment);
+            SaveDocumentReceiptForAnnualPaymentCommand = new RelayCommand<RangePayment>(SaveDocumentReceiptForAnnualPayment);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -72,6 +76,43 @@ namespace WpfApp.ViewModel
             _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
         }
 
+        private void SaveDocumentReceiptForAnnualPayment(RangePayment p)
+        {
+            if (_saveDocumentDialog == null)
+                _saveDocumentDialog = new SaveFileDialog
+                {
+                    Filter = "Word|*.docx",
+                    FileName = AppFilePaths.GetAnnualReceiptFileName(CurrentChild)
+                };
+            if (_saveDocumentDialog.ShowDialog() != true) return;
+
+            var now = DateTime.Now;
+            var data = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
+                ["&child_second_name"] = CurrentChild.Person.LastName,
+                ["&child_first_name"] = CurrentChild.Person.FirstName,
+                ["&child_patronymic"] = CurrentChild.Person.Patronymic,
+                ["&child_full_name"] = CurrentChild.Person.FullName,
+                ["&child_birthdate"] = CurrentChild.BirthDate.ToString(OtherSettings.DateFormat),
+
+                ["&group_id"] = CurrentChildGroup.Id.ToString(),
+                ["&group_name"] = CurrentChildGroup.Name,
+
+                ["&payment_id"] = "Г-" + p.Id,
+                ["&payment_sum"] = p.MoneyPaymentByTarif.Str(),
+                ["&payment_date_from"] = p.PaymentFrom.ToString(OtherSettings.DateFormat),
+                ["&payment_date_to"] = p.PaymentTo.ToString(OtherSettings.DateFormat),
+                ["&payment_date"] = p.PaymentDate.ToString(OtherSettings.DateFormat),
+                ["&payment_note"] = p.Description,
+            };
+            var src = Path.GetFullPath(AppFilePaths.GetAnnualReceiptTemplatePath());
+            WordWorker.Replace(src, _saveDocumentDialog.FileName, data);
+        }
+
         private void OpenDocumentDirectory()
         {
             var s = Path.GetFullPath(_documentDirectoryPath);
@@ -83,66 +124,13 @@ namespace WpfApp.ViewModel
                 }
                 Directory.CreateDirectory(s);
             }
-            Process.Start("explorer.exe", $"\"{s}\"");
-        }
-
-        private void PrintTest()
-        {
-            var now = DateTime.Now;
-            var data = new Dictionary<string, string>
-            {
-                ["&date_d"] = now.Day.ToString(),
-                ["&date_m"] = now.Month.ToString(),
-                ["&date_y"] = now.Year.ToString(),
-                ["&child_second_name"] = CurrentChild?.Person?.LastName,
-                ["&child_first_name"] = CurrentChild?.Person?.FirstName,
-                ["&child_patronymic"] = CurrentChild?.Person?.Patronymic,
-                ["&child_birthdate"] = CurrentChild?.BirthDate.ToString("dd-mm-yyyy"),
-                ["&parent_type"] = "НЕЗАПИСАНО",
-
-                ["&father_second_name"] = CurrentFather?.Person?.LastName,
-                ["&father_first_name"] = CurrentFather?.Person?.FirstName,
-                ["&father_patronymic"] = CurrentFather?.Person?.Patronymic,
-                ["&father_residence_address"] = CurrentFather?.ResidenceAddress,
-                ["&father_phone_number"] = CurrentFather?.PhoneNumber,
-                ["&father_passport_series"] = CurrentFather?.PassportSeries?.Substring(0, 4),
-                ["&father_passport_number"] = CurrentFather?.PassportSeries?.Substring(4),
-                ["&father_passport_issue_date"] = CurrentFather?.PassportIssueDate.ToString("dd-mm-yyyy"),
-                ["&father_passport_issue_by"] = CurrentFather?.PassportIssuedBy,
-
-                ["&mother_second_name"] = CurrentMother.Person?.LastName,
-                ["&mother_first_name"] = CurrentMother?.Person?.FirstName,
-                ["&mother_patronymic"] = CurrentMother?.Person?.Patronymic,
-                ["&mother_residence_address"] = CurrentMother?.ResidenceAddress,
-                ["&mother_phone_number"] = CurrentMother?.PhoneNumber,
-                ["&mother_passport_series"] = CurrentMother?.PassportSeries.Substring(0, 4),
-                ["&mother_passport_number"] = CurrentMother?.PassportSeries.Substring(4),
-                ["&mother_passport_issue_date"] = CurrentMother?.PassportIssueDate.ToString("dd-mm-yyyy"),
-                ["&mother_passport_issue_by"] = CurrentMother?.PassportIssuedBy,
-            };
-            // &payment_id	&payment_date	&payment_credit	&child_debt
-            var body = new IDictionary<string, string>[2];
-            body[0] = new Dictionary<string, string>
-            {
-                ["&payment_id"] = "1",
-                ["&payment_date"] = "2016-11-18",
-                ["&payment_credit"] = "2500",
-                ["&payment_debt"] = "0",
-            };
-            body[1] = new Dictionary<string, string>
-            {
-                ["&payment_id"] = "2",
-                ["&payment_date"] = "2016-12-08",
-                ["&payment_credit"] = "3000",
-                ["&payment_debt"] = "0",
-            };
-            WordWorker.InsertTableAndReplaceText(Path.GetFullPath("template.docx"), Path.GetFullPath("result.docx"), body, data);
+            CommonHelper.OpenFileOrDirectory(s);
         }
 
         private void OpenImage()
         {
             if (_imageUri != null)
-                Process.Start("explorer.exe", $"/select, \"{Path.GetFullPath(_imageUri.AbsolutePath)}\"");
+                CommonHelper.OpenFileOrDirectoryWithSelected(Path.GetFullPath(_imageUri.AbsolutePath));
         }
 
         private void RemoveImage()
@@ -207,53 +195,52 @@ namespace WpfApp.ViewModel
             SetChildImage(path);
         }
 
-        private async void PayTillDateWithRecalculate(DateTime tillDate)
+        private async void PayTillDateWithRecalculate()
         {
+            if (RecalculationAnnualPaymentDate <= DateTime.Today)
+            {
+                MessageBox.Show("Перерасчёт допускается делать только на будущую дату", "Перерасчёт", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            var mbox = MessageBox.Show("Вы уверены, что хотите сделать перерасчёт?", "Перерасчёт", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (mbox != MessageBoxResult.Yes)
+                return;
+
             PayTillDateWithRecalculateCommand.NotifyCanExecute(false);
 
+            RangePayment payment = null;
             int res = await Task.Run(() =>
             {
                 var context = new KindergartenContext();
-                var payments = context.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id).ToList();
+                var payments = context.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id).OrderBy(p => p.PaymentDate).ToList();
 
-                var fromDate = GetLastEnterDate(payments);
+                var startDate = GetLastAnnualPaymentDate(payments);
                 var endDate = RecalculationAnnualPaymentDate;
 
-                if (fromDate == endDate) return 0;  // till date already paid
+                if (startDate == endDate) return 0;  // till this date already paid
 
-                var afterYear = fromDate.AddYears(1);
+                // if difference between last payment and now is more than one year,
+                // ask to pay for those years (mbox is below)
+                var afterYear = startDate.AddYears(1);
                 if (afterYear < endDate)
                 {
                     var years = new DateTime((endDate - afterYear).Ticks).Year;
                     if (years > 0) return years;
                 }
 
-                int i;
-                for (i = payments.Count - 1; i >= 0; i--)
+                var paidDays = (endDate - startDate).Days;
+                payment = new RangePayment
                 {
-                    if (payments[i].PaymentFrom < endDate) break;
-                    context.AnnualPayments.Remove(payments[i]); // only pop
-                }
+                    PaymentFrom = startDate,
+                    PaymentTo = endDate,
+                    // TODO: calc average days in year instead 365.25
+                    MoneyPaymentByTarif = Math.Round(CurrentChildTarif.AnnualPayment / 365.25 * paidDays),
+                    ChildId = CurrentChild.Id,
+                    Description = AnnualPaymentDescription,
+                    PaymentDate = DateTime.Now,
+                };
 
-                if (i < 0 || payments[i].PaymentTo < endDate)
-                {
-                    // add paying
-                    var payment = new RangePayment
-                    {
-                        PaymentFrom = fromDate,
-                        PaymentTo = endDate,
-                        MoneyPaymentByTarif = CurrentChildTarif.AnnualPayment,
-                        ChildId = CurrentChild.Id,
-                        Description = AnnualPaymentDescription,
-                        PaymentDate = DateTime.Now,
-                    };
-                    context.AnnualPayments.Add(payment);
-                }
-                else
-                {
-                    // truncate paying
-                    payments[i].PaymentTo = endDate;
-                }
+                context.AnnualPayments.Add(payment);
                 context.SaveChanges();
                 return 0;
             });
@@ -268,13 +255,13 @@ namespace WpfApp.ViewModel
             else
             {
                 await LoadPayments();
-                AnnualPaymentDescription = string.Empty;
             }
 
+            if (payment != null) SaveDocumentReceiptForAnnualPaymentCommand.Execute(payment);
             PayTillDateWithRecalculateCommand.NotifyCanExecute(true);
         }
 
-        private DateTime GetLastEnterDate(IList<RangePayment> payments)
+        private DateTime GetLastAnnualPaymentDate(IList<RangePayment> payments)
         {
             return payments.Count > 0 &&
                    payments[payments.Count - 1].PaymentTo > CurrentChild.LastEnterChild.EnterDate
@@ -290,7 +277,7 @@ namespace WpfApp.ViewModel
                 return;
             }
 
-            DateTime fromDate = GetLastEnterDate(PaymentsInYears);
+            DateTime fromDate = GetLastAnnualPaymentDate(PaymentsInYears);
             DateTime tillDate = fromDate.AddYears(1);
 
             MessageBoxResult mResult;
@@ -303,30 +290,28 @@ namespace WpfApp.ViewModel
                     "Годовая оплата", MessageBoxButton.YesNo, MessageBoxImage.Information);
 
             if (mResult != MessageBoxResult.Yes)
-            {
                 return;
-            }
 
             PayForYearCommand.NotifyCanExecute(false);
 
+            var payment = new RangePayment
+            {
+                PaymentFrom = fromDate,
+                PaymentTo = tillDate,
+                ChildId = CurrentChild.Id,
+                MoneyPaymentByTarif = CurrentChildTarif.AnnualPayment,
+                Description = AnnualPaymentDescription,
+                PaymentDate = DateTime.Now,
+            };
             await Task.Run(() =>
             {
-                var payment = new RangePayment
-                {
-                    PaymentFrom = fromDate,
-                    PaymentTo = tillDate,
-                    ChildId = CurrentChild.Id,
-                    MoneyPaymentByTarif = CurrentChildTarif.AnnualPayment,
-                    Description = AnnualPaymentDescription,
-                    PaymentDate = DateTime.Now,
-                };
                 var context = new KindergartenContext();
                 context.AnnualPayments.Add(payment);
                 context.SaveChanges();
             });
             await LoadPayments();
-            AnnualPaymentDescription = string.Empty;
 
+            SaveDocumentReceiptForAnnualPaymentCommand.Execute(payment);
             PayForYearCommand.NotifyCanExecute(true);
         }
 
@@ -381,10 +366,10 @@ namespace WpfApp.ViewModel
                         maxEnterIndex = i;
                     }
                 }
-                if (maxEnterIndex == -1) throw new NotImplementedException("There's some bug");
+                if (maxEnterIndex == -1) App.Logger.Error("There's at least one enter");
                 currentChild = enters[0].Child; // 0 - enters consists of same elements
                 currentChild.LastEnterChild = enters[maxEnterIndex];
-                _documentDirectoryPath = AppFilePaths.GetDocumentsDirecoryPathForChild(currentChild, enters[0].EnterDate.Year);
+                _documentDirectoryPath = AppFilePaths.GetDocumentsDirectoryPathForChild(currentChild, enters[0].EnterDate.Year);
 
                 groups = (IEnumerable<Group>)Pipe.GetParameter("groups");
                 tarifs = (IEnumerable<Tarif>)Pipe.GetParameter("tarifs");
@@ -428,11 +413,11 @@ namespace WpfApp.ViewModel
                     _paymentsContext.EnterChildren.Where(p => p.ChildId == id),
                     CurrentChild.Tarif);
                 annualResult = new ObservableCollection<RangePayment>(_paymentsContext.AnnualPayments.Where(p => p.ChildId == CurrentChild.Id));
-                var from = GetLastEnterDate(annualResult);
+                var from = GetLastAnnualPaymentDate(annualResult);
                 var now = DateTime.Now;
                 totalAnnual = @from >= now
                     ? 0
-                    : new DateTime((now - @from).Ticks).Year*CurrentChildTarif.MonthlyPayment;
+                    : new DateTime((now - @from).Ticks).Year*CurrentChildTarif.AnnualPayment;
             });
             PaymentsInMonths = monthlyResult.MonthlyPaymentsInYears;
             PaymentsInYears = annualResult;
@@ -592,9 +577,45 @@ namespace WpfApp.ViewModel
             await LoadPayments();
 
             MonthlyPaymentMoney = string.Empty;
-            MonthlyPaymentDescription = string.Empty;
 
+            SaveDocumentReceiptForMonthlyPaymentCommand.Execute(LastMonthlyPayment);
             PayFeeCommand.NotifyCanExecute(true);
+        }
+
+        private static SaveFileDialog _saveDocumentDialog;
+        private void SaveDocumentReceiptForMonthlyPayment(MonthlyPayment payment)
+        {
+            if (_saveDocumentDialog == null)
+                _saveDocumentDialog = new SaveFileDialog
+                {
+                    Filter = "Word|*.docx",
+                    FileName = AppFilePaths.GetMonthlyReceiptFileName(CurrentChild)
+                };
+            if (_saveDocumentDialog.ShowDialog() != true) return;
+
+            var now = DateTime.Now;
+            var data = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
+                ["&child_second_name"] = CurrentChild.Person.LastName,
+                ["&child_first_name"] = CurrentChild.Person.FirstName,
+                ["&child_patronymic"] = CurrentChild.Person.Patronymic,
+                ["&child_full_name"] = CurrentChild.Person.FullName,
+                ["&child_birthdate"] = CurrentChild.BirthDate.ToString(OtherSettings.DateFormat),
+
+                ["&group_id"] = CurrentChildGroup.Id.ToString(),
+                ["&group_name"] = CurrentChildGroup.Name,
+
+                ["&payment_id"] = "М-" + payment.Id,
+                ["&payment_sum"] = payment.PaidMoney.Str(),
+                ["&payment_debt"] = payment.DebtAfterPaying.Str(),
+                ["&payment_note"] = payment.Description,
+            };
+            var src = Path.GetFullPath(AppFilePaths.GetMonthlyReceiptTemplatePath());
+            WordWorker.Replace(src, _saveDocumentDialog.FileName, data);
         }
 
         private async void SaveChanges()
@@ -636,11 +657,12 @@ namespace WpfApp.ViewModel
                         }
                         else if (old.ParentId != currentParent.Id)
                         {
-                            // TODO: Here must be right update query like this
+                            // Here must be right update query like this
                             // old.ParentId = currentParent.Id;
-                            // but it don't work (maybe Entity thinks "Id" is auto increment)
+                            // but it doesn't work (maybe Entity thinks "Id" is auto increment)
                             context.ParentChildren.Remove(old);
                             context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText });
+                            // select and insert instead of update
                         }
                     }
                 };
@@ -719,15 +741,20 @@ namespace WpfApp.ViewModel
             SaveChangesCommand.NotifyCanExecute(true);
         }
 
-        private void AddChildToArchive(string note)
+        private async void AddChildToArchive(string note)
         {
             if (CurrentChildIsArchived) throw new InvalidOperationException();
+            AddChildToArchiveCommand.NotifyCanExecute(false);
 
-            var context = new KindergartenContext();
-            var enter = context.EnterChildren.First(e => e.Id == CurrentChild.LastEnterChild.Id);
-            enter.ExpulsionDate = DateTime.Now;
-            enter.ExpulsionNote = note;
-            context.SaveChanges();
+            EnterChild enter = null;
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                enter = context.EnterChildren.First(e => e.Id == CurrentChild.LastEnterChild.Id);
+                enter.ExpulsionDate = DateTime.Now;
+                enter.ExpulsionNote = note;
+                context.SaveChanges();
+            });
 
             CurrentChild.LastEnterChild = enter;
 
@@ -735,9 +762,58 @@ namespace WpfApp.ViewModel
             OnPropertyChanged(nameof(CurrentChild));
             OnPropertyChanged(nameof(ExpulsionDateLastEnterChild));
             OnPropertyChanged(nameof(ExpulsionNoteLastEnterChild));
+
+            var year = PaymentsInMonths[PaymentsInMonths.Count-1].Year;
+            SaveDocumentAddingToArchive(CurrentChild, CurrentChildGroup, year);
+            AddChildToArchiveCommand.NotifyCanExecute(true);
         }
 
-        private void RemoveChildFromArchive()
+        private static Dictionary<string, string> MakeDataForDocument(Child child, Group @group)
+        {
+            var groupType = (string)GroupConverter.Convert(@group.GroupType, @group.GroupType.GetType(), null, CultureInfo.CurrentCulture);
+            var now = DateTime.Now;
+
+            return new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
+
+                ["&child_id"] = child.Id.ToString(),
+                ["&child_first_name"] = child.Person.FirstName,
+                ["&child_second_name"] = child.Person.LastName,
+                ["&child_patronymic"] = child.Person.Patronymic,
+                ["&child_full_name"] = child.Person.FullName,
+                ["&child_birthdate"] = child.BirthDate.ToString(OtherSettings.DateFormat),
+                ["&child_location_address"] = child.LocationAddress,
+
+                ["&group_id"] = child.GroupId.ToString(),
+                ["&group_name"] = @group.Name,
+                ["&group_type"] = groupType,
+            };
+        }
+
+        public static void SaveDocumentAddingToArchive(Child child, Group group, int year)
+        {
+            var enter = child.LastEnterChild;
+            if (enter.ExpulsionDate == null) throw new InvalidDataException();
+
+            var data = MakeDataForDocument(child, group);
+            data["&archive_adding_date"] = enter.ExpulsionDate.Value.ToString(OtherSettings.DateFormat);
+            data["&archive_note"] = enter.ExpulsionNote;
+
+
+            var src = AppFilePaths.GetAddingToArchiveTemplatePath();
+            string dest = AppFilePaths.GetDocumentsDirectoryPathForChild(child, year) +
+                          Path.DirectorySeparatorChar +
+                          AppFilePaths.GetAddingToArchiveFileName(child, enter.ExpulsionDate.Value);
+            dest = CommonHelper.ChangeFileNameIfFileExists(dest);
+            
+            WordWorker.Replace(Path.GetFullPath(src), Path.GetFullPath(dest), data);
+        }
+
+        private async void RemoveChildFromArchive()
         {
             if (!CurrentChildIsArchived) throw new InvalidOperationException();
             var group = CurrentChild.Group;
@@ -750,30 +826,76 @@ namespace WpfApp.ViewModel
                     return;
             }
 
-            var context = new KindergartenContext();
-            context.EnterChildren.Add(CurrentChild.LastEnterChild = new EnterChild { EnterDate = DateTime.Now, ChildId = CurrentChild.Id });
-            context.SaveChanges();
+            RemoveChildFromArchiveCommand.NotifyCanExecute(false);
+
+            await Task.Run(() =>
+            {
+                var context = new KindergartenContext();
+                context.EnterChildren.Add(CurrentChild.LastEnterChild = new EnterChild {EnterDate = DateTime.Now, ChildId = CurrentChild.Id});
+                context.SaveChanges();
+            });
             OnPropertyChanged(nameof(CurrentChildIsArchived));
             OnPropertyChanged(nameof(CurrentChild));
             OnPropertyChanged(nameof(ExpulsionDateLastEnterChild));
             OnPropertyChanged(nameof(ExpulsionNoteLastEnterChild));
+
+            SaveDocumentRemoveFromArchive();
+            RemoveChildFromArchiveCommand.NotifyCanExecute(true);
+        }
+
+        private void SaveDocumentRemoveFromArchive()
+        {
+            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup);
+            var enterDate = CurrentChild.LastEnterChild.EnterDate;
+            data["&child_enter_date"] = enterDate.ToString(OtherSettings.DateFormat);
+
+            var year = PaymentsInMonths[PaymentsInMonths.Count - 1].Year;
+            var src = AppFilePaths.GetTakingChildTemplatePath();
+            string dest = AppFilePaths.GetDocumentsDirectoryPathForChild(CurrentChild, year) +
+                          Path.DirectorySeparatorChar +
+                          AppFilePaths.GetOrderOfAdmissionFileName(CurrentChild, enterDate);
+            dest = CommonHelper.ChangeFileNameIfFileExists(dest);
+            WordWorker.Replace(Path.GetFullPath(src), Path.GetFullPath(dest), data);
         }
 
         private async void ChangeGroup()
         {
+            var prevGroup = CurrentChildGroup;
             var parameters = new Dictionary<string, object>(3)
             {
                 ["child"] = CurrentChild,
                 ["groups"] = Groups,
+                ["current_group"] = Groups.First(g => g.Id == prevGroup.Id),
             };
             var pipe = new Pipe(parameters, true);
             StartViewModel<ChangeChildGroupViewModel>(pipe);
-            var savedGroup = (Group)pipe.GetParameter("saved_group_result");
-            if (savedGroup == null)
+            var currentGroup = (Group)pipe.GetParameter("saved_group_result");
+            if (currentGroup == null)
                 return;
+            
+            CurrentChildGroup = currentGroup;
 
-            CurrentChildGroup = savedGroup;
+            SaveDocumentGroupTransfer(prevGroup);
             await UpdateMainViewModel();
+        }
+
+        private void SaveDocumentGroupTransfer(Group prevGroup)
+        {
+            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup);
+            data["&prev_group_id"] = prevGroup.Id.ToString();
+            data["&prev_group_name"] = prevGroup.Name;
+            var conv = GroupConverter;
+            data["&prev_group_type"] = (string) conv.Convert(prevGroup.GroupType, prevGroup.GroupType.GetType(), null, CultureInfo.CurrentCulture);
+
+            var groupType = (string) conv.Convert(CurrentChildGroup.GroupType, CurrentChildGroup.GroupType.GetType(), null, CultureInfo.CurrentCulture);
+
+            int year = PaymentsInMonths[PaymentsInMonths.Count - 1].Year;
+            string src = AppFilePaths.GetGroupTransferTemplatePath();
+            string dest = AppFilePaths.GetDocumentsDirectoryPathForChild(CurrentChild, year) +
+                          Path.DirectorySeparatorChar +
+                          AppFilePaths.GetGroupTransferFileName(CurrentChild, DateTime.Now, CurrentChildGroup.Name, groupType);
+            dest = CommonHelper.ChangeFileNameIfFileExists(dest);
+            WordWorker.Replace(Path.GetFullPath(src), Path.GetFullPath(dest), data);
         }
 
         public override async void OnFinished()
@@ -894,7 +1016,7 @@ namespace WpfApp.ViewModel
 
         public DateTime CurrentChildBirthDate
         {
-            get { return CurrentChild.BirthDate; }
+            get { return CurrentChild?.BirthDate ?? DateTime.MinValue; }
             set
             {
                 if (value == CurrentChild.BirthDate) return;
@@ -905,7 +1027,7 @@ namespace WpfApp.ViewModel
 
         public bool CurrentChildIsNobody
         {
-            get { return CurrentChild.IsNobody; }
+            get { return CurrentChild != null && CurrentChild.IsNobody; }
             set
             {
                 if (CurrentChild.IsNobody == value) return;
@@ -916,7 +1038,7 @@ namespace WpfApp.ViewModel
 
         public Sex CurrentChildSex
         {
-            get { return CurrentChild.Sex; }
+            get { return CurrentChild?.Sex ?? Sex.Male; }
             set
             {
                 if (CurrentChild.Sex == value) return;
@@ -1089,7 +1211,7 @@ namespace WpfApp.ViewModel
 
         public DateTime CurrentFatherPassportIssueDate
         {
-            get { return CurrentFather.PassportIssueDate; }
+            get { return CurrentFather?.PassportIssueDate ?? DateTime.MinValue; }
             set
             {
                 if (CurrentFather.PassportIssueDate == value) return;
@@ -1242,7 +1364,7 @@ namespace WpfApp.ViewModel
 
         public DateTime CurrentMotherPassportIssueDate
         {
-            get { return CurrentMother.PassportIssueDate; }
+            get { return CurrentMother?.PassportIssueDate ?? DateTime.MinValue; }
             set
             {
                 if (CurrentMother.PassportIssueDate == value) return;
@@ -1392,7 +1514,7 @@ namespace WpfApp.ViewModel
 
         public DateTime CurrentOtherPassportIssueDate
         {
-            get { return CurrentOther.PassportIssueDate; }
+            get { return CurrentOther?.PassportIssueDate ?? DateTime.MinValue; }
             set
             {
                 if (CurrentOther.PassportIssueDate == value) return;
@@ -1403,7 +1525,7 @@ namespace WpfApp.ViewModel
 
         #endregion
 
-        public bool CurrentChildIsArchived => CurrentChild.LastEnterChild.ExpulsionDate.HasValue;
+        public bool CurrentChildIsArchived => CurrentChild?.LastEnterChild?.ExpulsionDate.HasValue == true;
 
         public Group CurrentChildGroup
         {
@@ -1416,16 +1538,7 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public string AnnualPaymentDescription
-        {
-            get { return _annualPaymentDescription; }
-            set
-            {
-                if (value == _annualPaymentDescription) return;
-                _annualPaymentDescription = value;
-                OnPropertyChanged();
-            }
-        }
+        public string AnnualPaymentDescription => (string)this["annual_payment_description", "Родительский взнос за год"];
 
         public string OtherParentText
         {
@@ -1438,16 +1551,7 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public string MonthlyPaymentDescription
-        {
-            get { return _monthlyPaymentDescription; }
-            set
-            {
-                if (value == _monthlyPaymentDescription) return;
-                _monthlyPaymentDescription = value;
-                OnPropertyChanged();
-            }
-        }
+        public string MonthlyPaymentDescription => (string) this["monthly_payment_description", "Родительский взнос за месяц"];
 
         public string MonthlyPaymentMoney
         {
@@ -1460,8 +1564,8 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public DateTime? ExpulsionDateLastEnterChild => CurrentChild.LastEnterChild.ExpulsionDate;
-        public string ExpulsionNoteLastEnterChild => CurrentChild.LastEnterChild.ExpulsionNote;
+        public DateTime? ExpulsionDateLastEnterChild => CurrentChild?.LastEnterChild.ExpulsionDate;
+        public string ExpulsionNoteLastEnterChild => CurrentChild?.LastEnterChild.ExpulsionNote;
 
         public IEnumerable<Tarif> Tarifs
         {
@@ -1527,11 +1631,20 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _paymentsInYears)) return;
                 _paymentsInYears = value;
                 OnPropertyChanged();
-                StartDateOfNextAnnualPayment = GetLastEnterDate(value);
+                StartDateOfNextAnnualPayment = GetLastAnnualPaymentDate(value);
             }
         }
 
-        public DateTime RecalculationAnnualPaymentDate { get; } = DateTime.Today.AddDays(1);
+        public DateTime RecalculationAnnualPaymentDate
+        {
+            get { return _recalculationAnnualPaymentDate; }
+            set
+            {
+                if (value.Equals(_recalculationAnnualPaymentDate)) return;
+                _recalculationAnnualPaymentDate = value;
+                OnPropertyChanged();
+            }
+        }
 
         public MonthlyPayment LastMonthlyPayment
         {
@@ -1590,6 +1703,10 @@ namespace WpfApp.ViewModel
         public double TotalChildUnpaidMoney => Math.Max(GetTotalCredit(), 0);
         public double TotalChildDeposit => Math.Max(-GetTotalCredit(), 0);
 
+        public static IValueConverter GroupConverter =>
+            _groupConverter ??
+            (_groupConverter = (IValueConverter) Application.Current.FindResource("GroupsConverter"));
+
         private Child _currentChild;
         private MainViewModel _mainViewModel;
         private IEnumerable<Group> _groups;
@@ -1610,10 +1727,8 @@ namespace WpfApp.ViewModel
         private ObservableCollection<MonthlyPaymentsInYear> _paymentsInMonths;
         private KindergartenContext _paymentsContext;
         private MonthlyPayment _lastMonthlyPayment;
-        private string _monthlyPaymentDescription;
         private ObservableCollection<RangePayment> _paymentsInYears;
         private DateTime _endDateOfNextAnnualPayment;
-        private string _annualPaymentDescription;
         private DateTime _startDateOfNextAnnualPayment;
         private double _totalAnnualUnpaidMoney;
         private string _monthlyPaymentMoney;
@@ -1623,5 +1738,7 @@ namespace WpfApp.ViewModel
         private bool _isNewPhoto;
         private string _oldPhotoSource;
         private volatile string _documentDirectoryPath;
+        private DateTime _recalculationAnnualPaymentDate = DateTime.Today.AddDays(1);
+        private static IValueConverter _groupConverter;
     }
 }

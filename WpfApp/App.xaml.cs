@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Configuration;
+using System.IO;
 using System.Windows;
 using NLog;
 using WpfApp.Framework;
+using WpfApp.Settings;
 
 namespace WpfApp
 {
@@ -55,6 +57,12 @@ namespace WpfApp
             }
             Console.WriteLine(xaml);
             return new Uri(xaml, UriKind.Relative);
+        }
+        public static void EnsureAllDirectories()
+        {
+            if (Directory.Exists(AppFilePaths.PersonImages)) return;
+            Directory.CreateDirectory(AppFilePaths.PersonImages);
+            Logger.Trace("Directories was created");
         }
     }
 }

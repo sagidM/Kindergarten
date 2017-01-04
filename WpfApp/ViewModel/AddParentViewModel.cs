@@ -32,6 +32,18 @@ namespace WpfApp.ViewModel
 
         private void SaveParent(Parent parent)
         {
+            var person = parent.Person;
+            var foundParent = _allParents.FirstOrDefault(p =>
+                p.Person.FirstName == person.FirstName &&
+                p.Person.LastName == person.LastName &&
+                p.Person.Patronymic == person.Patronymic);
+
+            if (foundParent != null)
+            {
+                var res = MessageBox.Show("Родитель с такими ФИО уже существует. Добавить нового?", "Добавление родителя", MessageBoxButton.YesNo);
+                if (res != MessageBoxResult.Yes) return;
+            }
+
             var context = new KindergartenContext();
             context.Parents.Add(parent);
 
@@ -57,7 +69,8 @@ namespace WpfApp.ViewModel
         private void UpdateParents()
         {
             var context = new KindergartenContext();
-            Parents = new ListCollectionView(context.Parents.Include("Person").ToList());
+            _allParents = context.Parents.Include("Person").ToList();
+            Parents = new ListCollectionView(_allParents);
         }
 
         public ListCollectionView Parents
@@ -115,5 +128,6 @@ namespace WpfApp.ViewModel
         private ListCollectionView _parents;
         private BitmapImage _parentImageSource;
         private string _searchParentFilter;
+        private List<Parent> _allParents;
     }
 }

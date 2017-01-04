@@ -5,16 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfApp.View"
         mc:Ignorable="d"
-        Title="ChangeGroupGroupType" Height="300" Width="300"
+        Title="Изменение типа группы" Height="300" Width="300"
 		Name="ThisWindow">
 	<StackPanel>
-		<ComboBox DataContext="{Binding CurrentGroup}" SelectedItem="{Binding GroupType}"
-				  ItemsSource="{Binding Source={StaticResource Groups}}" ItemTemplate="{StaticResource GroupsDataTemplate}"/>
-		<Button Content="Сохранить" Command="{Binding ChangeGroupTypeCommand}"/>
+		<Button IsCancel="True" Template="{x:Null}" />
+		<ComboBox SelectedItem="{Binding SelectedGroupType}" ItemsSource="{Binding Source={StaticResource Groups}}" ItemTemplate="{StaticResource GroupsDataTemplate}"/>
+		<Button Content="Сохранить" Command="{Binding ChangeGroupTypeCommand}" IsEnabled="{Binding GroupTypesAreDifferent}"/>
 
 		<WrapPanel>
 			<Label Content="Текущая группа: "/>
-			<Label Content="{Binding CurrentGroupType, Converter={StaticResource GroupsConverter}}"/>
+			<Label Content="{Binding CurrentGroup.GroupType, Converter={StaticResource GroupsConverter}}"/>
 		</WrapPanel>
 	</StackPanel>
 </Window>

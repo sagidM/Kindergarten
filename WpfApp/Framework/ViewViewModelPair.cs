@@ -43,7 +43,6 @@ namespace WpfApp.Framework
             sw.Start();
             var conf = WindowStateSaver.ConfigureWindow(View.OriginalString, window, viewModel);
             sw.Stop();
-            Console.WriteLine(sw.Elapsed);
             bool closed = false;
             window.Closed += (s, e) =>
             {
