@@ -45,20 +45,27 @@ namespace WpfApp.Util
             return p;
         }
 
+        public static string GetRightRussianWord(int num, string singular, string plural)
+        {
+            var m100 = num % 100;
+            return m100 >= 10 && m100 <= 20 || m100%10 != 1 ? plural : singular;
+        }
+
+        ///<summary>1 рубль, 2 рубля, 5 рублей => <c>GetRightRussianWord(ruble, "рубль", "рубля", "рублей")</c></summary>
         public static string GetRightRussianWord(int num, string s1, string s2, string s5)
         {
-            var n100 = num % 100;
-            if (n100 >= 10 && n100 <= 20) return s5;
+            var m100 = num % 100;
+            if (m100 >= 10 && m100 <= 20) return s5;
 
-            var n10 = n100 % 10;
-            if (n10 == 1) return s1;
-            if (n10 > 1 && n10 < 5) return s2;
+            var m10 = m100 % 10;
+            if (m10 == 1) return s1;
+            if (m10 > 1 && m10 < 5) return s2;
             return s5;
         }
 
         public static void OpenFileOrDirectory(string path)
         {
-            // #if OS_is_Windows
+            // #if OS_IS_WINDOWS
             Process.Start("explorer.exe", $"\"{path}\"");
         }
         public static void OpenFileOrDirectoryWithSelected(string path)

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Reflection;
 using System.Windows;
 using WpfApp.Framework.Core;
@@ -38,11 +37,8 @@ namespace WpfApp.Framework
             
             window.DataContext = viewModel;
             window.Loaded += (s, e) => viewModel.OnLoaded();
-            window.Closing += (s, e) => { e.Cancel = !viewModel.OnFinishing(); };
-            var sw = new Stopwatch();
-            sw.Start();
+            window.Closing += (s, e) => e.Cancel = !viewModel.OnFinishing();
             var conf = WindowStateSaver.ConfigureWindow(View.OriginalString, window, viewModel);
-            sw.Stop();
             bool closed = false;
             window.Closed += (s, e) =>
             {

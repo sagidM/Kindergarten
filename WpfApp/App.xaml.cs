@@ -2,6 +2,7 @@
 using System.Configuration;
 using System.IO;
 using System.Windows;
+using Microsoft.Win32;
 using NLog;
 using WpfApp.Framework;
 using WpfApp.Settings;
@@ -64,5 +65,15 @@ namespace WpfApp
             Directory.CreateDirectory(AppFilePaths.PersonImages);
             Logger.Trace("Directories was created");
         }
+
+
+        public static SaveFileDialog GetDocumentSaveFileDialog(string fileName)
+        {
+            if (_documentSaveFileDialog == null)
+                _documentSaveFileDialog = new SaveFileDialog { Filter = "Word|*.docx" };
+            _documentSaveFileDialog.FileName = fileName;
+            return _documentSaveFileDialog;
+        }
+        private static SaveFileDialog _documentSaveFileDialog;
     }
 }

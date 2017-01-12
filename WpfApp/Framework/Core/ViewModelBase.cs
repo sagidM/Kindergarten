@@ -61,7 +61,7 @@ namespace WpfApp.Framework.Core
             get
             {
                 object result;
-                return _data.TryGetValue(key, out result) ? result : /*this[key] =*/ defaultValue;  // save current defaultValue if not exists
+                return _data.TryGetValue(key, out result) ? result : this[key] = defaultValue;  // save current defaultValue if not exists
             }
             set { this[key] = value; }   // for Mode=TwoWay
         }

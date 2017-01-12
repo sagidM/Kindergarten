@@ -48,7 +48,8 @@ namespace WpfApp.Settings
 
         public static string GetTakingChildTemplatePath() => GetDocumentName("taking_child");
 
-        public static string GetOrderOfAdmissionFileName(Child child) => GetDocumentName("order_of_admission", child.Id);
+        public static string GetOrderOfAdmissionFileName(Child child) =>
+            string.Format(MyDocumentSettings.FilenameOfDocumentsAndTemplates["order_of_admission"][1], child.Id, string.Empty);
         public static string GetOrderOfAdmissionFileName(Child child, DateTime enterDate) =>
             string.Format(MyDocumentSettings.FilenameOfDocumentsAndTemplates["order_of_admission"][1], child.Id, "_" + enterDate.ToString(OtherSettings.DateFormat));
         public static string GetOrderOfAdmissionTemplatePath() => GetDocumentName("order_of_admission");
@@ -79,6 +80,18 @@ namespace WpfApp.Settings
         public static string GetGroupTypeChangedFileName() =>
             MyDocumentSettings.FilenameOfDocumentsAndTemplates["group_type_changed"][1];
         public static string GetGroupTypeChangedTemplatePath() => GetDocumentName("group_type_changed");
+
+        public static string GetChildListFileName() =>
+            MyDocumentSettings.FilenameOfDocumentsAndTemplates["child_list"][1];
+        public static string GetChildListTemplatePath() => GetDocumentName("child_list");
+
+        public static string GetPaymentListFileName() =>
+            MyDocumentSettings.FilenameOfDocumentsAndTemplates["payment_list"][1];
+        public static string GetPaymentListTemplatePath() => GetDocumentName("payment_list");
+
+        public static string GetTarifChangeFileName(Child child) =>
+            string.Format(MyDocumentSettings.FilenameOfDocumentsAndTemplates["tarif_change"][1], child.Id, DateTime.Now.ToString(OtherSettings.DateFormat));
+        public static string GetTarifChangeTemplatePath() => GetDocumentName("tarif_change");
 
 
         static AppFilePaths()

@@ -64,7 +64,7 @@ namespace WpfApp.View.UI
                         }
 
                         // days
-                        while (paymentList.Count > paymentIndex)
+                        while (paymentIndex < paymentList.Count)
                         {
                             var payment = paymentList[paymentIndex];
                             var paymentDate = payment.PaymentDate;
@@ -89,7 +89,10 @@ namespace WpfApp.View.UI
                                 {
                                     continue;
                                 }
-                                monthlyPayment.DebtAfterPaying = lastp.DebtAfterPaying + lastp.MoneyPaymentByTarif;
+                                monthlyPayment.DebtAfterPaying =
+                                    lastp.PaymentDate < monthlyPayment.PaymentDate
+                                        ? lastp.MoneyPaymentByTarif + lastp.DebtAfterPaying
+                                        : lastp.MoneyPaymentByTarif;
                                 monthlyPayment.MoneyPaymentByTarif = lastp.MoneyPaymentByTarif;
                             }
                             monthPayment.Payments.Add(monthlyPayment);
@@ -98,7 +101,7 @@ namespace WpfApp.View.UI
                         else
                         {
                             lastPaymentForLastMonth = monthPayment.Payments[monthPayment.Payments.Count-1];
-                            if (lastPaymentForLastMonth.PaidMoney == 0)
+                            if (lastPaymentForLastMonth.Description == null)  // PaidMoney == 0
                                 monthPayment.NotPaid = true;
                         }
                         months.Add(monthPayment);

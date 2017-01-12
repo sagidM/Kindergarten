@@ -62,7 +62,7 @@ namespace WpfApp.ViewModel
         public override void OnLoaded()
         {
             Pipe.SetParameter("parent_result", null);
-            ExcludeIds = (int[]) Pipe.GetParameter("exclude_parent_ids");
+            ExcludeIds = (IList<int>) Pipe.GetParameter("exclude_parent_ids");
             UpdateParents();
         }
 

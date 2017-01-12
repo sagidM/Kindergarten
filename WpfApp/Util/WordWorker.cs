@@ -2,8 +2,11 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Windows;
 using Microsoft.Office.Interop.Word;
+using Application = Microsoft.Office.Interop.Word.Application;
 
 namespace WpfApp.Util
 {
@@ -11,6 +14,11 @@ namespace WpfApp.Util
     {
         public static void Replace<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue> data, string picturePath = null)
         {
+            if (!File.Exists(templateName))
+            {
+                ShowFileNotFound(templateName);
+                return;
+            }
             var app = new Application();
             try
             {
@@ -31,7 +39,7 @@ namespace WpfApp.Util
                 }
                 finally
                 {
-                    app.Documents.Close();
+                    CloseDocuments(app.Documents);
                 }
             }
             finally
@@ -41,8 +49,18 @@ namespace WpfApp.Util
             }
         }
 
+        private static void CloseDocuments(Documents documents)
+        {
+            documents.Close(SaveChanges: WdSaveOptions.wdDoNotSaveChanges);
+        }
+
         public static void InsertTable<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue> header, IDictionary<string, TValue>[] body)
         {
+            if (!File.Exists(templateName))
+            {
+                ShowFileNotFound(templateName);
+                return;
+            }
             var app = new Application();
             try
             {
@@ -62,7 +80,7 @@ namespace WpfApp.Util
                             .Rows[1]
                             .Cells
                             .Cast<Cell>()
-                            .Select(c => Regex.Replace(c.Range.Text, "[\\s\\n\\r\\a\\t]", ""))
+                            .Select(c => CellRegex.Replace(c.Range.Text, ""))
                             .ToArray();
 
                         foreach (var line in body)
@@ -80,7 +98,7 @@ namespace WpfApp.Util
                 }
                 finally
                 {
-                    app.Documents.Close();
+                    CloseDocuments(app.Documents);
                 }
             }
             finally
@@ -93,12 +111,20 @@ namespace WpfApp.Util
         private static void DocumentSaveAs(Document doc, string file)
         {
             var dir = Path.GetDirectoryName(file);
+            // ReSharper disable once AssignNullToNotNullAttribute
             if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
             doc.SaveAs(FileName: file);
         }
 
+        private static readonly Regex CellRegex = new Regex(@"[\s\n\r\a\t]");
+
         public static void InsertTableAndReplaceText<TKey, TValue>(string templateName, string destination, IList<IDictionary<string, TValue>> body, IDictionary<TKey, TValue> replaceDict, string picturePath = null)
         {
+            if (!File.Exists(templateName))
+            {
+                ShowFileNotFound(templateName);
+                return;
+            }
             var app = new Application();
             try
             {
@@ -109,24 +135,26 @@ namespace WpfApp.Util
                     s.Find.ClearFormatting();
                     s.Find.Replacement.ClearFormatting();
 
-                    var tableCount = doc.Tables.Count;
-                    for (int tableIndex = 1; tableIndex <= tableCount; tableIndex++)
+                    if (body.Count > 0)
                     {
-                        var table = doc.Tables[tableIndex];
+                        var keys = body[0].Select(p => p.Key).ToList();
 
-                        int rowIndex = -1;
-                        try
+                        var tableCount = doc.Tables.Count;
+                        for (int tableIndex = 1; tableIndex <= tableCount; tableIndex++)
                         {
-                            for (var col = 1; col <= table.Columns.Count; col++)
-                            {
-                                for (int row = 1; row <= table.Rows.Count; row++)
-                                {
-                                    var text = table.Columns[col].Cells[row].Range.Text;
-                                    text = Regex.Replace(text, @"[\s\n\r\a\t]", "");
+                            var table = doc.Tables[tableIndex];
 
-                                    foreach (var line in body)
+                            int rowIndex = -1;
+                            try
+                            {
+                                for (var col = 1; col <= table.Columns.Count; col++)
+                                {
+                                    for (int row = 1; row <= table.Rows.Count; row++)
                                     {
-                                        if (line.ContainsKey(text))
+                                        var text = table.Columns[col].Cells[row].Range.Text;
+                                        //text = CellRegex.Replace(text, "");
+
+                                        if (keys.Any(k => text.Contains(k)))
                                         {
                                             rowIndex = row;
                                             goto out_of_cycle;
@@ -134,38 +162,48 @@ namespace WpfApp.Util
                                     }
                                 }
                             }
-                        }
-                        catch (Exception e)
-                        {
-                            App.Logger.Warn(e.Message);
-                        }
-                        out_of_cycle:
-
-                        if (rowIndex == -1) continue;
-
-                        var replaceRow = table.Rows[rowIndex];
-                        var headerCells = replaceRow
-                            .Cells
-                            .Cast<Cell>()
-                            .Select(c => Regex.Replace(c.Range.Text, "[\\s\\n\\r\\a\\t]", ""))
-                            .ToArray();
-
-                        foreach (var line in body)
-                        {
-                            var row = table.Rows.Add();
-                            for (int cellIndex = 0; cellIndex < headerCells.Length; cellIndex++)
+                            catch (Exception e)
                             {
-                                TValue value;
-                                if (line.TryGetValue(headerCells[cellIndex], out value))
-                                    row.Cells[cellIndex + 1].Range.Text = value.ToString();
+                                App.Logger.Warn(e.Message);
                             }
+                            out_of_cycle:
+
+                            if (rowIndex == -1) continue;
+
+                            var replaceRow = table.Rows[rowIndex];
+                            string[] headerCells = replaceRow
+                                .Cells
+                                .Cast<Cell>()
+                                //.Select(c => CellRegex.Replace(c.Range.Text, ""))
+                                .Select(c => c.Range.Text)
+                                .ToArray();
+
+                            foreach (var dict in body)
+                            {
+                                var row = table.Rows.Add();
+                                for (int cellIndex = 0; cellIndex < headerCells.Length; cellIndex++)
+                                {
+                                    var sb = new StringBuilder(headerCells[cellIndex]);
+                                    foreach (var pair in dict)
+                                    {
+                                        sb.Replace(pair.Key, pair.Value?.ToString());
+                                    }
+                                    var res = sb.ToString();
+                                    if (headerCells[cellIndex] != res)
+                                        row.Cells[cellIndex + 1].Range.Text = res;
+                                    //TValue value;
+                                    //if (dict.TryGetValue(headerCells[cellIndex], out value))
+                                    //    row.Cells[cellIndex + 1].Range.Text = value.ToString();
+                                }
+                            }
+                            replaceRow.Delete();
                         }
-                        replaceRow.Delete();
                     }
-                    foreach (var pair in replaceDict)
-                    {
-                        s.Find.Execute(FindText: pair.Key, ReplaceWith: pair.Value, MatchCase: false, Replace: WdReplace.wdReplaceAll);
-                    }
+                    if (replaceDict != null)
+                        foreach (var pair in replaceDict)
+                        {
+                            s.Find.Execute(FindText: pair.Key, ReplaceWith: pair.Value, MatchCase: false, Replace: WdReplace.wdReplaceAll);
+                        }
                     if (picturePath != null)
                     {
                         ReplaceByPicture(s, picturePath, "&img");
@@ -174,7 +212,7 @@ namespace WpfApp.Util
                 }
                 finally
                 {
-                    app.Documents.Close();
+                    CloseDocuments(app.Documents);
                 }
             }
             finally
@@ -186,6 +224,11 @@ namespace WpfApp.Util
 
         public static void ReplaceWithDuplicate<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue>[] data, string picturePath = null)
         {
+            if (!File.Exists(templateName))
+            {
+                ShowFileNotFound(templateName);
+                return;
+            }
             var app = new Application();
             try
             {
@@ -220,7 +263,7 @@ namespace WpfApp.Util
                 }
                 finally
                 {
-                    app.Documents.Close();
+                    CloseDocuments(app.Documents);
                 }
             }
             finally
@@ -239,6 +282,11 @@ namespace WpfApp.Util
                 s.InlineShapes.AddPicture(picturePath, Range: imgRange);
                 s.Find.Execute(placeOf, ReplaceWith: string.Empty, MatchCase: false, Replace: WdReplace.wdReplaceAll);
             }
+        }
+
+        private static void ShowFileNotFound(string fileName)
+        {
+            MessageBox.Show($"Внимание, шаблон \"{fileName}\" не найден!", "Файл не найден", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 }

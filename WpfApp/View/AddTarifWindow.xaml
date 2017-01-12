@@ -22,6 +22,7 @@
 					Command="{Binding AddTarifCommand}"
 					CommandParameter="{StaticResource Tarif}"
 					Content="Добавить новый тариф"/>
+			<Button IsCancel="True" Template="{x:Null}"/>
 		</StackPanel>
 	</StackPanel>
 </Window>

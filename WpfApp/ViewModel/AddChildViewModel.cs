@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
@@ -125,7 +123,7 @@ namespace WpfApp.ViewModel
         public override void OnLoaded()
         {
             Groups = (IEnumerable<Group>) Pipe.GetParameter("groups");
-            Tarifs = (IEnumerable<Tarif>) Pipe.GetParameter("tarifs");
+            Tarifs = (IList<Tarif>) Pipe.GetParameter("tarifs");
             Pipe.SetParameter("saved_child_result", null);
         }
 
@@ -141,7 +139,7 @@ namespace WpfApp.ViewModel
             }
         }
 
-        public IEnumerable<Tarif> Tarifs
+        public IList<Tarif> Tarifs
         {
             get { return _tarifs; }
             set
@@ -224,6 +222,7 @@ namespace WpfApp.ViewModel
 
             ParentChild broghtParent = null;
             EnterChild enterChild = null;
+            bool needAddPayments = StartedToPayFromAdditionDate;
             await Task.Run(() =>
             {
                 string imageFileName = null;
@@ -245,20 +244,27 @@ namespace WpfApp.ViewModel
 
                     var context = new KindergartenContext();
 
-                    if (StartedToPayFromAdditionDate)
+                    if (needAddPayments)
                     {
                         // to no debt range add
 
-                        // 1) the first fictitious payment for start range
-                        context.MonthlyPayments.Add(new MonthlyPayment
+                        var now = DateTime.Now;
+
+                        if (now.Year != ChildAdditionDate.Year && now.Month != ChildAdditionDate.Month)
                         {
-                            ChildId = child.Id, PaymentDate = ChildAdditionDate, MoneyPaymentByTarif = 0, // 0 - because to make no debt
-                        });
+                            // 1) the first fictitious payment for start range
+                            context.MonthlyPayments.Add(new MonthlyPayment
+                            {
+                                ChildId = child.Id,
+                                PaymentDate = ChildAdditionDate,
+                                MoneyPaymentByTarif = 0, // 0 - because to make no debt
+                            });
+                        }
 
                         // 2) the second fictitious payment for end range
                         context.MonthlyPayments.Add(new MonthlyPayment
                         {
-                            ChildId = child.Id, PaymentDate = DateTime.Now, MoneyPaymentByTarif = child.Tarif.MonthlyPayment, DebtAfterPaying = child.Tarif.MonthlyPayment,
+                            ChildId = child.Id, PaymentDate = now, MoneyPaymentByTarif = child.Tarif.MonthlyPayment, DebtAfterPaying = InitialDebt,
                         });
                     }
                     child.Tarif = null;
@@ -287,6 +293,7 @@ namespace WpfApp.ViewModel
                             broghtParent = parentChild;
                     }
                     context.SaveChanges();
+                    App.Logger.Debug("Child added");
                 }
                 catch
                 {
@@ -339,6 +346,7 @@ namespace WpfApp.ViewModel
             {
                 if (value == _startedToPayFromAdditionDate) return;
                 _startedToPayFromAdditionDate = value;
+                if (!value && _selectedTarifIndex >= 0) InitialDebt = Tarifs[_selectedTarifIndex].MonthlyPayment;
                 OnPropertyChanged();
             }
         }
@@ -362,6 +370,42 @@ namespace WpfApp.ViewModel
                 if (Equals(value, _broughtParent)) return;
                 _broughtParent = value;
                 OnPropertyChanged();
+            }
+        }
+
+        public double InitialDebt
+        {
+            get { return Math.Max(0, _initialDebtAndCredit); }
+            set
+            {
+                if (value.Equals(_initialDebtAndCredit)) return;
+                _initialDebtAndCredit = value;
+                OnPropertyChanged(nameof(InitialCredit));
+                OnPropertyChanged();
+            }
+        }
+
+        public double InitialCredit
+        {
+            get { return Math.Max(0, -_initialDebtAndCredit); }
+            set
+            {
+                value = -value;
+                if (value.Equals(_initialDebtAndCredit)) return;
+                _initialDebtAndCredit = value;
+                OnPropertyChanged(nameof(InitialDebt));
+                OnPropertyChanged();
+            }
+        }
+        private double _initialDebtAndCredit;
+
+        public int SelectedTarifIndex
+        {
+            set
+            {
+                _selectedTarifIndex = value;
+                if (!StartedToPayFromAdditionDate)
+                    InitialDebt = Tarifs[value].MonthlyPayment;
             }
         }
 
@@ -398,7 +442,7 @@ namespace WpfApp.ViewModel
         private readonly OpenFileDialog _openFileDialog = IODialog.LoadOneImage;
         private ImageSource _childImageSource;
         private Uri _imageUri;
-        private IEnumerable<Tarif> _tarifs;
+        private IList<Tarif> _tarifs;
         private IEnumerable<Group> _groups;
         private Parent _selectedFather;
         private Parent _selectedOther;
@@ -409,5 +453,6 @@ namespace WpfApp.ViewModel
         private bool _startedToPayFromAdditionDate;
         private DateTime _childAdditionDate = DateTime.Now;
         private Parents _broughtParent;
+        private int _selectedTarifIndex = -1;
     }
 }

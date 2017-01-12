@@ -86,5 +86,11 @@ namespace WpfApp.Framework.Core
         public event Action<string> RemovedDirty;
         public event PropertyChangedEventHandler PropertyChanged;
         public event Action DirtyCountChanged;
+
+        public bool WasPropertyChanged(string propertyName)
+        {
+            object value;
+            return _dirtyValues.TryGetValue(propertyName, out value) && _firstValues[propertyName] != value;
+        }
     }
 }

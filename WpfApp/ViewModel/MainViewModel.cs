@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using DAL.Model;
-using Microsoft.Win32;
 using WpfApp.Framework;
 using WpfApp.Framework.Command;
 using WpfApp.Framework.Core;
@@ -53,7 +52,9 @@ namespace WpfApp.ViewModel
             AddIncomeCommand = new RelayCommand<FrameworkElement>(AddIncome);
             ResetIncomesFilterCommand = new RelayCommand(ResetIncomesFilter);
             RemoveSelectedIncomeCommand = new RelayCommand<IncomeDTO>(RemoveSelectedIncome);
-            PrintDocumentChildrenCommand = new RelayCommand(PrintDocumentChildren);
+            PrintPaymentNoticesDocumentCommand = new RelayCommand(PrintPaymentNoticesDocument);
+            PrintChildrenListDocumentCommand = new RelayCommand(PrintChildrenListDocument);
+            SaveDocumentPaymentListCommand = new RelayCommand(SaveDocumentPaymentList);
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -64,16 +65,55 @@ namespace WpfApp.ViewModel
             ShowGroupsFromArchive = (bool?) this[nameof(ShowGroupsFromArchive), null];
         }
 
-        private void PrintDocumentChildren()
+        private void SaveDocumentPaymentList()
         {
-            if (_childrenDocumentFileDialog == null)
+            var dlg = GetDocumentSaveFileDialog(AppFilePaths.GetPaymentListFileName());
+            if (dlg.ShowDialog() != true) return;
+
+            var data = new List<IDictionary<string, string>>(Incomes.Count);
+            data.AddRange(Incomes.OfType<IncomeDTO>().Select(income => new Dictionary<string, string>
             {
-                _childrenDocumentFileDialog = new SaveFileDialog { FileName = AppFilePaths.GetNoticeFileName(), Filter = "Word|*.docx"};
-            }
-            if (_childrenDocumentFileDialog.ShowDialog() != true) return;
+                ["&income_id"] = income.Prefix + income.Id.ToString(),
+                ["&income_person_name"] = income.PersonName,
+                ["&income_note"] = income.Note,
+                ["&income_money"] = income.Money.Str(),
+                ["&income_date"] = income.IncomeDate.ToString(OtherSettings.DateFormat),
+            }));
+
+            var src = Path.GetFullPath(AppFilePaths.GetPaymentListTemplatePath());
+            WordWorker.InsertTableAndReplaceText<string, string>(src, dlg.FileName, data, null);
+        }
+
+        private void PrintChildrenListDocument()
+        {
+            var dlg = GetDocumentSaveFileDialog(AppFilePaths.GetChildListFileName());
+            if (dlg.ShowDialog() != true) return;
+
+            var body = new List<IDictionary<string, string>>();
+            body.AddRange(Children.Cast<Child>().Select(child =>
+            {
+                var res = MakeSimpleDataForDocument(child);
+                res["&child_last_enter"] = child.LastEnterChild.EnterDate.ToString(OtherSettings.DateFormat);
+                res["&tarif_id"] = child.TarifId.ToString();
+                res["&tarif_monthly_payment"] = child.Tarif.MonthlyPayment.Str();
+                res["&tarif_annual_payment"] = child.Tarif.AnnualPayment.Str();
+                res["&tarif_note"] = child.Tarif.Note;
+                res["&parent_address"] = child.Tarif.Note;
+                res["&parent_phone_numbers"] = string.Join(", ", child.ParentsChildren.Select(p => p.Parent.PhoneNumber).Where(n => n != null));
+                return res;
+            }));
+            
+            var src = Path.GetFullPath(AppFilePaths.GetChildListTemplatePath());
+            WordWorker.InsertTableAndReplaceText<string, string>(src, dlg.FileName, body, null);
+        }
+
+        private void PrintPaymentNoticesDocument()
+        {
+            var dlg = GetDocumentSaveFileDialog(AppFilePaths.GetNoticeFileName());
+            if (dlg.ShowDialog() != true) return;
 
             string src = Path.GetFullPath(AppFilePaths.GetNoticeTemplatePath());
-            string dest = _childrenDocumentFileDialog.FileName;
+            string dest = dlg.FileName;
 
             var now = DateTime.Now;
             var data = Children.Cast<Child>()
@@ -139,9 +179,9 @@ namespace WpfApp.ViewModel
         private async void AddIncome(FrameworkElement element)
         {
             var income = (Income) element.DataContext;
-            element.DataContext = null;
-
             if (!income.IsValid()) return;
+
+            element.DataContext = null;
 
             AddIncomeCommand.NotifyCanExecute(false);
 
@@ -250,7 +290,6 @@ namespace WpfApp.ViewModel
             for (int i = 0; i < children.Length; i++)
             {
                 var child = children[i];
-                Console.WriteLine("resource: {1}\\{0}", children[i].Id, years[i]);
                 ChildDetailsViewModel.SaveDocumentAddingToArchive(child, child.Group, years[i]);
             }
         }
@@ -258,12 +297,59 @@ namespace WpfApp.ViewModel
         private async void SaveTarif(Tarif tarif)
         {
             if (!tarif.IsValid()) return;
+            if (tarif.ChildCount > 0)
+            {
+                var ребёнок = CommonHelper.GetRightRussianWord(tarif.ChildCount, "ребёнок", "детей");
+                var пользуется = CommonHelper.GetRightRussianWord(tarif.ChildCount, "пользуется", "пользуются");
+                var s = $"Данным тарифом {пользуется} {tarif.ChildCount} {ребёнок}.\n" +
+                         "Данное действие приведёт к созданию документов для каждого.\n" +
+                         "Вы уверены, что хотите продолжить?";
+                var mbox = MessageBox.Show(s, "Сохранение тарифа", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (mbox != MessageBoxResult.Yes) return;
+            }
 
             var context = new KindergartenContext();
-            var entity = context.Tarifs.First(t => t.Id == tarif.Id);
-            entity.AnnualPayment = tarif.AnnualPayment;
-            entity.MonthlyPayment = tarif.MonthlyPayment;
-            entity.Note = tarif.Note;
+            var groups = context
+                .EnterChildren
+                .GroupBy(ec => ec.ChildId)
+                .Select(g => new { childId = g.Key, min = g.Min(gg => gg.EnterDate) });
+            var children = context
+                .Children
+                .Where(c => c.TarifId == tarif.Id)
+                .Join(groups, c => c.Id, ec => ec.childId, (c, ec) => new {c, ec})
+                .Select(o => new { o.c, o.ec.min.Year, o.c.Group, o.c.Tarif, o.c.Person, pco = o.c.ParentsChildren.Select(pc => new {pc, pc.Parent, pc.Parent.Person}), });
+            
+            foreach (var item in children)
+            {
+                var c = item.c;
+                var data = ChildDetailsViewModel.MakeDataForDocument(c, item.Group, item.Tarif);
+                var pc = item.pco.Select(o => o.pc).ToList();
+                ChildDetailsViewModel.AppendParentData(data, pc.FirstOrDefault(p => p.ParentType == Parents.Father)?.Parent, "father");
+                ChildDetailsViewModel.AppendParentData(data, pc.FirstOrDefault(p => p.ParentType == Parents.Mother)?.Parent, "mother");
+                var other = pc.FirstOrDefault(p => p.ParentType == Parents.Other);
+                if (other != null)
+                {
+                    ChildDetailsViewModel.AppendParentData(data, other.Parent, "other");
+                    data["&other_relation"] = other.ParentTypeText;
+                }
+                else
+                {
+                    ChildDetailsViewModel.AppendParentData(data, null, "other");
+                    data["&other_relation"] = string.Empty;
+                }
+
+                var src = Path.GetFullPath(AppFilePaths.GetTarifChangeTemplatePath());
+                var dest = AppFilePaths.GetDocumentsDirectoryPathForChild(c, item.Year) +
+                           Path.DirectorySeparatorChar +
+                           AppFilePaths.GetTarifChangeFileName(c);
+                dest = CommonHelper.ChangeFileNameIfFileExists(dest);
+                WordWorker.Replace(src, Path.GetFullPath(dest), data);
+            }
+
+            var tf = context.Tarifs.First(t => t.Id == tarif.Id);
+            tf.AnnualPayment = tarif.AnnualPayment;
+            tf.MonthlyPayment = tarif.MonthlyPayment;
+            tf.Note = tarif.Note;
             context.SaveChanges();
             await UpdateTarifsAsync();
         }
@@ -309,12 +395,12 @@ namespace WpfApp.ViewModel
 
         private void SaveDocumentGroupChangeType(Group group, Groups previousType)
         {
-            var sfd = new SaveFileDialog {Filter = "Word|*.docx", FileName = AppFilePaths.GetGroupTypeChangedFileName() };
+            var sfd = GetDocumentSaveFileDialog(AppFilePaths.GetGroupTypeChangedFileName());
             if (sfd.ShowDialog() != true) return;
 
             var children = Children.Cast<Child>().Where(c => c.GroupId == @group.Id);
             var body = new List<IDictionary<string, string>>(4);
-            body.AddRange(children.Select(MakeSimpleDataForDocument));
+            body.AddRange(children.Select(c => MakeSimpleDataForDocument(c, c.Group, false)));
 
             var now = DateTime.Now;
             var head = new Dictionary<string, string>
@@ -338,42 +424,44 @@ namespace WpfApp.ViewModel
             if (_groupConverter == null)
             {
                 _groupConverter = (IValueConverter) Application.Current.FindResource("GroupsConverter");
-                Debug.Assert(_groupConverter != null, "_groupConverter != null");
             }
+            Debug.Assert(_groupConverter != null, "_groupConverter != null");
             return (string) _groupConverter.Convert(groupType, typeof (Groups), null, CultureInfo.CurrentCulture);
         }
 
         private static Dictionary<string, string> MakeSimpleDataForDocument(Child child)
             => MakeSimpleDataForDocument(child, child.Group);
-        private static Dictionary<string, string> MakeSimpleDataForDocument(Child child, Group group)
+        private static Dictionary<string, string> MakeSimpleDataForDocument(Child child, Group group, bool insertDate = true)
         {
-            var now = DateTime.Now;
-            if (group == null) group = child.Group;
             string groupType = group == null ? null : ConvertGroupType(group.GroupType);
 
-            return new Dictionary<string, string>
+            var res = new Dictionary<string, string>
             {
-                ["&date_d"] = now.Day.ToString(),
-                ["&date_m"] = now.Month.ToString(),
-                ["&date_y"] = now.Year.ToString(),
-                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
-
                 ["&child_id"] = child.Id.ToString(),
                 ["&child_first_name"] = child.Person.FirstName,
                 ["&child_second_name"] = child.Person.LastName,
                 ["&child_patronymic"] = child.Person.Patronymic,
                 ["&child_full_name"] = child.Person.FullName,
                 ["&child_birthdate"] = child.BirthDate.ToString(OtherSettings.DateFormat),
-
+                ["&child_sex"] = SexConverter.ConvertToString(child.Sex),
+                ["&child_address"] = child.LocationAddress,
                 ["&group_id"] = @group?.Id.ToString(),
                 ["&group_name"] = @group?.Name,
                 ["&group_type"] = groupType,
-
                 ["&tarif_id"] = child.TarifId.ToString(),
                 ["&tarif_annual_payment"] = child.Tarif?.AnnualPayment.Str(),
                 ["&tarif_monthly_payment"] = child.Tarif?.MonthlyPayment.Str(),
-                ["&tarif_note"] = child.Tarif?.Note,
+                ["&tarif_note"] = child.Tarif?.Note
             };
+            if (insertDate)
+            {
+                var now = DateTime.Now;
+                res["&date_d"] = now.Day.ToString();
+                res["&date_m"] = now.Month.ToString();
+                res["&date_y"] = now.Year.ToString();
+                res["&date_full"] = now.ToString(OtherSettings.DateFormat);
+            }
+            return res;
         }
 
         private async void ShowAddGroupWindow()
@@ -421,7 +509,9 @@ namespace WpfApp.ViewModel
             if (SelectedTarif == null) return;
             if (SelectedTarif.ChildCount > 0)
             {
-                MessageBox.Show($"Данным тарифом пользуются дети ({SelectedTarif.ChildCount})", "Неверное удаление");
+                var пользуется = CommonHelper.GetRightRussianWord(SelectedTarif.ChildCount, "пользуется", "пользуются");
+                var ребёнок = CommonHelper.GetRightRussianWord(SelectedTarif.ChildCount, "ребёнок", "детей");
+                MessageBox.Show($"Данным тарифом {пользуется} {SelectedTarif.ChildCount} {ребёнок}", "Неверное удаление");
                 return;
             }
 
@@ -619,7 +709,7 @@ namespace WpfApp.ViewModel
                     .Select(payment => new IncomeDTO
                     {
                         Id = payment.Id,
-                        PersonName = payment.Child.Person.FirstName + " " + payment.Child.Person.LastName + " " + payment.Child.Person.Patronymic,
+                        PersonName = payment.Child.Person.LastName + " " + payment.Child.Person.FirstName + " " + payment.Child.Person.Patronymic,
                         IncomeDate = payment.PaymentDate,
                         Money = payment.PaidMoney,
                         Note = payment.Description,
@@ -629,7 +719,7 @@ namespace WpfApp.ViewModel
                     .Select(payment => new IncomeDTO
                     {
                         Id = payment.Id,
-                        PersonName = payment.Child.Person.FirstName + " " + payment.Child.Person.LastName + " " + payment.Child.Person.Patronymic,
+                        PersonName = payment.Child.Person.LastName + " " + payment.Child.Person.FirstName + " " + payment.Child.Person.Patronymic,
                         IncomeDate = payment.PaymentDate,
                         Money = payment.MoneyPaymentByTarif,
                         Note = payment.Description,
@@ -666,7 +756,7 @@ namespace WpfApp.ViewModel
         {
             ++LoadingDataCount;
 
-            DateTime from = DateTime.MaxValue;
+            var from = DateTime.MaxValue;
             int notArchivedCount = 0;
             int archivedCount = 0;
             double debtSum = 0;
@@ -874,6 +964,9 @@ namespace WpfApp.ViewModel
             if (!string.IsNullOrEmpty(GroupNameChildrenFilter) &&
                 c.Group.Name.IndexOf(GroupNameChildrenFilter, StringComparison.InvariantCultureIgnoreCase) < 0)
                 return false;
+            if (!string.IsNullOrEmpty(TarifIdChildrenFilter) && c.TarifId.ToString() != TarifIdChildrenFilter)
+                return false;
+
             return true;
         }
 
@@ -1046,6 +1139,17 @@ namespace WpfApp.ViewModel
             {
                 if (value == _groupNameChildrenFilter) return;
                 _groupNameChildrenFilter = value;
+                OnPropertyChangedAndRefreshChildrenFilter();
+            }
+        }
+
+        public string TarifIdChildrenFilter
+        {
+            get { return _tarifIdChildrenFilter; }
+            set
+            {
+                if (value == _tarifIdChildrenFilter) return;
+                _tarifIdChildrenFilter = value;
                 OnPropertyChangedAndRefreshChildrenFilter();
             }
         }
@@ -1497,7 +1601,9 @@ namespace WpfApp.ViewModel
         public IRelayCommand AddIncomeCommand { get; }
         public IRelayCommand ResetIncomesFilterCommand { get; }
         public IRelayCommand RemoveSelectedIncomeCommand { get; }
-        public IRelayCommand PrintDocumentChildrenCommand { get; }
+        public IRelayCommand PrintPaymentNoticesDocumentCommand { get; }
+        public IRelayCommand PrintChildrenListDocumentCommand { get; }
+        public IRelayCommand SaveDocumentPaymentListCommand { get; }
 
         private int LoadingDataCount
         {
@@ -1508,7 +1614,6 @@ namespace WpfApp.ViewModel
                 IsDataLoading = value != 0;
             }
         }
-
 
         #region Fields
 
@@ -1560,7 +1665,7 @@ namespace WpfApp.ViewModel
         private bool _canDeleteIncome;
         private Expense _selectedExpense;
         private double _commonDebt;
-        private SaveFileDialog _childrenDocumentFileDialog;
+        private string _tarifIdChildrenFilter;
         private static IValueConverter _groupConverter;
 
         // prefixes at Incomes tab

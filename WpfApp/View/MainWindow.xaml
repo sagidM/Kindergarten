@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WpfApp"
         xmlns:m="clr-namespace:DAL.Model;assembly=DAL"
         xmlns:vm="clr-namespace:WpfApp.ViewModel"
         xmlns:util="clr-namespace:WpfApp.Util"
@@ -74,7 +73,7 @@
 				</StackPanel>
 			</StatusBarItem>
 		</StatusBar>
-		<TabControl SelectedIndex="1"><!--{Binding '[selected_tab, 1]'}-->
+		<TabControl SelectedIndex="0"><!--{Binding '[selected_tab, 1]'}-->
 			<TabControl.Resources>
 				<Style x:Key="DataTableStyle" BasedOn="{StaticResource {x:Type DataGrid}}" TargetType="DataGrid">
 					<Setter Property="AutoGenerateColumns" Value="False"/>
@@ -121,12 +120,14 @@
 									<CheckBox Margin="0 10 0 0" IsChecked="{Binding ArchivedChildrenFilter}" IsThreeState="True" Content="Архив" />
 									<CheckBox IsChecked="{Binding OnlyDebtorsChildrenFilter}" Content="Показать только должников"/>
 									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
+									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Номер тарифа" Text="{Binding TarifIdChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
 								</StackPanel>
 
 								<StackPanel ZIndex="2">
 									<Separator Margin="20 10" Height="10"/>
 									<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
-									<Button Margin="50 0" Command="{Binding PrintDocumentChildrenCommand}" Content="Печать..."/>
+									<Button Margin="50 0" Command="{Binding PrintPaymentNoticesDocumentCommand}" Content="Распечатать извещения..."/>
+									<Button Margin="50 0" Command="{Binding PrintChildrenListDocumentCommand}" Content="Распечатать список детей..."/>
 									<Separator Margin="20 10" Height="10"/>
 								</StackPanel>
 								
@@ -400,6 +401,7 @@
 						<Button Padding="4" Margin="20 0" Command="{Binding ResetIncomesFilterCommand}" Content="Сбросить"/>
 						<Button Padding="4" Margin="20 5" Command="{Binding RemoveSelectedIncomeCommand}" IsEnabled="{Binding CanDeleteIncome}"
 								CommandParameter="{Binding ElementName=IncomesDataGrid, Path=SelectedItem}" Content="Удалить"/>
+						<Button Padding="4" Margin="20 5" Content="Распечатать список оплат" Command="{Binding SaveDocumentPaymentListCommand}" />
 						<StackPanel>
 							<TextBlock Text="Показывать:"/>
 							<CheckBox Content="Доходы" IsChecked="{Binding IsShowedOnlyIncomesFilter}"/>
@@ -493,11 +495,6 @@
 						</DataGrid.Columns>
 					</DataGrid>
 				</DockPanel>
-			</TabItem>
-			<TabItem Header="Документы">
-				<StackPanel>
-					<Button  Content="Выбрать шаблон договора добавления детей"/>
-				</StackPanel>
 			</TabItem>
 		</TabControl>
 	</DockPanel>

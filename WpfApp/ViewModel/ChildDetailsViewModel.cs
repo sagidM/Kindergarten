@@ -19,6 +19,7 @@ using WpfApp.View.UI;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using WpfApp.Settings;
+using WpfApp.View.Converter;
 
 namespace WpfApp.ViewModel
 {
@@ -40,6 +41,7 @@ namespace WpfApp.ViewModel
         public IRelayCommand OpenDocumentDirectoryCommand { get; }
         public IRelayCommand SaveDocumentReceiptForMonthlyPaymentCommand { get; }
         public IRelayCommand SaveDocumentReceiptForAnnualPaymentCommand { get; }
+        public IRelayCommand ShowChangeDebtCommand { get; }
 
         public ChildDetailsViewModel()
         {
@@ -59,6 +61,7 @@ namespace WpfApp.ViewModel
             OpenDocumentDirectoryCommand = new RelayCommand(OpenDocumentDirectory);
             SaveDocumentReceiptForMonthlyPaymentCommand = new RelayCommand<MonthlyPayment>(SaveDocumentReceiptForMonthlyPayment);
             SaveDocumentReceiptForAnnualPaymentCommand = new RelayCommand<RangePayment>(SaveDocumentReceiptForAnnualPayment);
+            ShowChangeDebtCommand = new RelayCommand(ShowChangeDebt);
 
             _childNotifier = new DirtyPropertyChangeNotifier();
             _childNotifier.StartTracking();
@@ -76,15 +79,38 @@ namespace WpfApp.ViewModel
             _otherNotifier.DirtyCountChanged += onDirtyCountChanged;
         }
 
+        private async void ShowChangeDebt()
+        {
+            var pipe = new Pipe(true);
+            pipe.SetParameter("debt", GetTotalCredit());
+            StartViewModel<ChangeDebtViewModel>(pipe);
+            if (!(bool) pipe.GetParameter("ok")) return;
+
+            await Task.Run(() =>
+            {
+                double newDebt = (double) pipe.GetParameter("debt");
+                string description = (string) pipe.GetParameter("description");
+                var context = new KindergartenContext();
+                var payment = new MonthlyPayment
+                {
+                    ChildId = CurrentChild.Id,
+                    DebtAfterPaying = newDebt,
+                    MoneyPaymentByTarif = CurrentChildTarif.MonthlyPayment,
+                    PaymentDate = DateTime.Now,
+                    Description = description,
+                    PaidMoney = 0,
+                };
+                context.MonthlyPayments.Add(payment);
+                context.SaveChanges();
+            });
+            App.Logger.Info("Debt was changed");
+            await LoadPayments();
+        }
+
         private void SaveDocumentReceiptForAnnualPayment(RangePayment p)
         {
-            if (_saveDocumentDialog == null)
-                _saveDocumentDialog = new SaveFileDialog
-                {
-                    Filter = "Word|*.docx",
-                    FileName = AppFilePaths.GetAnnualReceiptFileName(CurrentChild)
-                };
-            if (_saveDocumentDialog.ShowDialog() != true) return;
+            var dlg = App.GetDocumentSaveFileDialog(AppFilePaths.GetAnnualReceiptFileName(CurrentChild));
+            if (dlg.ShowDialog() != true) return;
 
             var now = DateTime.Now;
             var data = new Dictionary<string, string>
@@ -110,7 +136,7 @@ namespace WpfApp.ViewModel
                 ["&payment_note"] = p.Description,
             };
             var src = Path.GetFullPath(AppFilePaths.GetAnnualReceiptTemplatePath());
-            WordWorker.Replace(src, _saveDocumentDialog.FileName, data);
+            WordWorker.Replace(src, dlg.FileName, data);
         }
 
         private void OpenDocumentDirectory()
@@ -118,10 +144,9 @@ namespace WpfApp.ViewModel
             var s = Path.GetFullPath(_documentDirectoryPath);
             if (!Directory.Exists(s))
             {
-                if (MessageBox.Show("Папки с документами не существует, создать её?", "Отсутствие пакета документов", MessageBoxButton.YesNo) != MessageBoxResult.Yes)
-                {
+                var mbox = MessageBox.Show("Папки с документами не существует, создать её?", "Отсутствие пакета документов", MessageBoxButton.YesNo);
+                if (mbox != MessageBoxResult.Yes)
                     return;
-                }
                 Directory.CreateDirectory(s);
             }
             CommonHelper.OpenFileOrDirectory(s);
@@ -220,7 +245,7 @@ namespace WpfApp.ViewModel
                 if (startDate == endDate) return 0;  // till this date already paid
 
                 // if difference between last payment and now is more than one year,
-                // ask to pay for those years (mbox is below)
+                // to ask to pay for those years (mbox is below)
                 var afterYear = startDate.AddYears(1);
                 if (afterYear < endDate)
                 {
@@ -233,7 +258,7 @@ namespace WpfApp.ViewModel
                 {
                     PaymentFrom = startDate,
                     PaymentTo = endDate,
-                    // TODO: calc average days in year instead 365.25
+                    // TODO: to put average days in year instead 365.25
                     MoneyPaymentByTarif = Math.Round(CurrentChildTarif.AnnualPayment / 365.25 * paidDays),
                     ChildId = CurrentChild.Id,
                     Description = AnnualPaymentDescription,
@@ -317,13 +342,14 @@ namespace WpfApp.ViewModel
 
         public override async void OnLoaded()
         {
+            _mainViewModel = (MainViewModel)Pipe.GetParameter("owner");
             int id = (int)Pipe.GetParameter("child_id");
 
             Child currentChild = null;
             Parent currentFather = null, currentMother = null, currentOther = null;
             IEnumerable<Group> groups = null;
             IEnumerable<Tarif> tarifs = null;
-            MainViewModel mainViewModel = null;
+            string otherParentText = null;
 
             await Task.Run(() =>
             {
@@ -349,12 +375,17 @@ namespace WpfApp.ViewModel
                 _motherContext = currentMother != null ? tmpContext : null;
 
                 tmpContext = new KindergartenContext();
-                currentOther = tmpContext.ParentChildren.Include("Parent.Person")
+                var otherInfo = tmpContext.ParentChildren
                     .Where(pc => pc.ChildId == id && pc.ParentType == Parents.Other)
-                    .Select(pc => pc.Parent)
-                    .Include("Person")
+                    .Select(pc => new { pc.Parent, pc.ParentTypeText})
                     .FirstOrDefault();
-                _otherContext = currentOther != null ? tmpContext : null;
+                if (otherInfo != null)
+                {
+                    _otherContext = tmpContext;
+                    currentOther = otherInfo.Parent;
+                    otherParentText = otherInfo.ParentTypeText;
+                }
+                else _otherContext = null;
 
                 int maxEnterIndex = -1;
                 DateTime maxDateTime = DateTime.MinValue;
@@ -373,16 +404,15 @@ namespace WpfApp.ViewModel
 
                 groups = (IEnumerable<Group>)Pipe.GetParameter("groups");
                 tarifs = (IEnumerable<Tarif>)Pipe.GetParameter("tarifs");
-                mainViewModel = (MainViewModel)Pipe.GetParameter("owner");
             });
 
             CurrentChild = currentChild;
             CurrentFather = currentFather;
             CurrentMother = currentMother;
             CurrentOther = currentOther;
+            OtherParentText = otherParentText;
             Groups = groups;
             Tarifs = tarifs;
-            _mainViewModel = mainViewModel;
 
             CurrentChildGroup = currentChild.Group;
             OnPropertyChanged(nameof(CurrentChildIsArchived));
@@ -397,7 +427,7 @@ namespace WpfApp.ViewModel
 
             OnPropertyChanged(nameof(CurrentChild));
         }
-
+        
         private async Task LoadPayments()
         {
             MonthlyPaymentsInYearsResult monthlyResult = null;
@@ -485,6 +515,7 @@ namespace WpfApp.ViewModel
                 case Parents.Other:
                     CurrentOther = null;
                     _otherContext = null;
+                    OtherParentText = null;
                     _childNotifier.OnPropertyChanged(null, "OtherId");
                     break;
                 default:
@@ -509,7 +540,7 @@ namespace WpfApp.ViewModel
             if (CurrentFather != null) exclude.Add(CurrentFather.Id);
             if (CurrentMother != null) exclude.Add(CurrentMother.Id);
             if (CurrentOther != null) exclude.Add(CurrentOther.Id);
-            pipe.SetParameter("exclude_parent_ids", exclude.ToArray());
+            pipe.SetParameter("exclude_parent_ids", exclude);
 
             StartViewModel<AddParentViewModel>(pipe);
             var parent0 = (Parent)pipe.GetParameter("parent_result");
@@ -556,7 +587,7 @@ namespace WpfApp.ViewModel
             await Task.Run(() =>
             {
                 MonthlyPayment lastPayment;
-                if (LastMonthlyPayment.Id != 0 && Math.Abs(LastMonthlyPayment.PaidMoney) < 0.001)
+                if (LastMonthlyPayment.Id != 0 && LastMonthlyPayment.Description == null)
                 {
                     // last payment is not fictitious, change it
                     lastPayment = LastMonthlyPayment;
@@ -581,17 +612,10 @@ namespace WpfApp.ViewModel
             SaveDocumentReceiptForMonthlyPaymentCommand.Execute(LastMonthlyPayment);
             PayFeeCommand.NotifyCanExecute(true);
         }
-
-        private static SaveFileDialog _saveDocumentDialog;
         private void SaveDocumentReceiptForMonthlyPayment(MonthlyPayment payment)
         {
-            if (_saveDocumentDialog == null)
-                _saveDocumentDialog = new SaveFileDialog
-                {
-                    Filter = "Word|*.docx",
-                    FileName = AppFilePaths.GetMonthlyReceiptFileName(CurrentChild)
-                };
-            if (_saveDocumentDialog.ShowDialog() != true) return;
+            var dlg = App.GetDocumentSaveFileDialog(AppFilePaths.GetMonthlyReceiptFileName(CurrentChild));
+            if (dlg.ShowDialog() != true) return;
 
             var now = DateTime.Now;
             var data = new Dictionary<string, string>
@@ -613,21 +637,29 @@ namespace WpfApp.ViewModel
                 ["&payment_sum"] = payment.PaidMoney.Str(),
                 ["&payment_debt"] = payment.DebtAfterPaying.Str(),
                 ["&payment_note"] = payment.Description,
+                ["&payment_date"] = payment.PaymentDate.ToString(OtherSettings.DateFormat),
             };
             var src = Path.GetFullPath(AppFilePaths.GetMonthlyReceiptTemplatePath());
-            WordWorker.Replace(src, _saveDocumentDialog.FileName, data);
+            WordWorker.Replace(src, dlg.FileName, data);
         }
 
         private async void SaveChanges()
         {
-            SaveChangesCommand.NotifyCanExecute(false);
+            bool tarifWasChanged = _childNotifier.WasPropertyChanged(nameof(CurrentChildTarif));
+            if (tarifWasChanged)
+            {
+                var s = "Напечатается документ о смене тарифа.\nПродолжить?";
+                var mbox = MessageBox.Show(s, "Документ о смене тарифа", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (mbox != MessageBoxResult.Yes) return;
+            }
 
             if (CurrentFather == null && CurrentMother == null && CurrentOther == null)
             {
                 MessageBox.Show("Должен быть выбран хотя бы один из родителей либо иной представитель", "Некорректный выбор", MessageBoxButton.OK, MessageBoxImage.Information);
-                SaveChangesCommand.NotifyCanExecute(true);
                 return;
             }
+
+            SaveChangesCommand.NotifyCanExecute(false);
 
             await Task.Run(() =>
             {
@@ -640,13 +672,13 @@ namespace WpfApp.ViewModel
                 var mother = parents.FirstOrDefault(p => p.ParentType == Parents.Mother);
                 var other = parents.FirstOrDefault(p => p.ParentType == Parents.Other);
 
-                Action<ParentChild, Parent, Parents> changeParent = (old, currentParent, type) =>
+                Action<ParentChild, Parent, Parents, string> changeParent = (old, currentParent, type, parentTypeText) =>
                 {
                     if (old == null)
                     {
                         if (currentParent != null)
                         {
-                            context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type });
+                            context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = parentTypeText });
                         }
                     }
                     else
@@ -659,16 +691,18 @@ namespace WpfApp.ViewModel
                         {
                             // Here must be right update query like this
                             // old.ParentId = currentParent.Id;
+                            // or this
+                            // old.Parent = currentParent;
                             // but it doesn't work (maybe Entity thinks "Id" is auto increment)
                             context.ParentChildren.Remove(old);
-                            context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = old.ParentTypeText });
+                            context.ParentChildren.Add(new ParentChild { ChildId = CurrentChild.Id, ParentId = currentParent.Id, ParentType = type, ParentTypeText = parentTypeText });
                             // select and insert instead of update
                         }
                     }
                 };
-                changeParent(father, CurrentFather, Parents.Father);
-                changeParent(mother, CurrentMother, Parents.Mother);
-                changeParent(other, CurrentOther, Parents.Other);
+                changeParent(father, CurrentFather, Parents.Father, null);
+                changeParent(mother, CurrentMother, Parents.Mother, null);
+                changeParent(other, CurrentOther, Parents.Other, OtherParentText);
 
                 // CurrentChild.TarifId is selected now; the other was selected before.
                 // CurrentChild.Tarif can be null because "Tarifs" always has the same entities,
@@ -737,13 +771,72 @@ namespace WpfApp.ViewModel
                 _motherNotifier.ClearDirties();
                 _otherNotifier.ClearDirties();
             });
+            if (tarifWasChanged)
+            {
+                var t = LoadPayments();
+                SaveDocumentTarifChange();
+                await t;
+            }
             await UpdateMainViewModel();
             SaveChangesCommand.NotifyCanExecute(true);
         }
 
+        private void SaveDocumentTarifChange()
+        {
+            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup, CurrentChildTarif);
+            AppendParentData(data, CurrentFather, "father");
+            AppendParentData(data, CurrentMother, "mother");
+            AppendParentData(data, CurrentOther, "other");
+            data["&other_relation"] = OtherParentText;
+
+            var year = PaymentsInMonths[PaymentsInMonths.Count - 1].Year;
+            var src = Path.GetFullPath(AppFilePaths.GetTarifChangeTemplatePath());
+            var dest = AppFilePaths.GetDocumentsDirectoryPathForChild(CurrentChild, year) +
+                       Path.DirectorySeparatorChar +
+                       AppFilePaths.GetTarifChangeFileName(CurrentChild);
+            dest = CommonHelper.ChangeFileNameIfFileExists(dest);
+            WordWorker.Replace(src, Path.GetFullPath(dest), data);
+        }
+
+        internal static void AppendParentData(IDictionary<string, string> data, Parent parent, string parentText)
+        {
+            if (parent != null)
+            {
+                data[$"&{parentText}_first_name"] = parent.Person.FirstName;
+                data[$"&{parentText}_second_name"] = parent.Person.LastName;
+                data[$"&{parentText}_patronymic"] = parent.Person.Patronymic;
+                data[$"&{parentText}_full_name"] = parent.Person.FullName;
+                data[$"&{parentText}_location_address"] = parent.LocationAddress;
+                data[$"&{parentText}_residence_address"] = parent.ResidenceAddress;
+                data[$"&{parentText}_word_address"] = parent.WorkAddress;
+                data[$"&{parentText}_passport_issued_by"] = parent.PassportIssuedBy;
+                data[$"&{parentText}_passport_series"] = parent.PassportSeries;
+                data[$"&{parentText}_passport_issue_date"] = parent.PassportIssueDate.ToString(OtherSettings.DateFormat);
+                data[$"&{parentText}_phone_number"] = parent.PhoneNumber;
+            }
+            else
+            {
+                var s = string.Empty;
+                data[$"&{parentText}_first_name"] = s;
+                data[$"&{parentText}_second_name"] = s;
+                data[$"&{parentText}_patronymic"] = s;
+                data[$"&{parentText}_full_name"] = s;
+                data[$"&{parentText}_location_address"] = s;
+                data[$"&{parentText}_residence_address"] = s;
+                data[$"&{parentText}_word_address"] = s;
+                data[$"&{parentText}_passport_issued_by"] = s;
+                data[$"&{parentText}_passport_series"] = s;
+                data[$"&{parentText}_passport_issue_date"] = s;
+                data[$"&{parentText}_phone_number"] = s;
+            }
+        }
+
         private async void AddChildToArchive(string note)
         {
-            if (CurrentChildIsArchived) throw new InvalidOperationException();
+            if (CurrentChildIsArchived) throw new InvalidOperationException();  // for logs
+            var mbox = MessageBox.Show("Вы уверены, что хотите отправить ребёнка в архив?\nБудет распечатан документ!", "Архив", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (mbox != MessageBoxResult.Yes) return;
+
             AddChildToArchiveCommand.NotifyCanExecute(false);
 
             EnterChild enter = null;
@@ -768,12 +861,12 @@ namespace WpfApp.ViewModel
             AddChildToArchiveCommand.NotifyCanExecute(true);
         }
 
-        private static Dictionary<string, string> MakeDataForDocument(Child child, Group @group)
+        internal static Dictionary<string, string> MakeDataForDocument(Child child, Group @group, Tarif tarif = null)
         {
             var groupType = (string)GroupConverter.Convert(@group.GroupType, @group.GroupType.GetType(), null, CultureInfo.CurrentCulture);
             var now = DateTime.Now;
 
-            return new Dictionary<string, string>
+            var res = new Dictionary<string, string>
             {
                 ["&date_d"] = now.Day.ToString(),
                 ["&date_m"] = now.Month.ToString(),
@@ -787,11 +880,20 @@ namespace WpfApp.ViewModel
                 ["&child_full_name"] = child.Person.FullName,
                 ["&child_birthdate"] = child.BirthDate.ToString(OtherSettings.DateFormat),
                 ["&child_location_address"] = child.LocationAddress,
+                ["&child_sex"] = SexConverter.ConvertToString(child.Sex),
 
                 ["&group_id"] = child.GroupId.ToString(),
                 ["&group_name"] = @group.Name,
                 ["&group_type"] = groupType,
             };
+            if (tarif != null)
+            {
+                res["&tarif_id"] = tarif.Id.ToString();
+                res["&tarif_note"] = tarif.Note;
+                res["&tarif_monthly_payment"] = tarif.MonthlyPayment.Str();
+                res["&tarif_annual_payment"] = tarif.AnnualPayment.Str();
+            }
+            return res;
         }
 
         public static void SaveDocumentAddingToArchive(Child child, Group group, int year)
@@ -815,7 +917,10 @@ namespace WpfApp.ViewModel
 
         private async void RemoveChildFromArchive()
         {
-            if (!CurrentChildIsArchived) throw new InvalidOperationException();
+            if (!CurrentChildIsArchived) throw new InvalidOperationException();  // for logs
+            var mbox = MessageBox.Show("Вы уверены, что хотите убрать ребёнка из архива?\nБудет распечатан документ!", "Архив", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (mbox != MessageBoxResult.Yes) return;
+
             var group = CurrentChild.Group;
             if ((group.GroupType & DAL.Model.Groups.Finished) != 0)
             {
@@ -845,12 +950,12 @@ namespace WpfApp.ViewModel
 
         private void SaveDocumentRemoveFromArchive()
         {
-            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup);
+            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup, CurrentChildTarif);
             var enterDate = CurrentChild.LastEnterChild.EnterDate;
             data["&child_enter_date"] = enterDate.ToString(OtherSettings.DateFormat);
 
             var year = PaymentsInMonths[PaymentsInMonths.Count - 1].Year;
-            var src = AppFilePaths.GetTakingChildTemplatePath();
+            var src = AppFilePaths.GetOrderOfAdmissionTemplatePath();
             string dest = AppFilePaths.GetDocumentsDirectoryPathForChild(CurrentChild, year) +
                           Path.DirectorySeparatorChar +
                           AppFilePaths.GetOrderOfAdmissionFileName(CurrentChild, enterDate);
@@ -881,7 +986,7 @@ namespace WpfApp.ViewModel
 
         private void SaveDocumentGroupTransfer(Group prevGroup)
         {
-            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup);
+            var data = MakeDataForDocument(CurrentChild, CurrentChildGroup, CurrentChildTarif);
             data["&prev_group_id"] = prevGroup.Id.ToString();
             data["&prev_group_name"] = prevGroup.Name;
             var conv = GroupConverter;

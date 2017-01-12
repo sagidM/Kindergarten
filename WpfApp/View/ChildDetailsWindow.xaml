@@ -381,7 +381,7 @@
 													<Viewbox Style="{StaticResource PersonLogoViewbox}">
 														<Path Style="{StaticResource PersonLogoPath}" Data="{StaticResource OtherParentLogoData}"></Path>
 													</Viewbox>
-													<TextBlock Text="Информация об ином представителе"/>
+													<TextBlock Text="{Binding Path=OtherParentText, StringFormat='Информация об ином представителе ({0})'}"/>
 												</StackPanel>
 											</Label.Content>
 										</Label>
@@ -472,6 +472,7 @@
 							<Label Content="{Binding TotalChildUnpaidMoney}"/>
 							<Label Content="Депозит:"/>
 							<Label Content="{Binding TotalChildDeposit}"/>
+							<Button Content="Перерасчёт" Command="{Binding ShowChangeDebtCommand}"/>
 						</WrapPanel>
 
 						<DockPanel Margin="10">

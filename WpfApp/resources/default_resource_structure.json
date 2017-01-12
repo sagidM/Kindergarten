@@ -12,6 +12,9 @@
     "annual_receipt": [ "annual_receipt.docx", "{0}_annual_receipt.docx" ],
     "adding_to_archive": [ "adding_to_archive.docx", "{0}_adding_to_archive{1}.docx" ],
     "transfer_group": [ "transfer_group.docx", "{0}_transfer_group_{1}_{2}({3}).docx" ],
-    "group_type_changed": [ "group_type_changed.docx", "group_type_changed.docx" ]
-  },
+    "group_type_changed": [ "group_type_changed.docx", "group_type_changed.docx" ],
+    "child_list": [ "child_list.docx", "child_list.docx" ],
+    "payment_list": [ "payment_list.docx", "payment_list.docx" ],
+    "tarif_change": [ "tarif_change.docx", "{0}_tarif_change_{1}.docx" ]
+  }
 }
