@@ -89,19 +89,29 @@
 					<ScrollViewer VerticalScrollBarVisibility="Auto">
 						<StackPanel Margin="{StaticResource DockPanelChildThickness}" DockPanel.Dock="Left" Width="{StaticResource LeftPanelWidth}">
 							<StackPanel>
-								<StackPanel>
-									<DockPanel>
-										<TextBox Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
-									</DockPanel>
-									<Expander BorderBrush="DarkGreen" Header="Расширенный поиск" FontSize="11" Margin="0 0 0 5">
-										<StackPanel>
-											<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
-											<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
-											<TextBox Text="{Binding Path=PersonPatronymicChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." />
-											<CheckBox IsChecked="{Binding Path=WholeNamesChildrenFilter}" Content="Учитывать слова целиком"/>
-											<CheckBox IsChecked="{Binding Path=NamesCaseSensitiveChildrenFilter}" Content="Учитывать регистр"/>
-										</StackPanel>
-									</Expander>
+								<StackPanel SnapsToDevicePixels="True">
+									<Border BorderThickness="1" BorderBrush="#8E8E8E">
+										<DockPanel>
+											<ToggleButton Cursor="Hand" Name="AdvancedSearchToggle" Width="12" Height="12" DockPanel.Dock="Right" Style="{StaticResource AdvancedSearchButton}"/>
+											<TextBox BorderThickness="0" Padding="7" Text="{Binding PersonFullNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource PlaceHolderTextBox}" DockPanel.Dock="Left" Tag="Введите ФИО..." />
+										</DockPanel>
+									</Border>
+									<StackPanel>
+										<StackPanel.Style>
+											<Style TargetType="StackPanel">
+												<Style.Triggers>
+													<DataTrigger Binding="{Binding ElementName=AdvancedSearchToggle, Path=IsChecked}" Value="False">
+														<Setter Property="Visibility" Value="Collapsed"/>
+													</DataTrigger>
+												</Style.Triggers>
+											</Style>
+										</StackPanel.Style>
+										<TextBox Text="{Binding Path=PersonLastNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Фамилия..." />
+										<TextBox Text="{Binding Path=PersonFirstNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Имя..." />
+										<TextBox Text="{Binding Path=PersonPatronymicChildrenFilter, UpdateSourceTrigger=PropertyChanged}" Padding="3" Style="{StaticResource PlaceHolderTextBox}" Tag="Отчество..." />
+										<CheckBox IsChecked="{Binding Path=WholeNamesChildrenFilter}" Content="Учитывать слова целиком"/>
+										<CheckBox IsChecked="{Binding Path=NamesCaseSensitiveChildrenFilter}" Content="Учитывать регистр"/>
+									</StackPanel>
 
 									<Label Content="Дата зачисления"/>
 									<Grid>
@@ -119,14 +129,20 @@
 
 									<CheckBox Margin="0 10 0 0" IsChecked="{Binding ArchivedChildrenFilter}" IsThreeState="True" Content="Архив" />
 									<CheckBox IsChecked="{Binding OnlyDebtorsChildrenFilter}" Content="Показать только должников"/>
-									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
-									<TextBox Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Номер тарифа" Text="{Binding TarifIdChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
+									<Grid>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition/>
+											<ColumnDefinition/>
+										</Grid.ColumnDefinitions>
+										<TextBox Grid.Column="0" Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Название группы" Text="{Binding GroupNameChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
+										<TextBox Grid.Column="1" Margin="10 0 0 0" Style="{StaticResource PlaceHolderTextBox}" Padding="4"  Tag="Номер тарифа" Text="{Binding TarifIdChildrenFilter, UpdateSourceTrigger=PropertyChanged}"/>
+									</Grid>
 								</StackPanel>
 
 								<StackPanel ZIndex="2">
 									<Separator Margin="20 10" Height="10"/>
 									<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
-									<Button Margin="50 0" Command="{Binding PrintPaymentNoticesDocumentCommand}" Content="Распечатать извещения..."/>
+									<Button Margin="50 2" Command="{Binding PrintPaymentNoticesDocumentCommand}" Content="Распечатать извещения..."/>
 									<Button Margin="50 0" Command="{Binding PrintChildrenListDocumentCommand}" Content="Распечатать список детей..."/>
 									<Separator Margin="20 10" Height="10"/>
 								</StackPanel>

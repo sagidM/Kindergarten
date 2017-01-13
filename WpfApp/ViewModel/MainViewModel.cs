@@ -92,7 +92,7 @@ namespace WpfApp.ViewModel
             var body = new List<IDictionary<string, string>>();
             body.AddRange(Children.Cast<Child>().Select(child =>
             {
-                var res = MakeSimpleDataForDocument(child);
+                var res = ChildDetailsViewModel.MakeDataForDocument(child, child.Group, child.Tarif);
                 res["&child_last_enter"] = child.LastEnterChild.EnterDate.ToString(OtherSettings.DateFormat);
                 res["&tarif_id"] = child.TarifId.ToString();
                 res["&tarif_monthly_payment"] = child.Tarif.MonthlyPayment.Str();
@@ -322,7 +322,7 @@ namespace WpfApp.ViewModel
             foreach (var item in children)
             {
                 var c = item.c;
-                var data = ChildDetailsViewModel.MakeDataForDocument(c, item.Group, item.Tarif);
+                var data = ChildDetailsViewModel.MakeDataForDocument(c, item.Group, tarif);
                 var pc = item.pco.Select(o => o.pc).ToList();
                 ChildDetailsViewModel.AppendParentData(data, pc.FirstOrDefault(p => p.ParentType == Parents.Father)?.Parent, "father");
                 ChildDetailsViewModel.AppendParentData(data, pc.FirstOrDefault(p => p.ParentType == Parents.Mother)?.Parent, "mother");
@@ -400,7 +400,7 @@ namespace WpfApp.ViewModel
 
             var children = Children.Cast<Child>().Where(c => c.GroupId == @group.Id);
             var body = new List<IDictionary<string, string>>(4);
-            body.AddRange(children.Select(c => MakeSimpleDataForDocument(c, c.Group, false)));
+            body.AddRange(children.Select(c => ChildDetailsViewModel.MakeDataForDocument(c, c.Group, c.Tarif)));
 
             var now = DateTime.Now;
             var head = new Dictionary<string, string>
@@ -409,59 +409,14 @@ namespace WpfApp.ViewModel
                 ["&date_d"] = now.Day.ToString(),
                 ["&date_m"] = now.Month.ToString(),
                 ["&date_y"] = now.Year.ToString(),
-                ["&group_prev_type"] = ConvertGroupType(previousType),
+                ["&group_prev_type"] = (string) ChildDetailsViewModel.GroupConverter.Convert(previousType, previousType.GetType(), null, CultureInfo.CurrentCulture),
                 ["&group_id"] = group.Id.ToString(),
                 ["&group_name"] = group.Name,
-                ["&group_type"] = ConvertGroupType(group.GroupType),
+                ["&group_type"] = (string)ChildDetailsViewModel.GroupConverter.Convert(previousType, previousType.GetType(), null, CultureInfo.CurrentCulture),
             };
 
             var src = AppFilePaths.GetGroupTypeChangedTemplatePath();
             WordWorker.InsertTableAndReplaceText(Path.GetFullPath(src), sfd.FileName, body, head);
-        }
-
-        private static string ConvertGroupType(Groups groupType)
-        {
-            if (_groupConverter == null)
-            {
-                _groupConverter = (IValueConverter) Application.Current.FindResource("GroupsConverter");
-            }
-            Debug.Assert(_groupConverter != null, "_groupConverter != null");
-            return (string) _groupConverter.Convert(groupType, typeof (Groups), null, CultureInfo.CurrentCulture);
-        }
-
-        private static Dictionary<string, string> MakeSimpleDataForDocument(Child child)
-            => MakeSimpleDataForDocument(child, child.Group);
-        private static Dictionary<string, string> MakeSimpleDataForDocument(Child child, Group group, bool insertDate = true)
-        {
-            string groupType = group == null ? null : ConvertGroupType(group.GroupType);
-
-            var res = new Dictionary<string, string>
-            {
-                ["&child_id"] = child.Id.ToString(),
-                ["&child_first_name"] = child.Person.FirstName,
-                ["&child_second_name"] = child.Person.LastName,
-                ["&child_patronymic"] = child.Person.Patronymic,
-                ["&child_full_name"] = child.Person.FullName,
-                ["&child_birthdate"] = child.BirthDate.ToString(OtherSettings.DateFormat),
-                ["&child_sex"] = SexConverter.ConvertToString(child.Sex),
-                ["&child_address"] = child.LocationAddress,
-                ["&group_id"] = @group?.Id.ToString(),
-                ["&group_name"] = @group?.Name,
-                ["&group_type"] = groupType,
-                ["&tarif_id"] = child.TarifId.ToString(),
-                ["&tarif_annual_payment"] = child.Tarif?.AnnualPayment.Str(),
-                ["&tarif_monthly_payment"] = child.Tarif?.MonthlyPayment.Str(),
-                ["&tarif_note"] = child.Tarif?.Note
-            };
-            if (insertDate)
-            {
-                var now = DateTime.Now;
-                res["&date_d"] = now.Day.ToString();
-                res["&date_m"] = now.Month.ToString();
-                res["&date_y"] = now.Year.ToString();
-                res["&date_full"] = now.ToString(OtherSettings.DateFormat);
-            }
-            return res;
         }
 
         private async void ShowAddGroupWindow()
@@ -534,21 +489,15 @@ namespace WpfApp.ViewModel
             pipe.SetParameter("groups", Groups.Cast<Group>().ToList());
             pipe.SetParameter("tarifs", Tarifs);
 
-            try
-            {
-                StartViewModel<AddChildViewModel>(pipe);
-            }
-            finally
-            {
-                ShowAddChildCommand.NotifyCanExecute(true);
-            }
+            StartViewModel<AddChildViewModel>(pipe);
+            ShowAddChildCommand.NotifyCanExecute(true);
 
             var addedChild = (Child)pipe.GetParameter("saved_child_result");
             if (addedChild != null)
             {
                 var enterDate = addedChild.LastEnterChild.EnterDate;
                 if (enterDate < FromEnterDateChildrenFilter) FromEnterDateChildrenFilter = enterDate;
-                var mResult = MessageBox.Show("Ребёнок добавлен.\r\nОткрыть портфолио?", "Что дальше?", MessageBoxButton.YesNo);
+                var mResult = MessageBox.Show("Ребёнок добавлен.\nОткрыть портфолио?", "Что дальше?", MessageBoxButton.YesNo);
                 if (mResult == MessageBoxResult.Yes)
                 {
                     ShowChildDetailsCommand.Execute(addedChild);
@@ -592,52 +541,18 @@ namespace WpfApp.ViewModel
             var group = Groups.Cast<Group>().First(g => g.Id == addedChild.GroupId);
             var tarif = Tarifs.First(t => t.Id == addedChild.TarifId);
 
-            var data = MakeSimpleDataForDocument(addedChild, group);
+            var data = ChildDetailsViewModel.MakeDataForDocument(addedChild, group, tarif);
+            ChildDetailsViewModel.AppendParentData(data, bringParent, "bring_parent");
+            ChildDetailsViewModel.AppendParentData(data, father, "father");
+            ChildDetailsViewModel.AppendParentData(data, mother, "mother");
+            ChildDetailsViewModel.AppendParentData(data, other, "other");
             data["&child_enter_date"] = enterDate.ToString(OtherSettings.DateFormat);
-            data["&group_id"] = @group.Id.ToString();
-            data["&group_name"] = @group.Name;
+            // TODO: to add parent_type_text
             data["&parent_type"] = bringParentChild.ParentType == Parents.Father
                 ? "Отец"
                 : bringParentChild.ParentType == Parents.Mother
                     ? "Мать"
                     : bringParentChild.ParentTypeText;
-            data["&bring_parent_second_name"] = bringParent?.Person?.LastName;
-            data["&bring_parent_first_name"] = bringParent?.Person?.FirstName;
-            data["&bring_parent_patronymic"] = bringParent?.Person?.Patronymic;
-            data["&bring_parent_residence_address"] = bringParent?.ResidenceAddress;
-            data["&bring_parent_location_address"] = bringParent?.LocationAddress;
-            data["&bring_parent_work_address"] = bringParent?.WorkAddress;
-            data["&bring_parent_phone_number"] = bringParent?.PhoneNumber;
-            data["&bring_parent_passport_series"] = bringParent?.PassportSeries?.Substring(0, 4);
-            data["&bring_parent_passport_number"] = bringParent?.PassportSeries?.Substring(4);
-            data["&bring_parent_passport_issue_date"] = bringParent?.PassportIssueDate.ToString(OtherSettings.DateFormat);
-            data["&bring_parent_passport_issue_by"] = bringParent?.PassportIssuedBy;
-            data["&father_second_name"] = father?.Person?.LastName;
-            data["&father_first_name"] = father?.Person?.FirstName;
-            data["&father_patronymic"] = father?.Person?.Patronymic;
-            data["&father_residence_address"] = father?.ResidenceAddress;
-            data["&father_location_address"] = father?.LocationAddress;
-            data["&father_work_address"] = father?.WorkAddress;
-            data["&father_phone_number"] = father?.PhoneNumber;
-            data["&father_passport_series"] = father?.PassportSeries?.Substring(0, 4);
-            data["&father_passport_number"] = father?.PassportSeries?.Substring(4);
-            data["&father_passport_issue_date"] = father?.PassportIssueDate.ToString(OtherSettings.DateFormat);
-            data["&father_passport_issue_by"] = father?.PassportIssuedBy;
-            data["&mother_second_name"] = mother?.Person?.LastName;
-            data["&mother_first_name"] = mother?.Person?.FirstName;
-            data["&mother_patronymic"] = mother?.Person?.Patronymic;
-            data["&mother_residence_address"] = mother?.ResidenceAddress;
-            data["&mother_location_address"] = mother?.LocationAddress;
-            data["&mother_work_address"] = mother?.WorkAddress;
-            data["&mother_phone_number"] = mother?.PhoneNumber;
-            data["&mother_passport_series"] = mother?.PassportSeries.Substring(0, 4);
-            data["&mother_passport_number"] = mother?.PassportSeries.Substring(4);
-            data["&mother_passport_issue_date"] = mother?.PassportIssueDate.ToString(OtherSettings.DateFormat);
-            data["&mother_passport_issue_by"] = mother?.PassportIssuedBy;
-            data["&tarif_id"] = tarif.Id.ToString();
-            data["&tarif_monthly_payment"] = tarif.MonthlyPayment.Str();
-            data["&tarif_annual_payment"] = tarif.AnnualPayment.Str();
-            data["&tarif_note"] = tarif.Note;
 
             var dirName = Path.GetFullPath(AppFilePaths.GetDocumentsDirectoryPathForChild(addedChild, enterDate.Year));
             Directory.CreateDirectory(dirName);

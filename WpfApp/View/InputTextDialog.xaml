@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:WpfApp.View"
         mc:Ignorable="d"
         Title="InputTextDialog" MinWidth="250"
-		SizeToContent="WidthAndHeight" ShowInTaskbar="False" ResizeMode="NoResize" WindowStartupLocation="CenterOwner">
+		SizeToContent="WidthAndHeight" ShowInTaskbar="False" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
 	<StackPanel Margin="30 10">
 		<TextBlock Name="TextField" TextAlignment="Center" Text="Here is default text" />
 		<TextBox Margin="10 20" Name="MessageField" />

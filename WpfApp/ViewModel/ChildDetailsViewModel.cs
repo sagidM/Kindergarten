@@ -810,7 +810,8 @@ namespace WpfApp.ViewModel
                 data[$"&{parentText}_residence_address"] = parent.ResidenceAddress;
                 data[$"&{parentText}_word_address"] = parent.WorkAddress;
                 data[$"&{parentText}_passport_issued_by"] = parent.PassportIssuedBy;
-                data[$"&{parentText}_passport_series"] = parent.PassportSeries;
+                data[$"&{parentText}_passport_series"] = parent.PassportSeries.Substring(0, 4);
+                data[$"&{parentText}_passport_number"] = parent.PassportSeries.Substring(4);
                 data[$"&{parentText}_passport_issue_date"] = parent.PassportIssueDate.ToString(OtherSettings.DateFormat);
                 data[$"&{parentText}_phone_number"] = parent.PhoneNumber;
             }
@@ -882,7 +883,7 @@ namespace WpfApp.ViewModel
                 ["&child_location_address"] = child.LocationAddress,
                 ["&child_sex"] = SexConverter.ConvertToString(child.Sex),
 
-                ["&group_id"] = child.GroupId.ToString(),
+                ["&group_id"] = group.Id.ToString(),
                 ["&group_name"] = @group.Name,
                 ["&group_type"] = groupType,
             };

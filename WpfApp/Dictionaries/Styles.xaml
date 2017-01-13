@@ -92,6 +92,7 @@
 								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
 								 MaxLength="{TemplateBinding MaxLength}"
 								 IsTabStop="True"
+								 BorderThickness="{TemplateBinding BorderThickness}"
                                  Panel.ZIndex="2" Style="{x:Null}">
 						</TextBox>
 						<TextBox Name="PlaceTextBox" Text="{TemplateBinding Tag}" Background="{TemplateBinding Background}"
@@ -100,6 +101,7 @@
 								 VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
 								 HorizontalAlignment="{TemplateBinding HorizontalAlignment}"
 								 HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+								 BorderThickness="{TemplateBinding BorderThickness}"
 								 IsTabStop="False"
 								 Panel.ZIndex="1">
 							<TextBox.Style>
@@ -621,5 +623,44 @@
 		</Setter>
 	</Style>
 
+	<Style x:Key="AdvancedSearchButton" TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+		<Setter Property="Template">
+			<Setter.Value>
+				<ControlTemplate>
+					<ContentControl>
+						<ContentControl.Content>
+							<Border Background="#FFFFFF">
+								<Viewbox Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+									<Path Name="ImagePath" Stretch="Uniform" Fill="#848484" Data="{StaticResource AdvancedSearchData}" RenderTransformOrigin="0.5 0.5">
+										<Path.RenderTransform>
+											<RotateTransform/>
+										</Path.RenderTransform>
+									</Path>
+								</Viewbox>
+							</Border>
+						</ContentControl.Content>
+					</ContentControl>
+					<ControlTemplate.Triggers>
+							<Trigger Property="ToggleButton.IsChecked" Value="True">
+								<Trigger.EnterActions>
+									<BeginStoryboard>
+										<Storyboard TargetName="ImagePath" TargetProperty="RenderTransform.(RotateTransform.Angle)">
+											<DoubleAnimation Duration="0" From="0" To="-180"/>
+										</Storyboard>
+									</BeginStoryboard>
+								</Trigger.EnterActions>
+								<Trigger.ExitActions>
+									<BeginStoryboard>
+										<Storyboard TargetName="ImagePath" TargetProperty="RenderTransform.(RotateTransform.Angle)">
+											<DoubleAnimation Duration="0" From="-180" To="0"/>
+										</Storyboard>
+									</BeginStoryboard>
+								</Trigger.ExitActions>
+							</Trigger>
+					</ControlTemplate.Triggers>
+				</ControlTemplate>
+			</Setter.Value>
+		</Setter>
+	</Style>
 
 </ResourceDictionary>

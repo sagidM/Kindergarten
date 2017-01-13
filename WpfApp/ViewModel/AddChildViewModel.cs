@@ -63,12 +63,15 @@ namespace WpfApp.ViewModel
 
         private void ChooseParent(Parents parentType)
         {
-            string text = null;
+            var text = OtherParentText;
             if (parentType == Parents.Other)
             {
-                text = IODialog.InputDialog("Кем приходится ребёнку", "Иной представитель", OtherParentText);
-                if (text == null)
-                    return;
+                do
+                {
+                    text = IODialog.InputDialog("Кем приходится ребёнку", "Иной представитель", text);
+                    if (text == null)
+                        return;
+                } while (text.Trim().Length == 0);
             }
 
             var pipe = new Pipe(true);
