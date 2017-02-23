@@ -142,8 +142,8 @@
 								<StackPanel ZIndex="2">
 									<Separator Margin="20 10" Height="10"/>
 									<Button Margin="50 0" IsEnabled="{Binding IsNotDataLoading}" Command="{Binding ShowAddChildCommand}" Content="Добавление..."/>
-									<Button Margin="50 2" Command="{Binding PrintPaymentNoticesDocumentCommand}" Content="Распечатать извещения..."/>
-									<Button Margin="50 0" Command="{Binding PrintChildrenListDocumentCommand}" Content="Распечатать список детей..."/>
+									<Button Margin="50 2" Command="{Binding PrintPaymentNoticesDocumentCommand}" Content="Расп. извещения..."/>
+									<Button Margin="50 0" Command="{Binding PrintChildrenListDocumentCommand}" Content="Расп. список детей..."/>
 									<Separator Margin="20 10" Height="10"/>
 								</StackPanel>
 								
@@ -268,14 +268,14 @@
 									</MultiBinding>
 								</DataGridTextColumn.Binding>
 							</DataGridTextColumn>
+							<DataGridTextColumn Width="*" Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
 							<DataGridTextColumn Binding="{Binding Path=Group.Name}" Header="Группа" />
 							<DataGridTextColumn Binding="{Binding Path=Sex, Converter={StaticResource SexConverter}}" Header="Пол" />
 							<DataGridTextColumn Width="*" Binding="{Binding Path=LocationAddress}" Header="Адрес проживания" />
-							<DataGridTextColumn Width="*" Binding="{Binding Path=BirthDate, Converter={StaticResource DateConverter}}" Header="Дата рождения" />
 							<DataGridTextColumn Width="*" Binding="{Binding Path=LastEnterChild.EnterDate, Converter={StaticResource DateConverter}}" Header="Дата зачисления" />
-							<DataGridTextColumn Width="0.5*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>
-							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.ExpulsionDate, Converter={StaticResource BoolConverter}, ConverterParameter={x:Null}}" Header="В архиве"/>
+							<!--<DataGridTextColumn Width="0.5*" Binding="{Binding Path=IsNobody, Converter={StaticResource NobodyConverter}}" Header="На исключение"/>-->
 							<DataGridTextColumn Binding="{Binding Path=MonthlyDebt, Converter={StaticResource NullConverter}}" Header="Долг"/>
+							<DataGridTextColumn Binding="{Binding Path=LastEnterChild.ExpulsionDate, Converter={StaticResource BoolConverter}, ConverterParameter={x:Null}}" Header="В архиве"/>
 						</DataGrid.Columns>
 					</DataGrid>
 
@@ -417,7 +417,7 @@
 						<Button Padding="4" Margin="20 0" Command="{Binding ResetIncomesFilterCommand}" Content="Сбросить"/>
 						<Button Padding="4" Margin="20 5" Command="{Binding RemoveSelectedIncomeCommand}" IsEnabled="{Binding CanDeleteIncome}"
 								CommandParameter="{Binding ElementName=IncomesDataGrid, Path=SelectedItem}" Content="Удалить"/>
-						<Button Padding="4" Margin="20 5" Content="Распечатать список оплат" Command="{Binding SaveDocumentPaymentListCommand}" />
+						<Button Padding="4" Margin="20 5" Content="Распечатать..." Command="{Binding SavePaymentsDocumentCommand}" />
 						<StackPanel>
 							<TextBlock Text="Показывать:"/>
 							<CheckBox Content="Доходы" IsChecked="{Binding IsShowedOnlyIncomesFilter}"/>
@@ -496,7 +496,8 @@
 						</Grid>
 						<TextBlock Margin="15" TextAlignment="Center" Text="{Binding SumOfSumOfExpensesFilter, StringFormat='Затраты за выбранный период: {0}'}"/>
 						<Button Padding="4" Margin="20 5" Command="{Binding ResetExpensesFilterCommand}" Content="Сбросить"/>
-						<Button Padding="4" Margin="20 0" Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem}" Content="Удалить"
+						<Button Padding="4" Margin="20 4" Command="{Binding SaveExpensesDocumentCommand}" Content="Распечатать..."/>
+						<Button Padding="4" Margin="20 5" Command="{Binding ElementName=ThisWindow, Path=DataContext.RemoveExpenseCommand}" CommandParameter="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem}" Content="Удалить"
 								IsEnabled="{Binding ElementName=ExpensesDataGrid, Path=SelectedItem, Converter={StaticResource ToNegateBoolConverter}, ConverterParameter={x:Null}}"/>
 						<Separator Height="10" Margin="20 10"/>
 						<Button Padding="4" Margin="50 0" Command="{Binding ShowAddExpenseCommand}" Content="Добавить..."/>

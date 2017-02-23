@@ -57,6 +57,9 @@ namespace WpfApp.Settings
         public static string GetNoticeFileName() => MyDocumentSettings.FilenameOfDocumentsAndTemplates["notices"][1];
         public static string GetNoticeTemplatePath() => GetDocumentName("notices");
 
+        public static string GetExpensesFileName() => MyDocumentSettings.FilenameOfDocumentsAndTemplates["expenses"][1];
+        public static string GetExpensesTemplatePath() => GetDocumentName("expenses");
+
         public static string GetMonthlyReceiptFileName(Child child) => GetDocumentName("monthly_receipt", child.Id);
         public static string GetMonthlyReceiptTemplatePath() => GetDocumentName("monthly_receipt");
 

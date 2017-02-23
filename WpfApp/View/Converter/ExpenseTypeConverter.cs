@@ -2,18 +2,15 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using System.Windows.Threading;
 using DAL.Model;
 
 namespace WpfApp.View.Converter
 {
     public class ExpenseTypeConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public static string ConvertToString(ExpenseType value)
         {
-            if (!(value is ExpenseType)) return DependencyProperty.UnsetValue;
-
-            switch ((ExpenseType)value)
+            switch (value)
             {
                 case ExpenseType.Salary:
                     return "Зарплата";
@@ -30,6 +27,13 @@ namespace WpfApp.View.Converter
                 default:
                     throw new ArgumentOutOfRangeException(nameof(value), value, null);
             }
+        }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return value is ExpenseType
+                ? ConvertToString((ExpenseType) value)
+                : DependencyProperty.UnsetValue;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

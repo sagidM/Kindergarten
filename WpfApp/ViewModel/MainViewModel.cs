@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
@@ -54,7 +53,8 @@ namespace WpfApp.ViewModel
             RemoveSelectedIncomeCommand = new RelayCommand<IncomeDTO>(RemoveSelectedIncome);
             PrintPaymentNoticesDocumentCommand = new RelayCommand(PrintPaymentNoticesDocument);
             PrintChildrenListDocumentCommand = new RelayCommand(PrintChildrenListDocument);
-            SaveDocumentPaymentListCommand = new RelayCommand(SaveDocumentPaymentList);
+            SavePaymentsDocumentCommand = new RelayCommand(SavePaymentsDocument);
+            SaveExpensesDocumentCommand = new RelayCommand(SaveExpensesDocument);
 
             NamesCaseSensitiveChildrenFilter = false;
 
@@ -65,13 +65,40 @@ namespace WpfApp.ViewModel
             ShowGroupsFromArchive = (bool?) this[nameof(ShowGroupsFromArchive), null];
         }
 
-        private void SaveDocumentPaymentList()
+        private void SaveExpensesDocument()
+        {
+            var dlg = GetDocumentSaveFileDialog(AppFilePaths.GetExpensesFileName());
+            if (dlg.ShowDialog() != true) return;
+
+            var data = new List<IDictionary<string, string>>(Expenses.Count);
+            data.AddRange(Expenses.OfType<Expense>().Select(expense => new Dictionary<string, string>
+            {
+                ["&expense_id"] = expense.Id.ToString(),
+                ["&expense_type"] = ExpenseTypeConverter.ConvertToString(expense.ExpenseType),
+                ["&expense_expense_date"] = expense.ExpenseDate.ToString(OtherSettings.DateFormat),
+                ["&expense_money"] = expense.Money.Str(),
+                ["&expense_note"] = expense.Description,
+            }));
+            var now = DateTime.Now;
+            var info = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
+            };
+
+            var src = Path.GetFullPath(AppFilePaths.GetExpensesTemplatePath());
+            WordWorker.InsertTableAndReplaceText(src, dlg.FileName, data, info);
+        }
+
+        private void SavePaymentsDocument()
         {
             var dlg = GetDocumentSaveFileDialog(AppFilePaths.GetPaymentListFileName());
             if (dlg.ShowDialog() != true) return;
 
-            var data = new List<IDictionary<string, string>>(Incomes.Count);
-            data.AddRange(Incomes.OfType<IncomeDTO>().Select(income => new Dictionary<string, string>
+            var body = new List<IDictionary<string, string>>(Incomes.Count);
+            body.AddRange(Incomes.OfType<IncomeDTO>().Select(income => new Dictionary<string, string>
             {
                 ["&income_id"] = income.Prefix + income.Id.ToString(),
                 ["&income_person_name"] = income.PersonName,
@@ -79,9 +106,17 @@ namespace WpfApp.ViewModel
                 ["&income_money"] = income.Money.Str(),
                 ["&income_date"] = income.IncomeDate.ToString(OtherSettings.DateFormat),
             }));
+            var now = DateTime.Now;
+            var info = new Dictionary<string, string>
+            {
+                ["&date_d"] = now.Day.ToString(),
+                ["&date_m"] = now.Month.ToString(),
+                ["&date_y"] = now.Year.ToString(),
+                ["&date_full"] = now.ToString(OtherSettings.DateFormat),
+            };
 
             var src = Path.GetFullPath(AppFilePaths.GetPaymentListTemplatePath());
-            WordWorker.InsertTableAndReplaceText<string, string>(src, dlg.FileName, data, null);
+            WordWorker.InsertTableAndReplaceText(src, dlg.FileName, body, info);
         }
 
         private void PrintChildrenListDocument()
@@ -1518,7 +1553,8 @@ namespace WpfApp.ViewModel
         public IRelayCommand RemoveSelectedIncomeCommand { get; }
         public IRelayCommand PrintPaymentNoticesDocumentCommand { get; }
         public IRelayCommand PrintChildrenListDocumentCommand { get; }
-        public IRelayCommand SaveDocumentPaymentListCommand { get; }
+        public IRelayCommand SavePaymentsDocumentCommand { get; }
+        public IRelayCommand SaveExpensesDocumentCommand { get; }
 
         private int LoadingDataCount
         {
@@ -1581,7 +1617,6 @@ namespace WpfApp.ViewModel
         private Expense _selectedExpense;
         private double _commonDebt;
         private string _tarifIdChildrenFilter;
-        private static IValueConverter _groupConverter;
 
         // prefixes at Incomes tab
         private const string IncomePrefix = "Д-";

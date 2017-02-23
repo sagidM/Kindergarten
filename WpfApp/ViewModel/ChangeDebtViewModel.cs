@@ -28,7 +28,7 @@ namespace WpfApp.ViewModel
 
             Pipe.SetParameter("ok", true);
             Pipe.SetParameter("debt", Debt);
-            Pipe.SetParameter("description", this["description"]);
+            Pipe.SetParameter("description", Description.Trim());
             Finish();
         }
 
@@ -43,8 +43,20 @@ namespace WpfApp.ViewModel
             }
         }
 
+        public string Description
+        {
+            get { return _description; }
+            set
+            {
+                if (value == _description) return;
+                _description = value;
+                OnPropertyChanged();
+            }
+        }
+
         public IRelayCommand OkCommand { get; }
         private double _debt;
         private double _oldDebt;
+        private string _description = "Перерасчёт. ";
     }
 }

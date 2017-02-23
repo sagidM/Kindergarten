@@ -9,7 +9,7 @@
 	<StackPanel>
 		<Label Content="Введите долг новый долг"/>
 		<TextBox Text="{Binding Debt}" Margin="10 10 10 0" />
-		<TextBox Margin="10 10 10 2" Text="{Binding '[description, Перерасчет]'}" />
+		<TextBox Margin="10 10 10 2" Text="{Binding Description}" />
 		<Grid>
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition/>
