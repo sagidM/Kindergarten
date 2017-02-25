@@ -75,7 +75,7 @@ namespace WpfApp.ViewModel
             {
                 ["&expense_id"] = expense.Id.ToString(),
                 ["&expense_type"] = ExpenseTypeConverter.ConvertToString(expense.ExpenseType),
-                ["&expense_expense_date"] = expense.ExpenseDate.ToString(OtherSettings.DateFormat),
+                ["&expense_date"] = expense.ExpenseDate.ToString(OtherSettings.DateFormat),
                 ["&expense_money"] = expense.Money.Str(),
                 ["&expense_note"] = expense.Description,
             }));
