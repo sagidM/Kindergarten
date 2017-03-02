@@ -31,7 +31,7 @@ namespace WpfApp
             catch (Exception e)
             {
                 App.Logger.Fatal(e, "Fatal error in App.Main");
-                MessageBox.Show("В программе произошла ошибка, пожалуйста, свяжитесь с разработчиками...", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("В программе произошла ошибка, пожалуйста, свяжитесь с разработчиками...\n\nОписание ошибки: " + e.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 #endif
         }

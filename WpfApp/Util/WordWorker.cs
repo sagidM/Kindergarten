@@ -22,7 +22,8 @@ namespace WpfApp.Util
             var app = new Application();
             try
             {
-                var doc = app.Documents.Open(templateName);
+                var doc = OpenDocument(app, templateName);
+                if (doc == null) return;
                 try
                 {
                     var s = app.Selection;
@@ -49,11 +50,6 @@ namespace WpfApp.Util
             }
         }
 
-        private static void CloseDocuments(Documents documents)
-        {
-            documents.Close(SaveChanges: WdSaveOptions.wdDoNotSaveChanges);
-        }
-
         public static void InsertTable<TKey, TValue>(string templateName, string destination, IDictionary<TKey, TValue> header, IDictionary<string, TValue>[] body)
         {
             if (!File.Exists(templateName))
@@ -64,7 +60,8 @@ namespace WpfApp.Util
             var app = new Application();
             try
             {
-                var doc = app.Documents.Open(templateName);
+                var doc = OpenDocument(app, templateName);
+                if (doc == null) return;
                 try
                 {
                     var s = app.Selection;
@@ -108,14 +105,6 @@ namespace WpfApp.Util
             }
         }
 
-        private static void DocumentSaveAs(Document doc, string file)
-        {
-            var dir = Path.GetDirectoryName(file);
-            // ReSharper disable once AssignNullToNotNullAttribute
-            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
-            doc.SaveAs(FileName: file);
-        }
-
         private static readonly Regex CellRegex = new Regex(@"[\s\n\r\a\t]");
 
         public static void InsertTableAndReplaceText<TKey, TValue>(string templateName, string destination, IList<IDictionary<string, TValue>> body, IDictionary<TKey, TValue> replaceDict, string picturePath = null)
@@ -128,7 +117,8 @@ namespace WpfApp.Util
             var app = new Application();
             try
             {
-                var doc = app.Documents.Open(templateName);
+                var doc = OpenDocument(app, templateName);
+                if (doc == null) return;
                 try
                 {
                     var s = app.Selection;
@@ -232,7 +222,8 @@ namespace WpfApp.Util
             var app = new Application();
             try
             {
-                var doc = app.Documents.Open(templateName);
+                var doc = OpenDocument(app, templateName);
+                if (doc == null) return;
                 try
                 {
                     var s = app.Selection;
@@ -284,9 +275,46 @@ namespace WpfApp.Util
             }
         }
 
+        // Helpers
+
         private static void ShowFileNotFound(string fileName)
         {
             MessageBox.Show($"Внимание, шаблон \"{fileName}\" не найден!", "Файл не найден", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private static Document OpenDocument(Application app, string templateName)
+        {
+            try
+            {
+                return app.Documents.Open(templateName);
+            }
+            catch (Exception e)
+            {
+                App.Logger.Info(e, "Cannot open: " + templateName);
+                MessageBox.Show("Не удалось открыть файл: " + templateName + "\n\nСообщение об ошибке: " + e.Message, "Ошибка открытия файла", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return null;
+            }
+        }
+
+        private static void DocumentSaveAs(Document doc, string file)
+        {
+            var dir = Path.GetDirectoryName(file);
+            // ReSharper disable once AssignNullToNotNullAttribute
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            try
+            {
+                doc.SaveAs(FileName: file);
+            }
+            catch (Exception e)
+            {
+                App.Logger.Info(e, "Cannot save: " + file);
+                MessageBox.Show("Не удалось сохранить файл: " + file + "\n\nСообщение об ошибке: " + e.Message, "Ошибка сохранения файла", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private static void CloseDocuments(Documents documents)
+        {
+            documents.Close(SaveChanges: WdSaveOptions.wdDoNotSaveChanges);
         }
     }
 }
