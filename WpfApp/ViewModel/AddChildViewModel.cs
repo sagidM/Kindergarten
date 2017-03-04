@@ -204,9 +204,15 @@ namespace WpfApp.ViewModel
                 MessageBox.Show("Не все поля заполнены/пункты выбраны", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            var now = DateTime.Now;
+            if (ChildAdditionDate > now)
+            {
+                MessageBox.Show("Ввод будущей даты добавления запрещён", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             if (child.BirthDate > ChildAdditionDate)
             {
-                MessageBox.Show("Дата рождения должна быть меньше даты рождения", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Дата рождения должна быть меньше даты добавления", "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (SelectedOther == null && SelectedMother == null && SelectedFather == null)
@@ -250,8 +256,6 @@ namespace WpfApp.ViewModel
                     if (needAddPayments)
                     {
                         // to no debt range add
-
-                        var now = DateTime.Now;
 
                         if (now.Year != ChildAdditionDate.Year && now.Month != ChildAdditionDate.Month)
                         {

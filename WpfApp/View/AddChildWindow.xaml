@@ -284,7 +284,7 @@
 									<RowDefinition/>
 									<RowDefinition/>
 								</Grid.RowDefinitions>
-								<DatePicker Grid.Row="0" SelectedDate="{Binding ChildAdditionDate}"/>
+								<DatePicker Grid.Row="0" SelectedDate="{Binding ChildAdditionDate}" DisplayDateEnd="{x:Static system:DateTime.Now}"/>
 								<StackPanel Grid.Row="1">
 									<Grid>
 										<Grid.RowDefinitions>
