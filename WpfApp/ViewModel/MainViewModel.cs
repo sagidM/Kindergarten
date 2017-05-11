@@ -129,6 +129,7 @@ namespace WpfApp.ViewModel
             {
                 var res = ChildDetailsViewModel.MakeDataForDocument(child, child.Group, child.Tarif);
                 res["&child_last_enter"] = child.LastEnterChild.EnterDate.ToString(OtherSettings.DateFormat);
+                res["&child_address"] = child.LocationAddress;
                 res["&tarif_id"] = child.TarifId.ToString();
                 res["&tarif_monthly_payment"] = child.Tarif.MonthlyPayment.Str();
                 res["&tarif_annual_payment"] = child.Tarif.AnnualPayment.Str();
