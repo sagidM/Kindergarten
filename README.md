@@ -1,3 +1,8 @@
+## *Pay attention:* Starting from June 2017, Kindergarten is no longer an open source project.
+#### *Please contact:* kofon95@mail.ru
+--------------------------------------
+
+
 <h1 align="center">Kindergarten</h1>
 
 <p align="center">
@@ -112,3 +117,33 @@ Camera
 ======
 <!-- ![Camera logo](Camera/Camera-WF.ico) -->
 This project is stand-alone app, which is not depends on the others
+
+---------------
+
+### Update as of June 14, 2017
+
+## Kindergarten 3.0
+
+Main Window
+
+![](WpfApp/resources/screenshots/main_window.PNG)
+
+-----------
+Child Details
+
+![](WpfApp/resources/screenshots/child_details.PNG)
+
+-----------
+Groups
+
+![](WpfApp/resources/screenshots/archive_group.PNG)
+
+-----------
+Parents
+
+![](WpfApp/resources/screenshots/parents_addition.PNG)
+
+-----------
+Activator
+
+![](WpfApp/resources/screenshots/activator_empty.PNG)
